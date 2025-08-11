@@ -126,9 +126,9 @@ if (!usage) {
 }
 
 const used = usedTotal(usage);
-const pct = CONTEXT_WINDOW > 0 ? Math.floor((used * 100) / CONTEXT_WINDOW) : 0;
+const pct = CONTEXT_WINDOW > 0 ? Math.round((used * 1000) / CONTEXT_WINDOW) / 10 : 0;
 
-const usagePercentLabel = `${color(pct)}context used ${pct}%\x1b[0m`;
+const usagePercentLabel = `${color(pct)}context used ${pct.toFixed(1)}%\x1b[0m`;
 const usageCountLabel = `\x1b[33m(${comma(used)}/${comma(
   CONTEXT_WINDOW
 )})\x1b[0m`;
