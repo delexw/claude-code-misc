@@ -6,6 +6,7 @@ const path = require('path');
 // --- input ---
 const input = readJSON(0); // stdin
 const transcript = input.transcript_path;
+const sessionId = input.session_id;
 const model = input.model ?? {};
 const name = `\x1b[95m${String(model.display_name ?? '').trim()}\x1b[0m`;
 const CONTEXT_WINDOW = 200_000;
@@ -30,12 +31,6 @@ const syntheticModel = j => {
 const contentNoResponse = j => {
   const c = j?.message?.content;
   return Array.isArray(c) && c.some(x => x?.type === 'text' && /no\s+response\s+requested/i.test(String(x.text)));
-};
-const sessionIdFromPath = p => {
-  if (!p) return '';
-  const base = path.basename(p);
-  const id = base.endsWith('.jsonl') ? base.slice(0, -6) : base;
-  return id;
 };
 
 function lastMainUsage() {
@@ -62,10 +57,9 @@ function lastMainUsage() {
 
 // --- compute/print ---
 const usage = lastMainUsage();
-const sid = sessionIdFromPath(transcript);
 
 if (!usage) {
-  console.log(`[${name}] \x1b[36mcontext window usage starts after your first question.\x1b[0m [\x1b[90m${sid}\x1b[0m]`);
+  console.log(`[${name}] \x1b[36mcontext window usage starts after your first question.\x1b[0m [\x1b[90m${sessionId}\x1b[0m]`);
   process.exit(0);
 }
 
@@ -74,6 +68,6 @@ const pct = CONTEXT_WINDOW > 0 ? Math.floor((used * 100) / CONTEXT_WINDOW) : 0;
 
 const usagePercentLabel = `${color(pct)}context window usage ${pct}%\x1b[0m`;
 const usageCountLabel = `\x1b[33m(${comma(used)}/${comma(CONTEXT_WINDOW)})\x1b[0m`;
-const sessionLabel = `[\x1b[90m${sid}\x1b[0m]`;
+const sessionLabel = `[\x1b[90m${sessionId}\x1b[0m]`;
 
 console.log(`[${name}]  ${usagePercentLabel}  ${usageCountLabel} ${sessionLabel}`);
