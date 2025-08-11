@@ -40,3 +40,5 @@ Context monitoring script that displays real-time usage:
 - Color-coded usage indicators  
 - Session tracking and identification
 - Automatic synthetic message filtering
+
+![alt text](image.png)
