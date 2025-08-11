@@ -31,9 +31,10 @@ Custom slash commands for Claude Code:
 **Location**: `.claude/statusline/`
 
 Context monitoring script that displays real-time usage:
-- **`ctx_monitor.sh`** - Shows context window usage percentage with color coding (green/yellow/red)
-- Tracks session ID and token consumption
-- Displays model name and usage statistics
+- **`ctx_monitor.sh`**
+  - Shows context window usage percentage with color coding (green/yellow/red)
+  - Tracks session ID and token consumption
+  - Displays model name and usage statistics
 
 **Features**:
 - Real-time context window monitoring (0-200k tokens)
