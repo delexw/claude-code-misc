@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONL Evaluation Results Viewer - VS Code Style</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Ensure Tailwind includes these classes
+        tailwind.config = {
+            safelist: [
+                'text-green-600', 'text-yellow-600', 'text-red-600',
+                'bg-green-500', 'bg-yellow-500', 'bg-red-500',
+                'text-green-700', 'text-orange-700',
+                'bg-green-50', 'bg-orange-50',
+                'bg-green-100', 'bg-yellow-100', 'bg-red-100',
+                'text-green-800', 'text-yellow-800', 'text-red-800',
+                'border-green-300', 'border-yellow-300', 'border-red-300',
+                'bg-indigo-50', 'bg-purple-50', 'border-indigo-200', 'text-indigo-600',
+                'bg-gray-800', 'bg-gray-900', 'border-gray-700',
+                'text-blue-400', 'text-green-400'
+            ]
+        }
+    </script>
+    <style>
+        /* VS Code-like theme */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            font-size: 13px;
+        }
+        
+        /* Ensure proper flex behavior */
+        #content-area {
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+        
+        #sidebar {
+            flex: 0 0 auto;
+        }
+        
+        /* Responsive breakpoints */
+        @media (max-width: 768px) {
+            /* Mobile: Force vertical split only */
+            .split-horizontal {
+                flex-direction: column !important;
+            }
+            
+            /* Hide sidebar on mobile by default */
+            #sidebar {
+                position: fixed;
+                left: -100%;
+                top: 0;
+                bottom: 0;
+                width: 80% !important;
+                max-width: 300px;
+                z-index: 50;
+                transition: left 0.3s ease;
+            }
+            
+            #sidebar.mobile-open {
+                left: 0;
+            }
+            
+            /* Sidebar overlay */
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 40;
+                display: none;
+            }
+            
+            .sidebar-overlay.active {
+                display: block;
+            }
+            
+            /* Hide horizontal split button on mobile */
+            .split-horizontal-btn {
+                display: none !important;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            /* Small mobile: Single panel only */
+            .split-vertical {
+                flex-direction: column !important;
+            }
+            
+            #panel-2 {
+                display: none !important;
+            }
+            
+            #resize-handle {
+                display: none !important;
+            }
+            
+            /* Hide split buttons on small mobile */
+            .split-buttons {
+                display: none !important;
+            }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #464647;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a5a5a;
+        }
+        
+        /* Resizable panels */
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 10;
+        }
+        
+        .resize-handle:hover {
+            background: #007acc;
+        }
+        
+        .resize-handle-horizontal {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 4px;
+            cursor: row-resize;
+            background: transparent;
+            z-index: 10;
+        }
+        
+        .resize-handle-horizontal:hover {
+            background: #007acc;
+        }
+        
+        /* Selection highlight */
+        .sidebar-item {
+            transition: background-color 0.1s;
+        }
+        
+        .sidebar-item:hover {
+            background-color: #2a2d2e;
+        }
+        
+        .sidebar-item.selected {
+            background-color: #094771;
+        }
+        
+        /* Split view */
+        .split-panel {
+            overflow: auto;
+            position: relative;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        
+        .split-panel.active {
+            border-color: #007acc;
+        }
+        
+        .split-horizontal {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .split-horizontal .split-panel {
+            min-height: 100px;
+            width: 100% !important;
+            flex: none;
+        }
+        
+        .split-vertical {
+            display: flex;
+            flex-direction: row;
+            height: 100%;
+        }
+        
+        .split-vertical .split-panel {
+            min-width: 200px;
+            height: 100% !important;
+            flex: none;
+        }
+        
+        /* Ensure content doesn't overflow */
+        #split-container {
+            overflow: hidden;
+        }
+        
+        /* Prevent content from breaking layout */
+        .split-panel pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+        
+        .split-panel > div {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* VS Code color scheme */
+        .vscode-dark {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+        }
+        
+        .vscode-sidebar {
+            background-color: #252526;
+            border-right: 1px solid #3e3e42;
+        }
+        
+        .vscode-editor {
+            background-color: #1e1e1e;
+        }
+        
+        .vscode-toolbar {
+            background-color: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        /* Drop zone styling */
+        .drop-zone-active {
+            border-color: #007acc;
+            background-color: rgba(0, 122, 204, 0.1);
+        }
+    </style>
+</head>
+<body class="vscode-dark h-screen overflow-hidden flex flex-col">
+    <!-- Top Toolbar -->
+    <div class="vscode-toolbar px-4 py-2 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <!-- Mobile menu button -->
+            <button onclick="toggleMobileSidebar()" class="p-1 hover:bg-gray-700 rounded md:hidden">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="text-sm font-medium hidden sm:block">JSONL Evaluation Viewer</h1>
+            <div class="flex items-center space-x-2">
+                <button onclick="document.getElementById('file-input').click()" class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded">
+                    <span class="hidden sm:inline">Open File</span>
+                    <span class="sm:hidden">Open</span>
+                </button>
+                <button onclick="clearAll()" class="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-gray-300 rounded hidden sm:block">
+                    Clear All
+                </button>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 split-buttons">
+            <button onclick="toggleSplitView('vertical')" class="p-1 hover:bg-gray-700 rounded" title="Split Vertical">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16m6-16v16M4 5h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1z"></path>
+                </svg>
+            </button>
+            <button onclick="toggleSplitView('horizontal')" class="p-1 hover:bg-gray-700 rounded split-horizontal-btn" title="Split Horizontal">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9h16M4 15h16M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar overlay for mobile -->
+    <div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex overflow-hidden">
+        <!-- Left Sidebar -->
+        <div id="sidebar" class="vscode-sidebar overflow-y-auto relative flex-shrink-0 md:w-64" style="width: 256px; min-width: 150px;">
+            <div class="resize-handle" style="right: -2px;"></div>
+            
+            <!-- File Drop Zone -->
+            <div id="drop-zone" class="border-2 border-dashed border-gray-600 m-3 p-4 text-center rounded">
+                <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <input type="file" id="file-input" accept=".jsonl,.json" class="hidden">
+                <p class="text-xs text-gray-400">Drop JSONL file here</p>
+            </div>
+            
+            <!-- Model Groups -->
+            <div id="model-groups" class="p-3">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Right Content Area -->
+        <div id="content-area" class="flex-1 flex flex-col vscode-editor">
+            <!-- Split View Container -->
+            <div id="split-container" class="flex-1 flex split-vertical">
+                <!-- Panel 1 -->
+                <div id="panel-1" class="split-panel active" style="width: 100%;" onclick="setActivePanel(1)">
+                    <div class="p-4 h-full overflow-auto">
+                        <div class="text-center text-gray-500 mt-20">
+                            <svg class="mx-auto h-16 w-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p class="text-sm">No entry selected</p>
+                            <p class="text-xs text-gray-600 mt-2">Select an entry from the sidebar to view details</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Resize Handle (hidden by default) -->
+                <div id="resize-handle" class="resize-handle hidden"></div>
+                
+                <!-- Panel 2 (hidden by default) -->
+                <div id="panel-2" class="split-panel hidden" style="width: 50%;" onclick="setActivePanel(2)">
+                    <div class="p-4 h-full overflow-auto">
+                        <div class="text-center text-gray-500 mt-20">
+                            <p class="text-sm">Select another entry to compare</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="vscode-toolbar px-4 py-1 text-xs flex items-center justify-between border-t border-gray-700">
+        <div id="status-info" class="text-gray-500">
+            No files loaded
+        </div>
+        <div id="selection-info" class="text-gray-500">
+            <!-- Selection info will go here -->
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        const AppState = {
+            results: [],
+            modelGroups: {},
+            selectedEntries: [],
+            splitView: false,
+            splitDirection: 'vertical',
+            sidebarWidth: 256,
+            splitPosition: 50,
+            activePanel: 1, // Track which panel is active for selection
+            resizeTimeout: null
+        };
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+
+            // File input change handler
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Drag and drop handlers
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drop-zone-active');
+            });
+
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drop-zone-active');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drop-zone-active');
+                handleFileSelect(e);
+            });
+
+            // Initialize resizable panels
+            initializeResizablePanels();
+            
+            // Handle window resize
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                // Clear any existing timer
+                clearTimeout(resizeTimer);
+                
+                // Immediate adjustments
+                if (AppState.splitView) {
+                    adjustPanelSizes();
+                }
+                checkResponsiveMode();
+                
+                // Final adjustment after resize ends
+                resizeTimer = setTimeout(() => {
+                    if (AppState.splitView) {
+                        adjustPanelSizes();
+                    }
+                }, 150);
+            });
+            
+            // Check initial responsive mode
+            checkResponsiveMode();
+        });
+        
+        // Toggle mobile sidebar
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.toggle('mobile-open');
+            overlay.classList.toggle('active');
+        }
+        
+        // Check and adjust for responsive mode
+        function checkResponsiveMode() {
+            const width = window.innerWidth;
+            
+            // On small screens, close split view
+            if (width < 640 && AppState.splitView) {
+                AppState.splitView = false;
+                document.getElementById('panel-2').classList.add('hidden');
+                document.getElementById('resize-handle').classList.add('hidden');
+                renderContent();
+            }
+            
+            // On medium screens, force vertical split if horizontal
+            if (width < 768 && AppState.splitView && AppState.splitDirection === 'horizontal') {
+                toggleSplitView('vertical');
+            }
+        }
+
+        // File handling
+        function handleFileSelect(event) {
+            event.preventDefault();
+            
+            const files = event.target.files || event.dataTransfer.files;
+            
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            
+            // Validation
+            if (!file.name.endsWith('.jsonl') && !file.name.endsWith('.json')) {
+                showError('Please upload a .jsonl or .json file');
+                return;
+            }
+            
+            const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+            if (file.size > MAX_SIZE) {
+                showError('File too large. Maximum size is 50MB');
+                return;
+            }
+            
+            parseJSONLFile(file);
+        }
+
+        // JSONL parsing
+        async function parseJSONLFile(file) {
+            try {
+                const text = await file.text();
+                const lines = text.split('\n').filter(line => line.trim());
+                
+                if (lines.length === 0) {
+                    showError('File is empty');
+                    return;
+                }
+                
+                const newResults = [];
+                const errors = [];
+                
+                lines.forEach((line, index) => {
+                    try {
+                        const data = JSON.parse(line);
+                        const uniqueData = removeDuplicateKeys(data);
+                        newResults.push(uniqueData);
+                    } catch (e) {
+                        errors.push(`Line ${index + 1}: ${e.message}`);
+                    }
+                });
+                
+                if (newResults.length > 0) {
+                    // Append to existing results
+                    AppState.results = [...AppState.results, ...newResults];
+                    organizeByModel();
+                    updateStatus(`Loaded ${newResults.length} entries. Total: ${AppState.results.length}`);
+                } else {
+                    showError('No valid JSON entries found in file');
+                }
+                
+                if (errors.length > 0) {
+                    console.warn(`Parsing errors: ${errors.join(', ')}`);
+                }
+                
+            } catch (error) {
+                showError(`Failed to read file: ${error.message}`);
+            }
+        }
+
+        // Remove duplicate keys from object
+        function removeDuplicateKeys(obj) {
+            if (typeof obj !== 'object' || obj === null) return obj;
+            
+            const result = Array.isArray(obj) ? [] : {};
+            
+            const processObject = (source, target) => {
+                const seen = new Set();
+                
+                if (Array.isArray(source)) {
+                    source.forEach((item, index) => {
+                        if (typeof item === 'object' && item !== null) {
+                            target[index] = Array.isArray(item) ? [] : {};
+                            processObject(item, target[index]);
+                        } else {
+                            target[index] = item;
+                        }
+                    });
+                } else {
+                    for (const key in source) {
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            if (typeof source[key] === 'object' && source[key] !== null) {
+                                target[key] = Array.isArray(source[key]) ? [] : {};
+                                processObject(source[key], target[key]);
+                            } else {
+                                target[key] = source[key];
+                            }
+                        }
+                    }
+                }
+            };
+            
+            processObject(obj, result);
+            return result;
+        }
+
+        // Organize results by model
+        function organizeByModel() {
+            AppState.modelGroups = {};
+            
+            AppState.results.forEach((result, index) => {
+                const modelId = result?.evaluation?.response?.modelId || 'Unknown Model';
+                
+                if (!AppState.modelGroups[modelId]) {
+                    AppState.modelGroups[modelId] = [];
+                }
+                
+                AppState.modelGroups[modelId].push({
+                    data: result,
+                    index: index
+                });
+            });
+            
+            renderSidebar();
+        }
+
+        // Render sidebar with model groups
+        function renderSidebar() {
+            const container = document.getElementById('model-groups');
+            
+            if (Object.keys(AppState.modelGroups).length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500 text-center">No data loaded</p>';
+                return;
+            }
+            
+            let html = '';
+            
+            Object.entries(AppState.modelGroups).forEach(([modelId, entries]) => {
+                html += `
+                    <div class="mb-4">
+                        <div class="flex items-center px-2 py-1 text-xs font-medium text-gray-400 uppercase">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            ${escapeHtml(modelId)} (${entries.length})
+                        </div>
+                        <div class="ml-3">
+                            ${entries.map(entry => {
+                                const prompt = entry.data?.prompt || '';
+                                const promptPreview = getPromptPreview(prompt, 30);
+                                const globalScore = entry.data?.evaluation?.object?.scores?.global || 0;
+                                const isSelectedPanel1 = AppState.selectedEntries[0] === entry.index;
+                                const isSelectedPanel2 = AppState.selectedEntries[1] === entry.index;
+                                const selected = isSelectedPanel1 || isSelectedPanel2;
+                                
+                                let panelIndicator = '';
+                                if (AppState.splitView) {
+                                    if (isSelectedPanel1 && isSelectedPanel2) {
+                                        panelIndicator = '<span class="text-xs text-blue-400 mr-1">[1,2]</span>';
+                                    } else if (isSelectedPanel1) {
+                                        panelIndicator = '<span class="text-xs text-blue-400 mr-1">[1]</span>';
+                                    } else if (isSelectedPanel2) {
+                                        panelIndicator = '<span class="text-xs text-green-400 mr-1">[2]</span>';
+                                    }
+                                }
+                                
+                                return `
+                                    <div class="sidebar-item px-2 py-1 cursor-pointer flex items-center justify-between ${selected ? 'selected' : ''}" 
+                                         onclick="selectEntry(${entry.index}, event)"
+                                         title="${escapeHtml(prompt)}">
+                                        <div class="flex items-center flex-1 min-w-0">
+                                            ${panelIndicator}
+                                            <span class="text-xs truncate">${escapeHtml(promptPreview)}</span>
+                                        </div>
+                                        <span class="text-xs px-1 rounded ml-2 ${getScoreColorClass(globalScore)}">${globalScore}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Select entry
+        function selectEntry(index, event) {
+            // Prevent event bubbling
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            if (AppState.splitView) {
+                // In split view, add to the active panel
+                if (AppState.activePanel === 1) {
+                    AppState.selectedEntries[0] = index;
+                } else {
+                    AppState.selectedEntries[1] = index;
+                }
+                
+                // Ensure we have at least empty slots for both panels
+                if (AppState.selectedEntries.length < 2) {
+                    AppState.selectedEntries = [
+                        AppState.selectedEntries[0] || null,
+                        null
+                    ];
+                }
+            } else {
+                // Single view mode - always show in first panel
+                AppState.selectedEntries = [index];
+                AppState.activePanel = 1;
+            }
+            
+            // Close mobile sidebar after selection
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.querySelector('.sidebar-overlay');
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('active');
+            }
+            
+            renderSidebar();
+            renderContent();
+            updateSelectionInfo();
+        }
+
+        // Set active panel
+        function setActivePanel(panelNum) {
+            if (!AppState.splitView && panelNum === 2) return; // Can't activate panel 2 in single view
+            
+            AppState.activePanel = panelNum;
+            
+            const panel1 = document.getElementById('panel-1');
+            const panel2 = document.getElementById('panel-2');
+            
+            if (panelNum === 1) {
+                panel1.classList.add('active');
+                panel2.classList.remove('active');
+            } else {
+                panel1.classList.remove('active');
+                panel2.classList.add('active');
+            }
+        }
+
+        // Render content panels
+        function renderContent() {
+            const panel1 = document.getElementById('panel-1');
+            const panel2 = document.getElementById('panel-2');
+            
+            // Render first panel
+            if (AppState.selectedEntries[0] !== undefined && AppState.selectedEntries[0] !== null) {
+                panel1.innerHTML = `<div class="h-full overflow-auto relative">${renderEntryDetails(AppState.results[AppState.selectedEntries[0]], AppState.selectedEntries[0])}</div>`;
+            } else {
+                panel1.innerHTML = `<div class="p-4 h-full overflow-auto">${getEmptyStateHtml()}</div>`;
+            }
+            
+            // Render second panel
+            if (AppState.splitView && AppState.selectedEntries[1] !== undefined && AppState.selectedEntries[1] !== null) {
+                panel2.innerHTML = `<div class="h-full overflow-auto relative">${renderEntryDetails(AppState.results[AppState.selectedEntries[1]], AppState.selectedEntries[1])}</div>`;
+            } else {
+                panel2.innerHTML = `<div class="p-4 h-full overflow-auto">${getEmptyStateHtml('Select another entry to compare')}</div>`;
+            }
+        }
+
+        // Render entry details
+        function renderEntryDetails(data, index) {
+            if (!data) return getEmptyStateHtml();
+            
+            const scores = data?.evaluation?.object?.scores || {};
+            const usage = data?.evaluation?.usage || {};
+            const modelId = data?.evaluation?.response?.modelId || 'Unknown Model';
+            const strengths = data?.evaluation?.object?.strengths || [];
+            const improvements = data?.evaluation?.object?.improvements || [];
+            const rewrite = data?.evaluation?.object?.rewrite || '';
+            const questions = data?.evaluation?.object?.questions || [];
+            const prompt = data?.prompt || '';
+            
+            return `
+                <div class="h-full flex flex-col">
+                    <!-- Sticky Header -->
+                    <div class="sticky top-0 z-10 bg-gray-900 border-b border-gray-700 p-4 shadow-lg flex-shrink-0">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-lg font-medium mb-1">Entry Details</h2>
+                                <div class="text-sm font-mono text-blue-400">
+                                    Model: ${escapeHtml(modelId)}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs text-gray-500 mb-1">Global Score</div>
+                                <div class="text-2xl font-bold ${scores.global >= 7 ? 'text-green-400' : scores.global >= 5 ? 'text-yellow-400' : 'text-red-400'}">
+                                    ${scores.global !== undefined ? scores.global + '/10' : 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 overflow-auto p-4">
+                    <div class="space-y-4">
+                    
+                    <!-- Prompt -->
+                    <div>
+                        <h3 class="text-sm font-medium mb-2 text-gray-300">Prompt</h3>
+                        <div class="bg-gray-800 rounded p-3 text-xs">
+                            <pre class="whitespace-pre-wrap">${escapeHtml(prompt)}</pre>
+                        </div>
+                    </div>
+                    
+                    <!-- Usage -->
+                    <div>
+                        <h3 class="text-sm font-medium mb-2 text-gray-300">Token Usage</h3>
+                        <div class="grid grid-cols-3 gap-2 text-xs">
+                            <div class="bg-gray-800 rounded p-2">
+                                <div class="text-gray-500">Prompt</div>
+                                <div class="font-medium">${usage.promptTokens || 0}</div>
+                            </div>
+                            <div class="bg-gray-800 rounded p-2">
+                                <div class="text-gray-500">Completion</div>
+                                <div class="font-medium">${usage.completionTokens || 0}</div>
+                            </div>
+                            <div class="bg-gray-800 rounded p-2">
+                                <div class="text-gray-500">Total</div>
+                                <div class="font-medium text-blue-400">${usage.totalTokens || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Scores -->
+                    <div>
+                        <h3 class="text-sm font-medium mb-2 text-gray-300">Scores</h3>
+                        ${renderScores(scores)}
+                    </div>
+                    
+                    <!-- Strengths -->
+                    ${renderList('Strengths', strengths, 'text-green-400')}
+                    
+                    <!-- Improvements -->
+                    ${renderList('Improvements', improvements, 'text-orange-400')}
+
+                    <!-- Questions -->
+                    ${renderList('Questions', questions, 'text-purple-400')}
+                    
+                    <!-- Rewrite -->
+                    ${renderRewrite(rewrite, index)}
+                    
+                    <!-- Raw JSON -->
+                    <div>
+                        <h3 class="text-sm font-medium mb-2 text-gray-300">Raw Data</h3>
+                        <div class="bg-gray-800 rounded p-3 text-xs overflow-auto">
+                            <pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+                        </div>
+                    </div>
+                    </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render scores
+        function renderScores(scores) {
+            const globalScore = scores.global;
+            const otherScores = Object.entries(scores).filter(([key]) => key !== 'global');
+            
+            let html = '';
+            
+            if (globalScore !== undefined) {
+                html += `
+                    <div class="mb-3 p-3 bg-gray-800 rounded">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium">Global Score</span>
+                            <span class="text-lg font-bold ${getScoreTextColor(globalScore)}">${globalScore}/10</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="${getScoreBarColor(globalScore)} h-2 rounded-full transition-all duration-500" style="width: ${(globalScore / 10) * 100}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (otherScores.length > 0) {
+                html += '<div class="grid grid-cols-2 gap-2">';
+                otherScores.forEach(([key, value]) => {
+                    const percentage = (value / 10) * 100;
+                    html += `
+                        <div class="bg-gray-800 rounded p-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="capitalize text-gray-400">${key}</span>
+                                <span class="${getScoreTextColor(value)}">${value}/10</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-1">
+                                <div class="${getScoreBarColor(value)} h-1 rounded-full" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+            
+            return html;
+        }
+
+        // Render list (strengths/improvements)
+        function renderList(title, items, textColor) {
+            if (!items || items.length === 0) return '';
+            
+            return `
+                <div>
+                    <h3 class="text-sm font-medium mb-2 text-gray-300">${title}</h3>
+                    <ul class="space-y-1 text-xs">
+                        ${items.map(item => `
+                            <li class="flex items-start">
+                                <svg class="w-3 h-3 mr-2 mt-0.5 flex-shrink-0 ${textColor}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span>${escapeHtml(item)}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Render rewrite
+        function renderRewrite(rewrite, index) {
+            if (!rewrite) return '';
+            
+            return `
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-medium text-gray-300">Rewrite</h3>
+                        <button onclick="copyToClipboard(\`${escapeHtml(rewrite).replace(/`/g, '\\`')}\`, ${index})"
+                                class="text-xs px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded">
+                            Copy
+                        </button>
+                    </div>
+                    <div class="bg-gray-800 rounded p-3 text-xs">
+                        <pre class="whitespace-pre-wrap">${escapeHtml(rewrite)}</pre>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Toggle split view
+        function toggleSplitView(direction) {
+            const panel1 = document.getElementById('panel-1');
+            const panel2 = document.getElementById('panel-2');
+            const resizeHandle = document.getElementById('resize-handle');
+            const splitContainer = document.getElementById('split-container');
+            
+            if (AppState.splitView && AppState.splitDirection === direction) {
+                // Close split view
+                AppState.splitView = false;
+                panel2.classList.add('hidden');
+                resizeHandle.classList.add('hidden');
+                
+                // Reset panel 1 to full size
+                panel1.style.width = '100%';
+                panel1.style.height = '100%';
+                
+                // Reset active panel to 1
+                AppState.activePanel = 1;
+                setActivePanel(1);
+                
+                // Keep only first selection
+                if (AppState.selectedEntries.length > 1) {
+                    AppState.selectedEntries = [AppState.selectedEntries[0]];
+                    renderSidebar();
+                }
+            } else {
+                // Open split view or change direction
+                AppState.splitView = true;
+                AppState.splitDirection = direction;
+                panel2.classList.remove('hidden');
+                resizeHandle.classList.remove('hidden');
+                
+                // Ensure we have slots for both panels
+                if (AppState.selectedEntries.length < 2) {
+                    AppState.selectedEntries = [
+                        AppState.selectedEntries[0] || null,
+                        null
+                    ];
+                }
+                
+                // Update split container classes
+                const containerRect = splitContainer.getBoundingClientRect();
+                
+                if (direction === 'vertical') {
+                    splitContainer.classList.add('split-vertical');
+                    splitContainer.classList.remove('split-horizontal');
+                    resizeHandle.classList.add('resize-handle');
+                    resizeHandle.classList.remove('resize-handle-horizontal');
+                    
+                    // Reset panel sizes for vertical split
+                    const halfWidth = containerRect.width / 2;
+                    panel1.style.width = halfWidth + 'px';
+                    panel1.style.height = '100%';
+                    panel2.style.width = halfWidth + 'px';
+                    panel2.style.height = '100%';
+                    resizeHandle.style.left = halfWidth + 'px';
+                    resizeHandle.style.top = '';
+                    AppState.splitPosition = 50; // Reset to 50/50 split
+                } else {
+                    splitContainer.classList.add('split-horizontal');
+                    splitContainer.classList.remove('split-vertical');
+                    resizeHandle.classList.add('resize-handle-horizontal');
+                    resizeHandle.classList.remove('resize-handle');
+                    
+                    // Reset panel sizes for horizontal split
+                    const halfHeight = containerRect.height / 2;
+                    panel1.style.width = '100%';
+                    panel1.style.height = halfHeight + 'px';
+                    panel2.style.width = '100%';
+                    panel2.style.height = halfHeight + 'px';
+                    resizeHandle.style.top = halfHeight + 'px';
+                    resizeHandle.style.left = '';
+                    AppState.splitPosition = 50; // Reset to 50/50 split
+                }
+                
+                // Ensure panels are sized correctly after split setup
+                setTimeout(() => {
+                    adjustPanelSizes();
+                }, 0);
+            }
+            
+            renderContent();
+        }
+
+        // Adjust panel sizes based on container
+        function adjustPanelSizes() {
+            const splitContainer = document.getElementById('split-container');
+            const panel1 = document.getElementById('panel-1');
+            const panel2 = document.getElementById('panel-2');
+            const resizeHandle = document.getElementById('resize-handle');
+            
+            if (!AppState.splitView || !panel2) return;
+            
+            // Ensure panel2 is visible
+            if (panel2.classList.contains('hidden')) {
+                panel2.classList.remove('hidden');
+                resizeHandle.classList.remove('hidden');
+            }
+            
+            // Force a reflow to get accurate measurements
+            splitContainer.offsetHeight;
+            
+            // Use requestAnimationFrame for smooth updates
+            requestAnimationFrame(() => {
+                // Get fresh container dimensions after sidebar resize
+                const containerRect = splitContainer.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+                
+                if (AppState.splitDirection === 'vertical') {
+                    // Recalculate based on current split position percentage
+                    const splitRatio = AppState.splitPosition / 100;
+                    let newPanel1Width = Math.floor(containerWidth * splitRatio);
+                    let newPanel2Width = containerWidth - newPanel1Width;
+                    
+                    // Ensure minimum widths
+                    const minWidth = 200;
+                    
+                    // Check if we need to adjust for minimum widths
+                    if (containerWidth < minWidth * 2) {
+                        // Container too small for both panels at min width
+                        const halfWidth = containerWidth / 2;
+                        newPanel1Width = halfWidth;
+                        newPanel2Width = halfWidth;
+                    } else if (newPanel1Width < minWidth) {
+                        newPanel1Width = minWidth;
+                        newPanel2Width = containerWidth - minWidth;
+                    } else if (newPanel2Width < minWidth) {
+                        newPanel2Width = minWidth;
+                        newPanel1Width = containerWidth - minWidth;
+                    }
+                    
+                    // Apply the calculated widths
+                    panel1.style.width = newPanel1Width + 'px';
+                    panel2.style.width = newPanel2Width + 'px';
+                    resizeHandle.style.left = newPanel1Width + 'px';
+                    
+                    // Update split position to reflect actual split
+                    AppState.splitPosition = (newPanel1Width / containerWidth) * 100;
+                    
+                    // Ensure panels fill height
+                    panel1.style.height = '100%';
+                    panel2.style.height = '100%';
+                    
+                    // Ensure resize handle is positioned correctly
+                    resizeHandle.style.right = '';
+                    resizeHandle.style.top = '0';
+                    resizeHandle.style.bottom = '0';
+                    resizeHandle.style.width = '4px';
+                    resizeHandle.style.height = '';
+                } else {
+                    // Maintain split position percentage for horizontal
+                    const splitRatio = AppState.splitPosition / 100;
+                    let newPanel1Height = Math.floor(containerHeight * splitRatio);
+                    let newPanel2Height = containerHeight - newPanel1Height;
+                    
+                    // Ensure minimum heights
+                    const minHeight = 100;
+                    
+                    // Check if we need to adjust for minimum heights
+                    if (containerHeight < minHeight * 2) {
+                        // Container too small for both panels at min height
+                        const halfHeight = containerHeight / 2;
+                        newPanel1Height = halfHeight;
+                        newPanel2Height = halfHeight;
+                    } else if (newPanel1Height < minHeight) {
+                        newPanel1Height = minHeight;
+                        newPanel2Height = containerHeight - minHeight;
+                    } else if (newPanel2Height < minHeight) {
+                        newPanel2Height = minHeight;
+                        newPanel1Height = containerHeight - minHeight;
+                    }
+                    
+                    // Apply the calculated heights
+                    panel1.style.height = newPanel1Height + 'px';
+                    panel2.style.height = newPanel2Height + 'px';
+                    resizeHandle.style.top = newPanel1Height + 'px';
+                    
+                    // Update split position to reflect actual split
+                    AppState.splitPosition = (newPanel1Height / containerHeight) * 100;
+                    
+                    // Ensure panels fill width
+                    panel1.style.width = '100%';
+                    panel2.style.width = '100%';
+                    
+                    // Ensure resize handle is positioned correctly
+                    resizeHandle.style.bottom = '';
+                    resizeHandle.style.left = '0';
+                    resizeHandle.style.right = '0';
+                    resizeHandle.style.height = '4px';
+                    resizeHandle.style.width = '';
+                }
+            });
+        }
+
+        // Initialize resizable panels
+        function initializeResizablePanels() {
+            // Sidebar resize
+            const sidebar = document.getElementById('sidebar');
+            const sidebarHandle = sidebar.querySelector('.resize-handle');
+            const splitHandle = document.getElementById('resize-handle');
+            const panel1 = document.getElementById('panel-1');
+            const panel2 = document.getElementById('panel-2');
+            const splitContainer = document.getElementById('split-container');
+            
+            let isResizingSidebar = false;
+            let isResizingPanels = false;
+            
+            // Sidebar resize handlers
+            sidebarHandle.addEventListener('mousedown', (e) => {
+                isResizingSidebar = true;
+                document.body.style.cursor = 'col-resize';
+                e.preventDefault();
+            });
+            
+            // Split panels resize handlers
+            splitHandle.addEventListener('mousedown', (e) => {
+                isResizingPanels = true;
+                document.body.style.cursor = AppState.splitDirection === 'vertical' ? 'col-resize' : 'row-resize';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isResizingSidebar) {
+                    // Calculate new width based on mouse position from left edge of viewport
+                    const newWidth = e.clientX;
+                    if (newWidth > 150 && newWidth < 500) {
+                        sidebar.style.width = newWidth + 'px';
+                        AppState.sidebarWidth = newWidth;
+                        
+                        // Adjust split panels when sidebar is resized with debouncing
+                        if (AppState.splitView) {
+                            // Clear any existing timeout
+                            if (AppState.resizeTimeout) {
+                                clearTimeout(AppState.resizeTimeout);
+                            }
+                            
+                            // Immediate update for smooth experience
+                            adjustPanelSizes();
+                            
+                            // Final update after resize stops
+                            AppState.resizeTimeout = setTimeout(() => {
+                                adjustPanelSizes();
+                            }, 50);
+                        }
+                    }
+                } else if (isResizingPanels) {
+                    const containerRect = splitContainer.getBoundingClientRect();
+                    
+                    if (AppState.splitDirection === 'vertical') {
+                        const relativeX = e.clientX - containerRect.left;
+                        const newWidth = Math.max(200, Math.min(relativeX, containerRect.width - 200));
+                        const percentage = (newWidth / containerRect.width) * 100;
+                        
+                        panel1.style.width = newWidth + 'px';
+                        panel2.style.width = (containerRect.width - newWidth) + 'px';
+                        splitHandle.style.left = newWidth + 'px';
+                        AppState.splitPosition = percentage;
+                    } else {
+                        const relativeY = e.clientY - containerRect.top;
+                        const newHeight = Math.max(100, Math.min(relativeY, containerRect.height - 100));
+                        const percentage = (newHeight / containerRect.height) * 100;
+                        
+                        panel1.style.height = newHeight + 'px';
+                        panel2.style.height = (containerRect.height - newHeight) + 'px';
+                        splitHandle.style.top = newHeight + 'px';
+                        AppState.splitPosition = percentage;
+                    }
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isResizingSidebar = false;
+                isResizingPanels = false;
+                document.body.style.cursor = 'default';
+            });
+        }
+
+        // Utility functions
+        function copyToClipboard(text, index) {
+            navigator.clipboard.writeText(text).then(() => {
+                updateStatus('Copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all entries?')) {
+                AppState.results = [];
+                AppState.modelGroups = {};
+                AppState.selectedEntries = [];
+                renderSidebar();
+                renderContent();
+                updateStatus('All entries cleared');
+            }
+        }
+
+        function getPromptPreview(prompt, maxLength = 50) {
+            if (!prompt) return 'No prompt';
+            const cleaned = prompt.replace(/\s+/g, ' ').trim();
+            const firstLine = cleaned.split(/[\n.!?]/)[0].trim();
+            return firstLine.length <= maxLength ? firstLine : firstLine.substring(0, maxLength).trim() + '...';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getScoreColorClass(score) {
+            if (score >= 7) return 'bg-green-700 text-green-200';
+            if (score >= 5) return 'bg-yellow-700 text-yellow-200';
+            return 'bg-red-700 text-red-200';
+        }
+
+        function getScoreTextColor(score) {
+            if (score >= 7) return 'text-green-400';
+            if (score >= 5) return 'text-yellow-400';
+            return 'text-red-400';
+        }
+
+        function getScoreBarColor(score) {
+            if (score >= 7) return 'bg-green-500';
+            if (score >= 5) return 'bg-yellow-500';
+            return 'bg-red-500';
+        }
+
+        function getEmptyStateHtml(message = 'No entry selected') {
+            return `
+                <div class="text-center text-gray-500 mt-20">
+                    <svg class="mx-auto h-16 w-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p class="text-sm">${message}</p>
+                    <p class="text-xs text-gray-600 mt-2">Select an entry from the sidebar to view details</p>
+                </div>
+            `;
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status-info').textContent = message;
+        }
+
+        function updateSelectionInfo() {
+            const info = document.getElementById('selection-info');
+            if (AppState.selectedEntries.length === 0) {
+                info.textContent = '';
+            } else if (AppState.selectedEntries.length === 1) {
+                info.textContent = '1 entry selected';
+            } else {
+                info.textContent = `${AppState.selectedEntries.length} entries selected`;
+            }
+        }
+
+        function showError(message) {
+            updateStatus(`Error: ${message}`);
+        }
+    </script>
+</body>
+</html>
