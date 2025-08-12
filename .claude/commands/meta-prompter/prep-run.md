@@ -23,7 +23,10 @@ argument-hint: paste/type prompt to evaluate then perform OR type resume
 ## B) Clarify
 - If answers.json is missing or incomplete:
   - Load `@tmp/meta-prompter/eval/<session_id>/prompt_eval.json`.
-  - Ask the 3 questions sequentially, highlighting each with a randomly chosen ANSI color code; follow up briefly if answers are vague.
+  - Attempt to answer the 3 questions based on chat context
+  - If you don't have enough context to answer:
+    - **IMPORTANT** Ask the 3 questions sequentially
+    - Highlight each with a randomly chosen ANSI color code
   - Save `./tmp/meta-prompter/eval/<session_id>/answers.json` as:
     ```json
     { "answers": [
@@ -39,14 +42,15 @@ argument-hint: paste/type prompt to evaluate then perform OR type resume
   - Base = (`rewrite` if non-empty) else `original_prompt`
   - Append a short **Clarifications** section from the 3 answers (concise bullet points).
 
-## D) Re-evaluate and gate (must reach global ≥ 8)
+## D) Re-evaluate and gate
 - Re-run evaluation on **FINAL_PROMPT**:  
   `/meta-prompter:eval "<FINAL_PROMPT>"`
 - Overwrite `./tmp/meta-prompter/eval/<session_id>/prompt_eval.json` with this latest evaluation JSON result (preserve `"original_prompt"` and, if present, `"final_prompt"`).
 - If `global < 8`:
-  - **Do not invent questions.** Use the **3 questions returned by this re-evaluation**.
+  - **STOPPED execution immediately.**
+  - **Do NOT invent questions.** Use the **3 questions returned by this re-evaluation**.
   - Redo **B) Clarify**, redo **C) Build FINAL_PROMPT**, and **re-run this step (D)**.
-- Repeat until `global ≥ 8`, then proceed.
+- Repeat until `global >= 8`, then proceed.
 
 ## E) Execute
 
