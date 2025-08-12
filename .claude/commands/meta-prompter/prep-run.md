@@ -1,5 +1,5 @@
 ---
-description: Evaluate the input prompt, clarify with context, then execute the final prompt
+description: Evaluate the input prompt, clarify with context, then execute the final prompt in think model
 argument-hint: paste/type prompt to evaluate then perform OR type resume
 ---
 
@@ -43,6 +43,7 @@ argument-hint: paste/type prompt to evaluate then perform OR type resume
   - Append a short **Clarifications** section from the 3 answers (concise bullet points).
 
 ## D) Re-evaluate and gate
+- Think the re-evaluation process carefully
 - Re-run evaluation on **FINAL_PROMPT**:  
   `/meta-prompter:eval "<FINAL_PROMPT>"`
 - Overwrite `./tmp/meta-prompter/eval/<session_id>/prompt_eval.json` with this latest evaluation JSON result (preserve `"original_prompt"` and, if present, `"final_prompt"`).
