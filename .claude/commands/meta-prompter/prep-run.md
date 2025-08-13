@@ -13,7 +13,7 @@ Read ~/.claude/commands/meta-prompter/eval.md and save it into <meta_prompter_ev
 
 <state_files>
   <prompt_eval>./tmp/meta-prompter/eval/<session_id>/prompt_eval.json</prompt_eval>  (evaluation result + original_prompt)
-  <answers>./tmp/meta-prompter/eval/<session_id>/answers.json</answers>      (answers to the 3 questions)
+  <clarification_answers>./tmp/meta-prompter/eval/<session_id>/answers.json</clarification_answers>      (answers to the 3 questions)
 </state_files>
 
 <hard_gate>
@@ -22,7 +22,7 @@ Read ~/.claude/commands/meta-prompter/eval.md and save it into <meta_prompter_ev
 </hard_gate>
 
 <choose_command>
-  - Ask the user to choose the exact command to run <FINAL_PROMPT>, e.g.:
+  - Ask the user to choose the exact <USER_COMMAND> to run <FINAL_PROMPT>, e.g.:
     - SuperClaude: `/sc:build` or `/sc:run` etc.
     - SimpleClaude: `/sc-create` or `/sc-fix` etc.
     - Another `/...` command of their choice
@@ -50,13 +50,13 @@ You should execute all of the improtant_steps
 - Otherwise, skip to Clarify.
 
 ## B) Clarify
-- If answers.json is missing or incomplete:
+- If clarification_answers is missing or incomplete:
   - Load prompt_eval
   - Attempt to answer the 3 questions based on chat context
   - If you don't have enough context to answer:
     - **IMPORTANT** Ask the 3 questions sequentially
     - Highlight each with a randomly chosen ANSI color code
-  - Append and save the questions to answers as:
+  - Append and save the questions to answers to clarification_answers as:
     ```json
     { "answers": [
       {"q": "<question1>", "answer": "<user answer>"},
@@ -65,32 +65,32 @@ You should execute all of the improtant_steps
     ] }
     ```
 
-## C) Build FINAL_PROMPT
+## C) Build PROMPT
 - Proceed only when all 3 answers are present and clear.
-- Build **FINAL_PROMPT**:
+- Build **PROMPT**:
   - Base = (`rewrite` if non-empty) else `original_prompt`
   - Append a short **Clarifications** section from the 3 answers (concise bullet points).
 
 ## D) Re-evaluate and gate
 - Think the re-evaluation process carefully
-- Re-run meta_prompter_eval on **FINAL_PROMPT**:  
-- Overwrite prompt_eval with this latest evaluation JSON result (preserve `"original_prompt"` and, if present, `"final_prompt"`).
-- When global_below_8:
-  - **STOP execution immediately.**
-  - **Do NOT invent questions.** Use the **3 questions returned by this re-evaluation**.
-  - Redo **B) Clarify**, redo **C) Build FINAL_PROMPT**, and **re-run this step (D)**.
-- **Repeat** until global_geq_8, then proceed.
+- Re-run meta_prompter_eval on the built **PROMPT** in Task()
+  - Overwrite prompt_eval with this latest evaluation JSON result (preserve `"original_prompt"` and, if present, `"contextual_prompt"`).
+  - When global_below_8:
+    - **STOP execution immediately.**
+    - **Do NOT invent questions.** Use the **3 questions returned by this re-evaluation**.
+    - Redo **B) Clarify**, redo **C) Build PROMPT**, and **re-run this step (D)**.
+- **Repeat** until global_geq_8, then proceed using the <FINAL_PROMPT>.
 
 ## E) Execute
 
 ### Choose a framework command
 - Ask use to choose_command
-- If no command is provided, skip to internal execution.
-- If command is provide, confirm_command
+- If no <USER_COMMAND> is provided, skip to internal execution.
+- If <USER_COMMAND> is provide, confirm_command
 
 ### Perform the task
 - **If a framework command was confirmed:** run it, e.g. `/sc:build "<FINAL_PROMPT>"`.
-- **If no command was provided:** execute internally using **FINAL_PROMPT**.
+- **If no command was provided:** execute internally using <FINAL_PROMPT>.
   - **Code:** outline a minimal plan; edit only necessary files; run the project’s own checks (e.g., `npm test`, `make test`, linters, type checks) **if available**. If unknown, add TODOs instead of guessing.
   - **Content/Docs:** save outputs to the project’s standard location (**prefer repo conventions**; if unclear, use `./artifacts/` as a fallback and note it).
   - **Safety:** avoid destructive actions; require explicit confirmation for risky steps (migrations, data changes); include a brief rollback note.
