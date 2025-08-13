@@ -25,7 +25,8 @@ See [meta-prompter README](.claude/mcp/meta-prompter/README.md) for detailed set
 Custom slash commands for Claude Code:
 
 - **`/meta-prompter:eval`** - Quick prompt evaluation via **Meta-Prompter MCP**, returns JSON scores and analysis
-- **`/meta-prompter:prep-run`** - Full workflow: evaluate → clarify → execute with quality gates (global score ≥8)
+- **`/meta-prompter:prep-run`** 
+  - Full workflow: evaluate → self-clarify or user-clarify based on chat context → execute with quality gates (global score ≥8)
 
 ### StatusLine
 **Location**: `.claude/statusline/`
