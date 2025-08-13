@@ -2,6 +2,8 @@
 
 Meta-Prompter MCP And Slash commands
 
+![eval-opt](workflow.jpg)
+
 ## MCP Servers
 
 ### Meta-Prompter MCP
@@ -43,4 +45,4 @@ Context monitoring script that displays real-time usage:
 - Session tracking and identification
 - Automatic synthetic message filtering
 
-![alt text](image.png)
+![statusline](statusline.png)
