@@ -84,7 +84,7 @@ You should execute all of the improtant_steps
 ## E) Execute
 
 ### Choose a framework command
-- Ask use to choose_command
+- Ask user to choose_command
 - If no <USER_COMMAND> is provided, skip to internal execution.
 - If <USER_COMMAND> is provide, confirm_command
 
