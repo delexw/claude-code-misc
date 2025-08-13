@@ -1,12 +1,11 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
-import type { TSESLint } from '@typescript-eslint/utils';
 
-const config: TSESLint.FlatConfig.ConfigArray = tseslint.config(
+const config = tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['**/*.ts'],
+    files: ['src/**/*.ts'],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -36,7 +35,7 @@ const config: TSESLint.FlatConfig.ConfigArray = tseslint.config(
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '*.js'],
+    ignores: ['dist/**', 'node_modules/**', './*.js'],
   }
 );
 

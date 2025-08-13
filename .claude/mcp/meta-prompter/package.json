@@ -8,8 +8,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "node dist/index.js",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix"
   },
   "author": "delexw",
   "license": "UNLICENSED",
@@ -28,7 +28,6 @@
     "@eslint/js": "^9.33.0",
     "@types/eslint__js": "^8.42.3",
     "@types/node": "^24.2.1",
-    "@typescript-eslint/utils": "^8.39.0",
     "eslint": "^9.33.0",
     "jiti": "^2.5.1",
     "tsx": "^4.20.3",
