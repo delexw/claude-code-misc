@@ -1,4 +1,4 @@
-# Claude Code Prompt Self Evaluator-optimizer
+# Claude Code Prompt Evaluator-optimizer
 
 Meta-Prompter MCP And Slash commands
 
