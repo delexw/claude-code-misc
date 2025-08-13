@@ -1,6 +1,6 @@
-# Claude Code Misc
+# Claude Code Prompt Self Evaluator-optimizer
 
-Collection of Claude Code configurations and MCP servers.
+Meta-Prompter MCP And Slash commands
 
 ## MCP Servers
 
