@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true
   },
-  "exclude": ["node_modules", "dist", "eslint.config.ts"]
+  "include": ["src/*", "eslint.config.js"],
 }
