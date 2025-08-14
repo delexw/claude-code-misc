@@ -28,7 +28,7 @@ Custom slash commands for Claude Code:
 - **`/meta-prompter:prep-run`** 
   - Full workflow: evaluate → self-clarify or user-clarify based on chat context → execute with quality gates (global score ≥8)
 
-## StatusLine
+## 2. StatusLine
 **Location**: `.claude/statusline/`
 
 Context monitoring script that displays real-time usage:
