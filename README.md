@@ -1,10 +1,10 @@
-# Claude Code Prompt Evaluator-optimizer
+# Claude Code Misc Configurations
 
-Meta-Prompter MCP And Slash commands
+Collection of Claude Code Configurations
+
+## 1. Meta-Prompter MCP And Slash commands
 
 ![eval-opt](workflow.jpg)
-
-## MCP Servers
 
 ### Meta-Prompter MCP
 **Location**: `.claude/mcp/meta-prompter/`
@@ -19,8 +19,6 @@ A tiny meta‑prompt MCP server that grades prompts and returns JSON‑only anal
 
 See [meta-prompter README](.claude/mcp/meta-prompter/README.md) for detailed setup and usage instructions.
 
-## Claude Code Configuration
-
 ### Commands
 **Location**: `.claude/commands/`
 
@@ -30,7 +28,7 @@ Custom slash commands for Claude Code:
 - **`/meta-prompter:prep-run`** 
   - Full workflow: evaluate → self-clarify or user-clarify based on chat context → execute with quality gates (global score ≥8)
 
-### StatusLine
+## StatusLine
 **Location**: `.claude/statusline/`
 
 Context monitoring script that displays real-time usage:
