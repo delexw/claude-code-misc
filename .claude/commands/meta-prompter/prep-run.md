@@ -55,7 +55,7 @@ You should execute all of the improtant_steps
 
 ## D) Re-evaluate and gate
 - Think the re-evaluation process carefully
-- Re-run meta_prompter_eval on the built **PROMPT** in Task()
+- Re-run meta_prompter_eval on the built **PROMPT**
   - Overwrite <prompt_eval> with this latest evaluation JSON result (preserve `"original_prompt"` and, if present, `"contextual_prompt"`).
   - When global_below_8:
     - **STOP execution immediately.**
