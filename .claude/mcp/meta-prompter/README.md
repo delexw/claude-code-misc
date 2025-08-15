@@ -46,6 +46,10 @@ Evaluates the prompt you pass in as tool argument across 8 dimensions (clarity, 
     - `prompt` (string, required): The prompt to evaluate
 - `ping` - Simple ping test to verify connection
 
+### Available Resources
+
+- `file:///eval-viewer.html` - SPA for viewing evaluation results
+
 ## View Eval Results
 
 The MCP tool result json line created per command run is appended to `evaluation_result.jsonl` in current claude code working dir.

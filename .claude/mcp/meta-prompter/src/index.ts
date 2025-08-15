@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ModelProviderFactory } from './providers/ModelProviderFactory.js';
 import { EvaluationService } from './services/EvaluationService.js';
 import { FileLogger } from './services/FileLogger.js';
+import fs from 'fs';
 
 // Create FastMCP server
 const server = new FastMCP({
@@ -54,6 +55,17 @@ server.addTool({
         }`,
       );
     }
+  },
+});
+
+server.addResource({
+  uri: 'file:///eval-viewer.html',
+  name: 'Evaluation Viewer',
+  mimeType: 'text/html',
+  async load() {
+    return {
+      text: await fs.promises.readFile('./eval-viewer.html', 'utf-8'),
+    };
   },
 });
 
