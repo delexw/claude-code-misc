@@ -5,6 +5,11 @@ import { ModelProviderFactory } from './providers/ModelProviderFactory.js';
 import { EvaluationService } from './services/EvaluationService.js';
 import { FileLogger } from './services/FileLogger.js';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Create FastMCP server
 const server = new FastMCP({
@@ -64,7 +69,7 @@ server.addResource({
   mimeType: 'text/html',
   async load() {
     return {
-      text: await fs.promises.readFile('./eval-viewer.html', 'utf-8'),
+      text: await fs.promises.readFile(path.resolve(__dirname, './eval-viewer.html'), 'utf-8'),
     };
   },
 });
