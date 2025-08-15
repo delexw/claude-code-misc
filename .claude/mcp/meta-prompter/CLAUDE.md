@@ -22,6 +22,10 @@ This is a Meta-Prompter MCP Server that evaluates prompts using AI models and re
 ### Testing
 Currently no test suite is configured (package.json shows placeholder test script).
 
+### Results Viewing
+- `eval-viewer.html` - SPA for viewing evaluation results (served as MCP resource)
+- Evaluation results are logged to `evaluation_result.jsonl` in JSONL format
+
 ## Architecture Overview
 
 ### Core Structure
@@ -63,6 +67,7 @@ src/
 **Logging**: 
 - `FileLogger` appends evaluation results to `evaluation_result.jsonl`
 - Results viewable via `eval-viewer.html` SPA
+- Non-blocking logging (evaluation continues even if logging fails)
 
 ## Environment Configuration
 
@@ -90,3 +95,11 @@ ESLint configuration enforces:
 - Console logging allowed for MCP server operations
 
 The project uses ES modules (`"type": "module"`) with Node.js 18+ requirement.
+
+## Key Dependencies
+
+- **AI SDK**: `ai` package with `generateObject` for structured responses
+- **Model Providers**: `@ai-sdk/anthropic`, `@ai-sdk/openai` for AI integration
+- **MCP Framework**: `fastmcp` for Model Context Protocol server functionality
+- **Schema Validation**: `zod` for TypeScript type generation and runtime validation
+- **Development**: `tsx` and `jiti` for TypeScript execution during development

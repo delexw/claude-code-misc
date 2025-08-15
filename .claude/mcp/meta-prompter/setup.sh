@@ -10,5 +10,8 @@ npm install --legacy-peer-deps
 echo "Building project..."
 npm run build
 
+echo "Copy eval-viewer.html"
+cp eval-viewer.html dist/
+
 echo ""
 echo "Setup complete!"
