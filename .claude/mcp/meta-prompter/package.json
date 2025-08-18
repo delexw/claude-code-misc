@@ -1,8 +1,8 @@
 {
   "name": "meta-prompter-mcp",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
-  "repository": "https://github.com/delexw/claude-code-misc/mcp/meta-prompter",
+  "repository": "https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter",
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -12,7 +12,7 @@
     "lint:fix": "eslint \"src/**/*.ts\" --fix"
   },
   "author": "delexw",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
