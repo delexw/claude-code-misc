@@ -64,10 +64,11 @@ You should execute all of the improtant_steps
 - **Repeat** until global_geq_8, then proceed using the <FINAL_PROMPT>.
 
 ## E) Execute
-- **MUST execute <FINAL_PROMPT>**
+- **Execute <FINAL_PROMPT>**
   - **Code:** outline a minimal plan; edit only necessary files; run the project’s own checks (e.g., `npm test`, `make test`, linters, type checks) **if available**. If unknown, add TODOs instead of guessing.
   - **Content/Docs:** save outputs to the project’s standard location (**prefer repo conventions**; if unclear, use `./docs/` as a fallback and note it).
   - **Safety:** avoid destructive actions; require explicit confirmation for risky steps (migrations, data changes); include a brief rollback note.
+  - **MUST**** execute the task using the <FINAL_PROMPT> rather than creating a plan only
 
 
 
