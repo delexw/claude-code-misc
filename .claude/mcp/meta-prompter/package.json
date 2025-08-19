@@ -1,6 +1,6 @@
 {
   "name": "meta-prompter-mcp",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "type": "module",
   "repository": "https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter",
   "homepage": "https://github.com/delexw/claude-code-misc",
