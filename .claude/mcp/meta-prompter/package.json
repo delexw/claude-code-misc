@@ -1,9 +1,12 @@
 {
   "name": "meta-prompter-mcp",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "repository": "https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter",
   "main": "dist/index.js",
+  "bin": {
+    "meta-prompter-mcp": "./start.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
