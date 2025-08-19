@@ -32,7 +32,23 @@ Evaluates the prompt you pass in as tool argument across 8 dimensions (clarity, 
 ## Configure MCP
 
 1. `./setup.sh`
-2. `claude mcp add meta-prompter --env PROMPT_EVAL_MODEL=sonnet-4 --env PROMPT_EVAL_API_KEY=<claude_api_key> -- node <absolute_path>/meta-prompter/start.js`
+2. `claude mcp add meta-prompter --env PROMPT_EVAL_MODEL=sonnet-4 --env PROMPT_EVAL_API_KEY=<claude_api_key> -- npx -y meta-prompter-mcp@latest`
+
+### JSON Configuration
+```json
+    "meta-prompter": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "meta-prompter-mcp@latest"
+      ],
+      "env": {
+        "PROMPT_EVAL_MODEL": "sonnet-4",
+        "PROMPT_EVAL_API_KEY": "sk-123456789",
+        "ANTHROPIC_BASE_URL": "http://localhost:4000/anthropic/v1"
+      }
+    }
+```
 
 ### Enviroment Variables:
 - `PROMPT_EVAL_MODEL` - Model name
