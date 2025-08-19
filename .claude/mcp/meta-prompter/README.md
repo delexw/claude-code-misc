@@ -58,7 +58,7 @@ The MCP tool result json line created per command run is appended to `evaluation
 
 Open the viewer in browser and upload the `evaluation_result.jsonl` to view the result such as
 
-![A cute evaluation](./image.png)
+![A cute evaluation](./../../../eval-viewer.png)
 
 
 ## Testing
