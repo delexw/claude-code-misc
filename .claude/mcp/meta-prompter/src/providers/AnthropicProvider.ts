@@ -5,6 +5,7 @@ export class AnthropicProvider implements IModelProvider {
   private readonly models = {
     'opus-4-1': 'claude-opus-4-1-20250805',
     'sonnet-4': 'claude-sonnet-4-20250514',
+    'sonnet-4.5': 'claude-sonnet-4-5-20250929',
   };
 
   getModel(modelName: string, apiKey: string) {

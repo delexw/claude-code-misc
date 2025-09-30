@@ -50,11 +50,27 @@ Evaluates the prompt you pass in as tool argument across 8 dimensions (clarity, 
     }
 ```
 
-### Enviroment Variables:
-- `PROMPT_EVAL_MODEL` - Model name
+### Environment Variables:
+- `PROMPT_EVAL_MODEL` - Model name (see mappings below)
 - `PROMPT_EVAL_API_KEY` - API key
 - `OPENAI_BASE_URL` - Optional OpenAI endpoint
 - `ANTHROPIC_BASE_URL` - Optional Anthropic endpoint
+
+#### Model Name Mappings
+
+The following short names map to their full model identifiers:
+
+**Anthropic Models:**
+| Short Name | Full Model ID |
+|-----------|---------------|
+| `opus-4-1` | `claude-opus-4-1-20250805` |
+| `sonnet-4` | `claude-sonnet-4-20250514` |
+| `sonnet-4.5` | `claude-sonnet-4-5-20250929` |
+
+**OpenAI Models:**
+| Short Name | Full Model ID |
+|-----------|---------------|
+| `gpt-5` | `gpt-5` |
 
 ### Available Tools
 
