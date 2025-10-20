@@ -25,8 +25,13 @@ See [meta-prompter README](.claude/mcp/meta-prompter/README.md) for detailed set
 Custom slash commands for Claude Code:
 
 - **`/meta-prompter:eval`** - Quick prompt evaluation via **Meta-Prompter MCP**, returns JSON scores and analysis
-- **`/meta-prompter:prep-run`** 
+- **`/meta-prompter:prep-run`**
   - Full workflow: evaluate → self-clarify or user-clarify based on chat context → execute with quality gates (global score ≥8)
+- **`/debug-partner`** - AI-assisted debugging partner for systematic troubleshooting
+  - Evidence-based investigation with code-centric traces
+  - Progressive clarification and hypothesis testing
+  - Includes specific file names, function names, and line numbers
+  - Collaborative approach with verification at each step
 
 ## 2. StatusLine
 **Location**: `.claude/statusline/`
