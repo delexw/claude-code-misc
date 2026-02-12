@@ -1,6 +1,6 @@
 {
   "name": "meta-prompter-mcp",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "type": "module",
   "repository": "https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter",
   "homepage": "https://github.com/delexw/claude-code-misc",
@@ -8,7 +8,11 @@
   "bin": {
     "meta-prompter-mcp": "./start.js"
   },
-  "keywords": ["meta", "prompter", "mcp"],
+  "keywords": [
+    "meta",
+    "prompter",
+    "mcp"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
@@ -23,9 +27,9 @@
   },
   "description": "A Meta-Prompter MCP Server that grades prompts and returns JSON evaluation results.",
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.1",
-    "@ai-sdk/openai": "^2.0.7",
-    "ai": "^5.0.8",
+    "@ai-sdk/anthropic": "^3.0.43",
+    "@ai-sdk/openai": "^3.0.28",
+    "ai": "^6.0.84",
     "fastmcp": "^3.14.3",
     "zod": "^4.0.16"
   },

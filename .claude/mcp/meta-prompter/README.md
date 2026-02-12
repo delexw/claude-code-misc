@@ -32,7 +32,7 @@ Evaluates the prompt you pass in as tool argument across 8 dimensions (clarity, 
 ## Configure MCP
 
 1. `./setup.sh`
-2. `claude mcp add meta-prompter --env PROMPT_EVAL_MODEL=sonnet-4 --env PROMPT_EVAL_API_KEY=<claude_api_key> -- npx -y meta-prompter-mcp@latest`
+2. `claude mcp add meta-prompter --env PROMPT_EVAL_MODEL=anthropic:claude-sonnet-4-20250514 --env PROMPT_EVAL_API_KEY=<claude_api_key> -- npx -y meta-prompter-mcp@latest`
 
 ### JSON Configuration
 ```json
@@ -43,44 +43,21 @@ Evaluates the prompt you pass in as tool argument across 8 dimensions (clarity, 
         "meta-prompter-mcp@latest"
       ],
       "env": {
-        "PROMPT_EVAL_MODEL": "sonnet-4",
+        "PROMPT_EVAL_MODEL": "anthropic:claude-sonnet-4-20250514",
         "PROMPT_EVAL_API_KEY": "sk-123456789",
-        "ANTHROPIC_BASE_URL": "http://localhost:4000/anthropic/v1"
       }
     }
 ```
 
 ### Environment Variables:
-- `PROMPT_EVAL_MODEL` - Model name (see mappings below)
-- `PROMPT_EVAL_API_KEY` - API key
-- `OPENAI_BASE_URL` - Optional OpenAI endpoint
-- `ANTHROPIC_BASE_URL` - Optional Anthropic endpoint
-
-#### Model Name Mappings
-
-The following short names map to their full model identifiers:
-
-**Anthropic Models:**
-| Short Name | Full Model ID |
-|-----------|---------------|
-| `opus-4-1` | `claude-opus-4-1-20250805` |
-| `sonnet-4` | `claude-sonnet-4-20250514` |
-| `sonnet-4.5` | `claude-sonnet-4-5-20250929` |
-
-**OpenAI Models:**
-| Short Name | Full Model ID |
-|-----------|---------------|
-| `gpt-5` | `gpt-5` |
+- `PROMPT_EVAL_MODEL` - Model key in `provider:model-id` format (e.g., `anthropic:claude-sonnet-4-20250514`, `openai:gpt-5`)
+- `PROMPT_EVAL_API_KEY` - API key for the chosen provider
 
 ### Available Tools
 
 - `evaluate` - Evaluate a prompt using AI analysis.
     - `prompt` (string, required): The prompt to evaluate
 - `ping` - Simple ping test to verify connection
-
-### Available Resources
-
-- `file:///eval-viewer.html` - SPA for viewing evaluation results
 
 ## View Eval Results
 
