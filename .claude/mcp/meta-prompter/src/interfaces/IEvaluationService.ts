@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export interface IEvaluationService {
-  evaluate(prompt: string): Promise<string>;
+  evaluate(prompt: string): Promise<EvaluationResult>;
 }
 
 export const EvaluationSchema = z.object({

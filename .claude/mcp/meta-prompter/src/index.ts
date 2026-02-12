@@ -1,63 +1,41 @@
 #!/usr/bin/env node
-import { FastMCP } from 'fastmcp';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { resolveModel } from './resolveModel.js';
-import { EvaluationService } from './services/EvaluationService.js';
-import { FileLogger } from './services/FileLogger.js';
+import { evaluate } from './evaluate.js';
+import { EvaluationSchema } from './interfaces/IEvaluationService.js';
 
-// Create FastMCP server
-const server = new FastMCP({
+const server = new McpServer({
   name: 'prompt-evaluator',
   version: '0.1.0',
 });
 
 // Add ping tool
-server.addTool({
-  name: 'ping',
+server.registerTool('ping', {
   description: 'Simple ping test to verify connection',
-  parameters: z.object({}),
-  execute: async () => {
-    return 'Pong! MCP server is connected and working.';
-  },
-});
+}, async () => ({
+  content: [{ type: 'text', text: 'Pong! MCP server is connected and working.' }],
+}));
 
-// Add evaluate tool
-server.addTool({
-  name: 'evaluate',
+// Add evaluate tool with structured output
+server.registerTool('evaluate', {
   description: 'Evaluate a prompt using AI analysis',
-  parameters: z.object({
+  inputSchema: {
     prompt: z.string().describe('The prompt to evaluate'),
-  }),
-  execute: async ({ prompt }: { prompt: string }) => {
-    const modelKey = process.env.PROMPT_EVAL_MODEL || 'anthropic:claude-sonnet-4-20250514';
-    const apiKey = process.env.PROMPT_EVAL_API_KEY;
-
-    if (!apiKey) {
-      throw new Error(
-        'PROMPT_EVAL_API_KEY not configured. Please set it in your .mcp.json file.',
-      );
-    }
-
-    try {
-      const model = resolveModel(modelKey, apiKey);
-      const logger = new FileLogger();
-      const evaluationService = new EvaluationService(model, logger);
-
-      return await evaluationService.evaluate(prompt);
-    } catch (error) {
-      console.error('Error calling AI API:', error);
-      throw new Error(
-        `Failed to evaluate prompt: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
-      );
-    }
   },
+  outputSchema: EvaluationSchema,
+}, async ({ prompt }) => {
+  const result = await evaluate(prompt);
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+    structuredContent: result,
+  };
 });
-// Start the server
+
 async function main() {
-  await server.start();
-  console.error('Prompt Evaluator MCP server running with FastMCP');
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error('Prompt Evaluator MCP server running on stdio');
 }
 
 main().catch((error) => {
