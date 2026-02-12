@@ -1,15 +1,9 @@
 #!/usr/bin/env node
 import { FastMCP } from 'fastmcp';
 import { z } from 'zod';
-import { ModelProviderFactory } from './providers/ModelProviderFactory.js';
+import { resolveModel } from './resolveModel.js';
 import { EvaluationService } from './services/EvaluationService.js';
 import { FileLogger } from './services/FileLogger.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Create FastMCP server
 const server = new FastMCP({
@@ -35,8 +29,7 @@ server.addTool({
     prompt: z.string().describe('The prompt to evaluate'),
   }),
   execute: async ({ prompt }: { prompt: string }) => {
-    // Get config from environment variables
-    const modelName = process.env.PROMPT_EVAL_MODEL || 'sonnet-4';
+    const modelKey = process.env.PROMPT_EVAL_MODEL || 'anthropic:claude-sonnet-4-20250514';
     const apiKey = process.env.PROMPT_EVAL_API_KEY;
 
     if (!apiKey) {
@@ -46,10 +39,9 @@ server.addTool({
     }
 
     try {
-      // Use dependency injection for better testability and SOLID compliance
-      const modelProvider = ModelProviderFactory.getProvider(modelName);
+      const model = resolveModel(modelKey, apiKey);
       const logger = new FileLogger();
-      const evaluationService = new EvaluationService(modelProvider, logger, modelName, apiKey);
+      const evaluationService = new EvaluationService(model, logger);
 
       return await evaluationService.evaluate(prompt);
     } catch (error) {
@@ -62,18 +54,6 @@ server.addTool({
     }
   },
 });
-
-server.addResource({
-  uri: 'file:///eval-viewer.html',
-  name: 'Evaluation Viewer',
-  mimeType: 'text/html',
-  async load() {
-    return {
-      text: await fs.promises.readFile(path.resolve(__dirname, './eval-viewer.html'), 'utf-8'),
-    };
-  },
-});
-
 // Start the server
 async function main() {
   await server.start();

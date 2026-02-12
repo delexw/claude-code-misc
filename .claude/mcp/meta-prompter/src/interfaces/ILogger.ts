@@ -1,6 +1,5 @@
-import type { GenerateObjectResult } from 'ai';
 import type { EvaluationResult } from './IEvaluationService.js';
 
 export interface ILogger {
-  logEvaluation(prompt: string, evaluation: GenerateObjectResult<EvaluationResult>): Promise<void>; 
+  logEvaluation(prompt: string, evaluation: EvaluationResult): Promise<void>;
 }

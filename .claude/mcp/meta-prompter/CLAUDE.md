@@ -35,14 +35,10 @@ The project follows SOLID principles with dependency injection and clear separat
 src/
 ├── index.ts              # FastMCP server setup and tool registration
 ├── prompt.ts             # Evaluation prompt template and builder
+├── resolveModel.ts       # Model resolution via AI SDK provider registry
 ├── interfaces/           # TypeScript interfaces for contracts
 │   ├── IEvaluationService.ts
-│   ├── ILogger.ts
-│   └── IModelProvider.ts
-├── providers/            # AI model provider implementations
-│   ├── AnthropicProvider.ts
-│   ├── ModelProviderFactory.ts
-│   └── OpenAIProvider.ts
+│   └── ILogger.ts
 └── services/             # Business logic services
     ├── EvaluationService.ts
     └── FileLogger.ts
@@ -54,17 +50,17 @@ src/
 - `ping`: Connection verification
 - `evaluate`: Main prompt evaluation with 8-dimension scoring
 
-**Evaluation System**: 
+**Model Resolution (`resolveModel.ts`)**:
+- Uses `createProviderRegistry` from AI SDK to resolve model strings
+- Model key format: `provider:model-id` (e.g., `anthropic:claude-sonnet-4-20250514`)
+- Supports Anthropic and OpenAI providers
+
+**Evaluation System**:
 - Uses structured prompt template in `prompt.ts` with weighted scoring across 8 dimensions
 - Temperature set to 0 for consistent scoring
-- Returns JSON-only structured results via `generateObject` from AI SDK
+- Returns JSON-only structured results via `generateText` with `Output.object()` from AI SDK
 
-**Provider Pattern**: 
-- `ModelProviderFactory` creates appropriate providers (Anthropic/OpenAI)
-- Supports multiple AI models through unified interface
-- Default model is "sonnet-4"
-
-**Logging**: 
+**Logging**:
 - `FileLogger` appends evaluation results to `evaluation_result.jsonl`
 - Results viewable via `eval-viewer.html` SPA
 - Non-blocking logging (evaluation continues even if logging fails)
@@ -72,18 +68,15 @@ src/
 ## Environment Configuration
 
 Required environment variables:
-- `PROMPT_EVAL_MODEL` - AI model name (defaults to "sonnet-4")  
+- `PROMPT_EVAL_MODEL` - Model key in `provider:model-id` format (defaults to `anthropic:claude-sonnet-4-20250514`)
 - `PROMPT_EVAL_API_KEY` - API key for the chosen model provider
 
-Optional:
-- `OPENAI_BASE_URL` - Custom OpenAI endpoint
-- `ANTHROPIC_BASE_URL` - Custom Anthropic endpoint
 
 ## MCP Integration
 
 Configure with Claude Code using:
 ```bash
-claude mcp add meta-prompter --env PROMPT_EVAL_MODEL=sonnet-4 --env PROMPT_EVAL_API_KEY=<api_key> -- node <absolute_path>/start.js
+claude mcp add meta-prompter --env PROMPT_EVAL_MODEL=anthropic:claude-sonnet-4-20250514 --env PROMPT_EVAL_API_KEY=<api_key> -- node <absolute_path>/start.js
 ```
 
 ## Code Standards
