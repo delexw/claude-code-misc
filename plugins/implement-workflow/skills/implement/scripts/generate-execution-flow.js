@@ -53,7 +53,12 @@ for (const entry of entries) {
     let duration = timeToSeconds(entry.time) - timeToSeconds(startTime);
     if (duration < 1) duration = 1;
 
-    tasks.push({ skill: entry.skill, start: startTime, duration });
+    // Extract a short label from args (first arg, e.g. domain name or ticket key)
+    let firstArg = (entry.args || "").split(" ")[0];
+    // Truncate long args (e.g. URLs) to keep chart readable
+    if (firstArg.length > 20) firstArg = firstArg.slice(0, 20) + "...";
+    const label = firstArg ? `${entry.skill} (${firstArg})` : entry.skill;
+    tasks.push({ label, start: startTime, duration });
     startMap.delete(key);
   }
 }
@@ -99,7 +104,7 @@ tasks.forEach((t, i) => {
     currentSection = section;
   }
 
-  lines.push(`    ${t.skill}   :t${i}, ${t.start}, ${t.duration}s`);
+  lines.push(`    ${t.label}   :t${i}, ${t.start}, ${t.duration}s`);
 });
 
 lines.push("```", "");
