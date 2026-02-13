@@ -12,7 +12,7 @@ Arguments:
 
 Options:
   --prompt <text>       The prompt to evaluate (alternative to positional arg)
-  --model <key>         Model key (default: PROMPT_EVAL_MODEL env or anthropic:claude-sonnet-4-20250514)
+  --model <key>         Model key (default: PROMPT_EVAL_MODEL env or anthropic:claude-sonnet-4-5)
   --api-key <key>       API key (default: PROMPT_EVAL_API_KEY env)
   --compact             Output compact JSON instead of pretty-printed
   -h, --help            Show this help message

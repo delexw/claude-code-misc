@@ -13,7 +13,7 @@ export interface EvaluateOptions {
 export async function evaluate(prompt: string, options?: EvaluateOptions): Promise<EvaluationResult> {
   const modelKey = options?.modelKey
     ?? process.env.PROMPT_EVAL_MODEL
-    ?? 'anthropic:claude-sonnet-4-20250514';
+    ?? 'anthropic:claude-sonnet-4-5';
   const apiKey = options?.apiKey ?? process.env.PROMPT_EVAL_API_KEY;
 
   if (!apiKey) {
