@@ -8,7 +8,7 @@
       "name": "implement-workflow",
       "source": "./plugins/implement-workflow",
       "description": "Orchestrated JIRA ticket implementation workflow",
-      "version": "1.0.0"
+      "version": "1.0.1"
     }
   ]
 }

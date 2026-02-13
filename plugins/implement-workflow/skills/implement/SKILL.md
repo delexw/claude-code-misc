@@ -6,7 +6,7 @@ hooks:
   Stop:
     - hooks:
         - type: command
-          command: "rm -rf /tmp/jira-assets/"
+          command: "rm -rf .implement-assets/"
           once: true
 ---
 

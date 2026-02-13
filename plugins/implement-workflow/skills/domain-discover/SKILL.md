@@ -2,7 +2,7 @@
 name: domain-discover
 description: Discover and document domain knowledge from a codebase into a structured knowledge file
 context: fork
-argument-hint: Domain name (e.g. "payments", "auth", "frontend")
+argument-hint: Domain name [OUT_DIR] (e.g. "payments", "auth ./out")
 ---
 
 # Discover Domain Knowledge
@@ -10,14 +10,21 @@ argument-hint: Domain name (e.g. "payments", "auth", "frontend")
 You are tasked with creating a comprehensive domain knowledge file for a codebase that will help future Claude Code instances work effectively with this repository.
 
 ## Arguments
-- `$ARGUMENTS` — Domain name used as the output filename (`$ARGUMENTS.md`)
+- `$ARGUMENTS[0]` — Domain name used as the output filename (`{domain}.md`)
+- `$ARGUMENTS[1]` — (optional) Output directory for the domain knowledge file. Defaults to `.` (project root / current working directory)
+
+When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided. When used standalone, it defaults to the project root for backward compatibility.
 
 ## Output Location
-- Creates or updates `$ARGUMENTS.md` in the **project root** (current working directory).
+
+Let `DOMAIN` = `$ARGUMENTS[0]`, `OUT_DIR` = `$ARGUMENTS[1]` (default `.`).
+
+- Creates or updates `OUT_DIR/{DOMAIN}.md` (e.g. `OUT_DIR/payments.md`)
+- Run `mkdir -p OUT_DIR` before writing to ensure the directory exists.
 
 ## Objective
 
-Analyze the provided codebase and create or update a `$ARGUMENTS.md` file containing essential information for productive development.
+Analyze the provided codebase and create or update a `{DOMAIN}.md` file containing essential information for productive development.
 
 ## Analysis Approach
 
