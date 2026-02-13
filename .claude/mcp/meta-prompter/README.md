@@ -70,11 +70,12 @@ claude mcp add meta-prompter \
 Use the CLI for quick evaluations from the terminal, scripts, or CI pipelines.
 
 ```bash
-# Install globally
-npm install -g meta-prompter-mcp@latest
+# Run directly with npx
+npx meta-prompter-mcp "Your prompt here"
 
-# Or run directly with npx
-npx meta-prompter-mcp meta-prompter "Your prompt here"
+# Or install globally
+npm install -g meta-prompter-mcp@latest
+meta-prompter "Your prompt here"
 ```
 
 ### Usage

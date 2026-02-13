@@ -1,6 +1,6 @@
 {
   "name": "meta-prompter-mcp",
-  "version": "0.1.10",
+  "version": "0.2.0",
   "type": "module",
   "repository": "https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter",
   "homepage": "https://github.com/delexw/claude-code-misc",
@@ -27,7 +27,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "A Meta-Prompter MCP Server that grades prompts and returns JSON evaluation results.",
+  "description": "A prompt evaluation tool available as both an MCP server and a CLI.",
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.43",
     "@ai-sdk/openai": "^3.0.28",
