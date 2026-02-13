@@ -18,6 +18,7 @@ A Claude Code plugin that orchestrates JIRA ticket implementation end-to-end: fe
 |---|---|
 | [Figma MCP](https://github.com/nichochar/figma-mcp) | Read Figma designs from ticket links |
 | `PROMPT_EVAL_API_KEY` | Prompt optimization via [meta-prompter](https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli) |
+| `PROMPT_EVAL_MODEL` | Model for prompt evaluation (default: `anthropic:claude-sonnet-4-5`). Format: `provider:model-id` |
 
 ## Usage
 

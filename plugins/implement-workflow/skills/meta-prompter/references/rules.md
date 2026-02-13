@@ -1,8 +1,25 @@
 # Meta-Prompter Rules
 
-## Pre-flight Check
+## CLI Usage
 
-No separate pre-flight step. Run `npx meta-prompter-mcp "Your prompt here"` directly as the first evaluation call. If it returns an error:
+```bash
+npx meta-prompter-mcp "$ARGUMENTS"
+```
+
+### Environment Variables
+
+| Env Var | Default | Description |
+|---|---|---|
+| `PROMPT_EVAL_API_KEY` | (required) | API key for the chosen provider |
+| `PROMPT_EVAL_MODEL` | `anthropic:claude-sonnet-4-5` | Model in `provider:model-id` format |
+
+Supported providers: `anthropic`, `openai`.
+
+Output is JSON containing: scores, strengths, improvements, rewrite, questions.
+
+## Error Handling
+
+If the CLI call fails:
 
 1. **`PROMPT_EVAL_API_KEY not configured`** → use `AskUserQuestion`:
 
@@ -19,15 +36,6 @@ No separate pre-flight step. Run `npx meta-prompter-mcp "Your prompt here"` dire
    **Options:**
    1. **"Help me set it up"** — Guide user to: https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli
    2. **"Skip"** — Return empty evaluation, do NOT block the workflow
-
-## CLI Usage
-
-Evaluate a prompt:
-```bash
-npx meta-prompter-mcp "Your prompt here"
-```
-
-Output is JSON containing: scores, strengths, improvements, rewrite, questions.
 
 ## Hard Gate
 

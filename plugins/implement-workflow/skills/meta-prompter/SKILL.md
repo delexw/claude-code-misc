@@ -16,7 +16,9 @@ Prompt evaluation and optimization using the `meta-prompter-mcp` CLI. Returns <F
 
 ## Execution
 
-Execute all steps A through D. If any CLI call fails, follow [references/rules.md](references/rules.md).
+See [references/rules.md](references/rules.md) for CLI usage, environment variables (model configuration), and error handling.
+
+Execute all steps A through E:
 
 ### A) Evaluate
 - If <prompt_eval> tag doesn't exist:
