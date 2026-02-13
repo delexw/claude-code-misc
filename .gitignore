@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 
 */**/.env*
 */**/evaluation*.jsonl
+
+# Implement workflow temp assets
+.implement-assets/

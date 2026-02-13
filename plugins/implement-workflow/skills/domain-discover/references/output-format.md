@@ -1,7 +1,9 @@
 # Output Format
 
+Save the output to `OUT_DIR/{DOMAIN}.md` using the Write tool:
+
 ```markdown
-# $ARGUMENTS.md
+# {DOMAIN}.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code with domain knowledge in this repository.
 
