@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
-// CommonJS wrapper for ES module
+// Smart dispatcher: any args → CLI mode, no args → MCP server
+// MCP servers receive no process args (they communicate via stdio JSON-RPC)
 (async () => {
-  await import('./dist/index.js');
+  if (process.argv.length > 2) {
+    await import('./dist/cli.js');
+  } else {
+    await import('./dist/index.js');
+  }
 })();
