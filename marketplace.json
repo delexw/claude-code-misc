@@ -1,0 +1,14 @@
+{
+  "name": "yang-claude-kit",
+  "owner": {
+    "name": "YangL"
+  },
+  "plugins": [
+    {
+      "name": "implement-workflow",
+      "source": "./plugins/implement-workflow",
+      "description": "Orchestrated JIRA ticket implementation workflow",
+      "version": "1.0.0"
+    }
+  ]
+}
