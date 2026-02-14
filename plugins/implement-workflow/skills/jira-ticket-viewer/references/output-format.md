@@ -1,61 +1,97 @@
 # Output Format
 
-Parse the `jira issue view --raw` JSON and format into the following structured output.
+`parse-ticket.js` reads the `jira issue view --raw` JSON from stdin and outputs a structured JSON object to stdout.
 
-## Standard Fields
+## JSON Schema
 
+```json
+{
+  "key": "PROJ-123",
+  "summary": "Ticket summary text",
+  "type": "Story",
+  "status": "In Progress",
+  "priority": "High",
+  "resolution": null,
+  "assignee": "John Doe",
+  "reporter": "Jane Doe",
+  "parent": {
+    "key": "PROJ-100",
+    "summary": "Parent epic summary"
+  },
+  "sprint": {
+    "name": "Sprint 1",
+    "state": "active"
+  },
+  "created": "2024-01-01",
+  "updated": "2024-01-15",
+  "dueDate": null,
+  "labels": ["backend", "api"],
+  "components": ["auth"],
+  "description": "Markdown-converted description text",
+  "links": {
+    "figma": [
+      { "url": "https://figma.com/...", "displayName": "Design name" }
+    ],
+    "confluence": [
+      { "url": "https://envato.atlassian.net/wiki/spaces/..." }
+    ],
+    "github": [
+      { "url": "https://github.com/..." }
+    ]
+  },
+  "attachments": [
+    { "filename": "screen.png", "mimeType": "image/png", "size": "1.5 MB" }
+  ],
+  "linkedIssues": [
+    { "relationship": "blocks", "key": "PROJ-456", "summary": "Linked issue summary", "status": "Open" }
+  ],
+  "comments": [
+    { "author": "John Doe", "created": "2024-01-05", "body": "Comment in markdown" }
+  ]
+}
 ```
-{key}: {summary}
-Type: {issuetype.name} | Status: {status.name} | Priority: {priority.name}
-Assignee: {assignee.displayName} | Reporter: {reporter.displayName}
-Parent/Epic: {parent.key} — {parent.fields.summary}
-Sprint: {customfield_10020[last].name} ({customfield_10020[last].state})
-Created: {created} | Updated: {updated}
-Labels: {labels[]} | Components: {components[].name}
-```
 
-## Description
+## Field Details
 
-Convert the ADF (Atlassian Document Format) `fields.description` to readable text:
-- Walk `content` nodes recursively
-- Extract `text` values from `text` nodes
-- Convert `heading` nodes to markdown headings
-- Convert `bulletList`/`orderedList` to markdown lists
-- Convert `codeBlock` to markdown code blocks
-- Convert `inlineCard` to markdown links `[url](url)`
-- Note `media` nodes as `[image: {alt}]` or `[attachment: {id}]`
+### Standard Fields
+- `key`, `summary` — issue key and title
+- `type`, `status`, `priority`, `resolution` — issue metadata (null if not set)
+- `assignee`, `reporter` — display names (null if unassigned)
+- `parent` — object with `key` and `summary`, or null
+- `sprint` — object with `name` and `state` from `customfield_10020[last]`, or null
+- `created`, `updated` — ISO date strings truncated to date portion
+- `dueDate` — due date string or null
+- `labels`, `components` — arrays of strings (empty array if none)
 
-## Design Links
+### Description
+- ADF (Atlassian Document Format) `fields.description` converted to markdown text
+- Returns null if no description
 
-Extract from `customfield_10031` (may be null):
+### Links
+- Object with categorized URL arrays, keyed by type: `figma`, `confluence`, `github`, `other`
+- Collected from two sources:
+  - `customfield_10031` (design links) — includes `displayName` when available
+  - `inlineCard` nodes in the description ADF
+- Each entry is `{ url, displayName? }` — `displayName` is only present for design links
+- Empty object `{}` if no links found
+- Duplicates across sources are deduplicated by URL
 
-```
-Design Links:
-- {displayName}: {url}
-```
+### Attachments
+- Extracted from `fields.attachment`
+- Array of `{ filename, mimeType, size }` objects (empty array if none)
+- `size` is human-readable (e.g. "1.5 MB")
+- Download paths are output separately by `download-attachment.js` (step 5 in SKILL.md)
 
-## Attachments
+### Linked Issues
+- Extracted from `fields.issuelinks`
+- Array of `{ relationship, key, summary, status }` objects (empty array if none)
+- Both outward and inward links are included
 
-Extract from `fields.attachment`:
-
-From `parse-ticket.js`:
-```
-Attachments:
-- {filename} ({mimeType}, {size})
-```
-
-Download paths are output separately by `download-attachment.js` (step 5 in SKILL.md). Include those paths in the final output alongside the parsed ticket.
-
-## Issue Links
-
-Extract from `fields.issuelinks`:
-
-```
-Linked Issues:
-- {type.outward}: {outwardIssue.key} — {outwardIssue.fields.summary} [{outwardIssue.fields.status.name}]
-```
+### Comments
+- Extracted from `fields.comment.comments`
+- Array of `{ author, created, body }` objects (empty array if none)
+- `body` is ADF converted to markdown
 
 ## Omit
-
-- Null or empty fields — do not include in output
-- Internal custom fields with no meaningful content (rank, SLA, cost category, etc.)
+- Null or empty fields use null (scalars) or empty arrays (collections)
+- Internal custom fields with no meaningful content (rank, SLA, cost category, etc.) are excluded

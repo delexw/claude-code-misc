@@ -25,8 +25,8 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 ## Phase 2: jira_analyzer (via `Skill("jira-ticket-viewer")`)
 
 - Invoke `Skill("jira-ticket-viewer")` with `{ticket_id} {TICKET_ASSETS_DIR}/jira` (e.g. `EC-10420 .implement-assets/EC-10420/jira`)
-- After the skill completes, **read `TICKET_ASSETS_DIR/jira/output.md`** to get the full parsed ticket output
-- Save the content of `output.md` to `<task><requirements>`
+- After the skill completes, **read `TICKET_ASSETS_DIR/jira/output.json`** to get the full parsed ticket JSON
+- Save the content of `output.json` to `<task><requirements>`
 - If attachments were downloaded (check `TICKET_ASSETS_DIR/jira/` for attachment files), note the file paths for use in Phase 4. Do NOT Read or view image attachments here — design images are handled in Phase 4 Design Scanning via `Skill("figma-reader")`.
 - From the ticket output, identify:
    - **Domains:** 1-3 business domains using stakeholder terminology (business-first, ordered by impact, max 3 with justifications)
@@ -47,21 +47,18 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 ### Phase 4: Resource Scanning
 
 #### Link Scanning
-- Scan the task description for any web links (URLs)
-- If links are present, visit each link — **launch all link visits concurrently**:
-   - Changelogs (use `WebFetch`)
-   - Jira tickets: invoke `Skill("jira-ticket-viewer")` with `{linked_key} {TICKET_ASSETS_DIR}/linked-jira/{linked_key}`, then **read `TICKET_ASSETS_DIR/linked-jira/{linked_key}/output.md`**
-   - Confluence pages: invoke `Skill("confluence-page-viewer")` with `{url} {TICKET_ASSETS_DIR}/confluence/{index}` (use a numeric index starting at 0 for each Confluence link), then **read `TICKET_ASSETS_DIR/confluence/{index}/output.md`**
-   - GitHub PRs (use `gh pr view <URL>`)
-   - GitHub files (use `gh api` or clone/read via `gh`)
-   - Other documentation (use `WebFetch`)
+- Use the `links` object from the Phase 2 parsed JSON to identify categorized URLs
+- Additionally scan the description text for any URLs not captured in `links`
+- Visit each link — **launch all link visits concurrently**:
+   - Confluence pages (`links.confluence`): invoke `Skill("confluence-page-viewer")` with `{url} {TICKET_ASSETS_DIR}/confluence/{index}` (use a numeric index starting at 0 for each Confluence link), then **read `TICKET_ASSETS_DIR/confluence/{index}/output.md`**
+   - Jira tickets: invoke `Skill("jira-ticket-viewer")` with `{linked_key} {TICKET_ASSETS_DIR}/linked-jira/{linked_key}`, then **read `TICKET_ASSETS_DIR/linked-jira/{linked_key}/output.json`**
+   - GitHub links (`links.github`): use `gh pr view` for PRs, `gh api` for files
+   - Other links (`links.other`): use `WebFetch` (changelogs, documentation, etc.)
 - MUST read the content from the link to understand what is required to do
 - Compile the retrieved information into `<task><supporting_context>`
 
 #### Design Scanning
-- Collect all Figma links from:
-  - **Design Links** from Phase 2 output (`customfield_10031`) — structured Figma URLs from the ticket
-  - Description text — scan for additional Figma links (e.g. `https://www.figma.com/design/...`)
+- Collect all Figma links from **`links.figma`** in the Phase 2 parsed JSON output
 - **If Figma links found:** Invoke `Skill("figma-reader")` with each link concurrently: `{figma_link} {TICKET_ASSETS_DIR}/figma/{index}` (use a numeric index starting at 0 for each Figma link). After each completes, **read `TICKET_ASSETS_DIR/figma/{index}/output.md`**.
 - **Only if NO Figma links found:** Check downloaded attachments from Phase 2 (`TICKET_ASSETS_DIR/jira/`) for images that appear to be UI designs. Invoke `Skill("figma-reader")` with the image: `{image_path} {TICKET_ASSETS_DIR}/figma/0`. Read `TICKET_ASSETS_DIR/figma/0/output.md` after completion.
 - Save all design context to `<task><design>`
