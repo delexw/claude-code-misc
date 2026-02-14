@@ -45,9 +45,11 @@
   "linkedIssues": [
     { "relationship": "blocks", "key": "PROJ-456", "summary": "Linked issue summary", "status": "Open" }
   ],
-  "comments": [
-    { "author": "John Doe", "created": "2024-01-05", "body": "Comment in markdown" }
-  ]
+  "commentSummary": {
+    "decisions": ["Use approach X for Y"],
+    "requirements": ["Must handle edge case A"],
+    "risks": ["Breaking change risk for downstream consumers"]
+  }
 }
 ```
 
@@ -87,10 +89,11 @@
 - Array of `{ relationship, key, summary, status }` objects (empty array if none)
 - Both outward and inward links are included
 
-### Comments
-- Extracted from `fields.comment.comments`
-- Array of `{ author, created, body }` objects (empty array if none)
-- `body` is ADF converted to markdown
+### Comment Summary
+- Agent-interpreted summary of `fields.comment.comments` (see [comment-rules.md](comment-rules.md))
+- Object with categorized arrays: `decisions`, `requirements`, `risks`
+- Only actionable, current information — outdated proposals, resolved questions, and noise are discarded
+- `null` if no comments or all comments are non-actionable
 
 ## Omit
 - Null or empty fields use null (scalars) or empty arrays (collections)
