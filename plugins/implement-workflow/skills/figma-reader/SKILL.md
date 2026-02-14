@@ -2,6 +2,7 @@
 name: figma-reader
 description: Read Figma designs via Figma MCP server. Auto-detects MCP availability and prompts user only if setup is needed. Use when Figma links or UI design images are found in task context.
 context: fork
+model: sonnet
 argument-hint: Figma link or design prompt [OUT_DIR] (e.g. "https://www.figma.com/design/..." ./out)
 ---
 
