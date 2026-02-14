@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Parse Jira issue raw JSON into structured readable output.
+ * Parse Jira issue raw JSON into structured JSON output.
  *
  * Usage:
  *   jira issue view ISSUE-KEY --raw | node parse-ticket.js
- *   node parse-ticket.js < /tmp/jira-raw.json
+ *   node parse-ticket.js < /tmp/jira-raw.json > output.json
  */
 
 const fs = require("fs");
@@ -147,114 +147,154 @@ function formatSize(bytes) {
 
 function extractStandardFields(data) {
   const f = data.fields;
-  const lines = [];
-
-  lines.push(`${data.key}: ${f.summary}`);
-
-  const meta = [];
-  if (f.issuetype?.name) meta.push(`Type: ${f.issuetype.name}`);
-  if (f.status?.name) meta.push(`Status: ${f.status.name}`);
-  if (f.priority?.name) meta.push(`Priority: ${f.priority.name}`);
-  if (f.resolution?.name) meta.push(`Resolution: ${f.resolution.name}`);
-  if (meta.length) lines.push(meta.join(" | "));
-
-  const people = [];
-  if (f.assignee?.displayName)
-    people.push(`Assignee: ${f.assignee.displayName}`);
-  if (f.reporter?.displayName)
-    people.push(`Reporter: ${f.reporter.displayName}`);
-  if (people.length) lines.push(people.join(" | "));
+  const result = {
+    key: data.key,
+    summary: f.summary || null,
+    type: f.issuetype?.name || null,
+    status: f.status?.name || null,
+    priority: f.priority?.name || null,
+    resolution: f.resolution?.name || null,
+    assignee: f.assignee?.displayName || null,
+    reporter: f.reporter?.displayName || null,
+    parent: null,
+    sprint: null,
+    created: formatDate(f.created),
+    updated: formatDate(f.updated),
+    dueDate: f.duedate || null,
+    labels: f.labels && f.labels.length ? f.labels : [],
+    components:
+      f.components && f.components.length
+        ? f.components.map((c) => c.name)
+        : [],
+  };
 
   if (f.parent) {
-    lines.push(
-      `Parent/Epic: ${f.parent.key} — ${f.parent.fields?.summary || ""}`
-    );
+    result.parent = {
+      key: f.parent.key,
+      summary: f.parent.fields?.summary || null,
+    };
   }
 
   const sprints = f.customfield_10020;
   if (sprints && sprints.length > 0) {
     const sprint = sprints[sprints.length - 1];
-    lines.push(`Sprint: ${sprint.name} (${sprint.state})`);
+    result.sprint = { name: sprint.name, state: sprint.state };
   }
 
-  const dates = [];
-  if (f.created) dates.push(`Created: ${formatDate(f.created)}`);
-  if (f.updated) dates.push(`Updated: ${formatDate(f.updated)}`);
-  if (f.duedate) dates.push(`Due: ${f.duedate}`);
-  if (dates.length) lines.push(dates.join(" | "));
-
-  if (f.labels && f.labels.length) {
-    lines.push(`Labels: ${f.labels.join(", ")}`);
-  }
-  if (f.components && f.components.length) {
-    lines.push(`Components: ${f.components.map((c) => c.name).join(", ")}`);
-  }
-
-  return lines.join("\n");
+  return result;
 }
 
 function extractDescription(data) {
   const desc = data.fields.description;
   if (!desc) return null;
-  return adfToMarkdown(desc);
+  return adfToMarkdown(desc) || null;
 }
 
-function extractDesignLinks(data) {
-  const links = data.fields.customfield_10031;
-  if (!links || links.length === 0) return null;
+function collectAdfUrls(node) {
+  if (!node || typeof node !== "object") return [];
+  const urls = [];
 
-  const lines = ["Design Links:"];
-  for (const link of links) {
-    lines.push(`- ${link.displayName || "Design"}: ${link.url}`);
+  if (node.type === "inlineCard" && node.attrs?.url) {
+    urls.push(node.attrs.url);
   }
-  return lines.join("\n");
+
+  if (Array.isArray(node.content)) {
+    for (const child of node.content) {
+      urls.push(...collectAdfUrls(child));
+    }
+  }
+
+  return urls;
+}
+
+function categorizeUrl(url) {
+  if (/atlassian\.net\/wiki\//.test(url)) return "confluence";
+  if (/figma\.com\//.test(url)) return "figma";
+  if (/github\.com\//.test(url)) return "github";
+  return "other";
+}
+
+function extractLinks(data) {
+  const links = {};
+
+  // From customfield_10031 (design links)
+  const designLinks = data.fields.customfield_10031;
+  if (designLinks && designLinks.length > 0) {
+    for (const link of designLinks) {
+      const category = categorizeUrl(link.url);
+      if (!links[category]) links[category] = [];
+      links[category].push({
+        url: link.url,
+        displayName: link.displayName || null,
+      });
+    }
+  }
+
+  // From description inlineCard nodes
+  const desc = data.fields.description;
+  if (desc) {
+    const descUrls = collectAdfUrls(desc);
+    for (const url of descUrls) {
+      const category = categorizeUrl(url);
+      if (!links[category]) links[category] = [];
+      // Avoid duplicates
+      if (!links[category].some((l) => l.url === url)) {
+        links[category].push({ url });
+      }
+    }
+  }
+
+  return links;
 }
 
 function extractAttachments(data) {
   const attachments = data.fields.attachment;
-  if (!attachments || attachments.length === 0) return null;
+  if (!attachments || attachments.length === 0) return [];
 
-  const lines = ["Attachments:"];
-  for (const att of attachments) {
-    lines.push(`- ${att.filename} (${att.mimeType}, ${formatSize(att.size)})`);
-  }
-  return lines.join("\n");
+  return attachments.map((att) => ({
+    filename: att.filename,
+    mimeType: att.mimeType,
+    size: formatSize(att.size),
+  }));
 }
 
 function extractIssueLinks(data) {
   const links = data.fields.issuelinks;
-  if (!links || links.length === 0) return null;
+  if (!links || links.length === 0) return [];
 
-  const lines = ["Linked Issues:"];
+  const result = [];
   for (const link of links) {
     if (link.outwardIssue) {
       const issue = link.outwardIssue;
-      lines.push(
-        `- ${link.type.outward}: ${issue.key} — ${issue.fields?.summary || ""} [${issue.fields?.status?.name || ""}]`
-      );
+      result.push({
+        relationship: link.type.outward,
+        key: issue.key,
+        summary: issue.fields?.summary || null,
+        status: issue.fields?.status?.name || null,
+      });
     }
     if (link.inwardIssue) {
       const issue = link.inwardIssue;
-      lines.push(
-        `- ${link.type.inward}: ${issue.key} — ${issue.fields?.summary || ""} [${issue.fields?.status?.name || ""}]`
-      );
+      result.push({
+        relationship: link.type.inward,
+        key: issue.key,
+        summary: issue.fields?.summary || null,
+        status: issue.fields?.status?.name || null,
+      });
     }
   }
-  return lines.join("\n");
+  return result;
 }
 
 function extractComments(data) {
   const comments = data.fields.comment?.comments;
-  if (!comments || comments.length === 0) return null;
+  if (!comments || comments.length === 0) return [];
 
-  const lines = ["Comments:"];
-  for (const c of comments) {
-    const author = c.author?.displayName || "Unknown";
-    const date = formatDate(c.created);
-    const body = c.body ? adfToMarkdown(c.body) : "";
-    lines.push(`- ${author} (${date}):\n  ${body.replace(/\n/g, "\n  ")}`);
-  }
-  return lines.join("\n");
+  return comments.map((c) => ({
+    author: c.author?.displayName || "Unknown",
+    created: formatDate(c.created),
+    body: c.body ? adfToMarkdown(c.body) : null,
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -280,18 +320,16 @@ function main() {
     process.exit(1);
   }
 
-  const sections = [
-    extractStandardFields(data),
-    extractDescription(data)
-      ? `\nDescription:\n${extractDescription(data)}`
-      : null,
-    extractDesignLinks(data) ? `\n${extractDesignLinks(data)}` : null,
-    extractAttachments(data) ? `\n${extractAttachments(data)}` : null,
-    extractIssueLinks(data) ? `\n${extractIssueLinks(data)}` : null,
-    extractComments(data) ? `\n${extractComments(data)}` : null,
-  ].filter(Boolean);
+  const output = {
+    ...extractStandardFields(data),
+    description: extractDescription(data),
+    links: extractLinks(data),
+    attachments: extractAttachments(data),
+    linkedIssues: extractIssueLinks(data),
+    comments: extractComments(data),
+  };
 
-  console.log(sections.join("\n"));
+  console.log(JSON.stringify(output, null, 2));
 }
 
 main();

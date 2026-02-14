@@ -24,13 +24,12 @@ Let `TICKET_KEY` = `$ARGUMENTS[0]`, `OUT_DIR` = `$ARGUMENTS[1]` (default `.imple
 1. **Pre-flight check**: Run `jira me` to verify the CLI is installed **and** authenticated — if it fails, follow error handling in [references/rules.md](references/rules.md). Do NOT continue until `jira me` succeeds.
 2. Validate `TICKET_KEY` against [references/rules.md](references/rules.md)
 3. **Fetch raw JSON** (single API call): Run `mkdir -p OUT_DIR && jira issue view TICKET_KEY --raw > OUT_DIR/raw.json` via Bash
-4. **Parse ticket**: Run `node ./scripts/parse-ticket.js < OUT_DIR/raw.json` via Bash to get the parsed structured output
-5. **Save parsed output**: Save the full parsed output from step 4 to `OUT_DIR/output.md` using the Write tool. This ensures the complete output is persisted for the orchestrator to read.
-6. **Attachments**: If the parsed output contains an `Attachments:` section, download them:
+4. **Parse ticket**: Run `node ./scripts/parse-ticket.js < OUT_DIR/raw.json > OUT_DIR/output.json` via Bash to get the parsed JSON output
+5. **Attachments**: If the parsed JSON contains a non-empty `attachments` array, download them:
    - Run `node ./scripts/download-attachment.js --out OUT_DIR < OUT_DIR/raw.json` via Bash
    - If `JIRA_API_TOKEN` is not set, follow error handling in [references/rules.md](references/rules.md)
    - Include downloaded attachment file paths in the output
-7. Return the parsed output (see [references/output-format.md](references/output-format.md) for format reference), including attachment download paths if any
+6. Return the parsed JSON output (see [references/output-format.md](references/output-format.md) for schema reference), including attachment download paths if any
 
 <tags>
    <mode>think</mode>
