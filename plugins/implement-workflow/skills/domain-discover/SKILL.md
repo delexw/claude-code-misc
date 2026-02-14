@@ -17,10 +17,8 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
 
 ## Output Location
 
-Let `DOMAIN` = `$ARGUMENTS[0]`, `OUT_DIR` = `$ARGUMENTS[1]` (default `.`).
-
-- Creates or updates `OUT_DIR/{DOMAIN}.md` (e.g. `OUT_DIR/payments.md`)
-- Run `mkdir -p OUT_DIR` before writing to ensure the directory exists.
+- Creates or updates `$ARGUMENTS[1]/{$ARGUMENTS[0]}.md` (e.g. `./payments.md`)
+- Run `mkdir -p $ARGUMENTS[1]` before writing to ensure the directory exists.
 
 ## Objective
 

@@ -20,13 +20,11 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
 
 ## Execution
 
-Let `URL` = `$ARGUMENTS[0]`, `OUT_DIR` = `$ARGUMENTS[1]` (default `.implement-assets/confluence`).
-
 1. **Pre-flight check**: Run `confluence --help` to verify the CLI is installed — if it fails, follow error handling in [references/rules.md](references/rules.md). Do NOT continue until the CLI is available. Auth errors are caught when the actual command runs.
-2. Validate `URL` against [references/rules.md](references/rules.md)
-3. Run `confluence read URL` via Bash
+2. Validate `$ARGUMENTS[0]` against [references/rules.md](references/rules.md)
+3. Run `confluence read $ARGUMENTS[0]` via Bash
 4. Format the output per [references/output-format.md](references/output-format.md)
-5. **Save output**: Run `mkdir -p OUT_DIR` via Bash, then save the full formatted output to `OUT_DIR/output.md` using the Write tool. This ensures the complete output is persisted for the orchestrator to read.
+5. **Save output**: Run `mkdir -p $ARGUMENTS[1]` via Bash, then save the full formatted output to `$ARGUMENTS[1]/output.md` using the Write tool. This ensures the complete output is persisted for the orchestrator to read.
 
 <tags>
    <mode>think</mode>
