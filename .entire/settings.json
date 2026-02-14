@@ -1,0 +1,8 @@
+{
+  "strategy": "manual-commit",
+  "enabled": true,
+  "strategy_options": {
+    "push_sessions": false
+  },
+  "telemetry": true
+}

@@ -144,3 +144,4 @@ vite.config.ts.timestamp-*
 
 # Implement workflow temp assets
 .implement-assets/
+.claude/**/*
