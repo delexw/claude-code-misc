@@ -3,39 +3,42 @@
 ## CLI Usage
 
 ```bash
-npx meta-prompter-mcp "$ARGUMENTS"
+npx meta-prompter-mcp [--model <provider:model-id>] "$ARGUMENTS"
 ```
 
-### Environment Variables
+### CLI Parameters
 
-| Env Var | Default | Description |
-|---|---|---|
-| `PROMPT_EVAL_API_KEY` | (required) | API key for the chosen provider |
-| `PROMPT_EVAL_MODEL` | `anthropic:claude-sonnet-4-5` | Model in `provider:model-id` format |
+| Flag | Description |
+|---|---|
+| `--model <key>` | Model in `provider:model-id` format (e.g. `anthropic:claude-opus-4-6`) |
+| `--api-key <key>` | API key (falls back to `PROMPT_EVAL_API_KEY` env) |
+| `--compact` | Output compact JSON |
 
 Supported providers: `anthropic`, `openai`.
+
+### Pre-flight Checks
+
+Before calling the CLI, verify the following. If any check fails, use `AskUserQuestion` with the options shown. Do NOT proceed until resolved or skipped.
+
+1. **API key**: Check if `PROMPT_EVAL_API_KEY` env is set (run `echo $PROMPT_EVAL_API_KEY` via Bash). If not set → ask:
+   - **"Help me set it up"** — Guide user to: https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli
+   - **"Skip"** — Return empty evaluation, do NOT block the workflow
+
+2. **Model**: Check if `PROMPT_EVAL_MODEL` env is set.
+   - If set → omit `--model` (the CLI uses the env var)
+   - If **not** set:
+     - Ask the current agent for its model provider and model ID
+     - If the provider is supported (`anthropic`, `openai`) → pass `--model <provider>:<model-id>` (e.g. `--model anthropic:claude-opus-4-6`)
+     - If the provider is not supported or the agent does not provide them → use `AskUserQuestion` to ask the user for the `provider:model-id` value, then pass it via `--model`
 
 Output is JSON containing: scores, strengths, improvements, rewrite, questions.
 
 ## Error Handling
 
-If the CLI call fails:
+If the CLI call fails at runtime (e.g. not installed, npx not found) → use `AskUserQuestion`:
 
-1. **`PROMPT_EVAL_API_KEY not configured`** → use `AskUserQuestion`:
-
-   **Question:** "meta-prompter requires PROMPT_EVAL_API_KEY to be configured. How would you like to proceed?"
-
-   **Options:**
-   1. **"Help me set it up"** — Guide user to: https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli
-   2. **"Skip"** — Return empty evaluation, do NOT block the workflow
-
-2. **Any other error** (not installed, npx not found, etc.) → use `AskUserQuestion`:
-
-   **Question:** "meta-prompter CLI is not available. How would you like to proceed?"
-
-   **Options:**
-   1. **"Help me set it up"** — Guide user to: https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli
-   2. **"Skip"** — Return empty evaluation, do NOT block the workflow
+- **"Help me set it up"** — Guide user to: https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli
+- **"Skip"** — Return empty evaluation, do NOT block the workflow
 
 ## Hard Gate
 

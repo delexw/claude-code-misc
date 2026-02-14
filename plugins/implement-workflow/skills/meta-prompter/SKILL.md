@@ -22,7 +22,7 @@ Execute all steps A through E:
 
 ### A) Evaluate
 - If <prompt_eval> tag doesn't exist:
-  1. Run: `npx meta-prompter-mcp "$ARGUMENTS"` via Bash
+  1. Run: `npx meta-prompter-mcp "$ARGUMENTS"` via Bash, with `--model` flag per [references/rules.md](references/rules.md) model resolution
   2. Save the JSON output to <prompt_eval> and include:
      - "original_prompt": "$ARGUMENTS"
 - Otherwise, skip to Clarify.
@@ -50,7 +50,7 @@ Execute all steps A through E:
 
 ### D) Re-evaluate and gate
 - Think the re-evaluation process carefully
-- Re-run `npx meta-prompter-mcp "<built PROMPT>"` via Bash
+- Re-run `npx meta-prompter-mcp "<built PROMPT>"` via Bash (with `--model` flag per [references/rules.md](references/rules.md) model resolution)
   - Overwrite <prompt_eval> with this latest evaluation JSON result (preserve `"original_prompt"` and, if present, `"contextual_prompt"`).
   - When `global < 8`:
     - **STOP execution immediately.**
