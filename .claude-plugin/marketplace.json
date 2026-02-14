@@ -6,11 +6,7 @@
   "plugins": [
     {
       "name": "routine",
-      "source": "./plugins/implement-workflow",
-      "description": "Orchestrated JIRA ticket implementation workflow — fetches ticket details, discovers domain knowledge, scans resources and designs, optimizes prompts, then executes the task. Requires: jira-cli, confluence-cli, JIRA_API_TOKEN. Optional: Figma MCP, PROMPT_EVAL_API_KEY.",
-      "version": "1.0.1",
-      "homepage": "https://github.com/delexw/claude-code-misc/tree/main/plugins/implement-workflow",
-      "repository": "https://github.com/delexw/claude-code-misc/tree/main/plugins/implement-workflow"
+      "source": "./plugins/implement-workflow"
     }
   ]
 }
