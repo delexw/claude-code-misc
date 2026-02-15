@@ -2,6 +2,7 @@
 name: confluence-page-viewer
 description: Read Confluence page content using the confluence CLI. Use when given a Confluence page URL to fetch and display page information.
 context: fork
+agent: general-purpose
 model: haiku
 argument-hint: Confluence page URL [OUT_DIR] (e.g. https://envato.atlassian.net/wiki/spaces/MS/pages/... ./out)
 ---
