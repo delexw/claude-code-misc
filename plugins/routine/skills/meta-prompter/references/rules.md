@@ -28,7 +28,12 @@ Before calling the CLI, verify the following. If any check fails, use `AskUserQu
    - If set → omit `--model` (the CLI uses the env var)
    - If **not** set:
      - Ask the current agent for its model provider and model ID
-     - If the provider is supported (`anthropic`, `openai`) → pass `--model <provider>:<model-id>` (e.g. `--model anthropic:claude-opus-4-6`)
+     - If the provider is `openai` and the model ID looks generic (e.g. `gpt-5` without a specific version suffix) → resolve the actual model from `~/.codex/config.toml` by running:
+       ```bash
+       node -e "const fs=require('fs'),m=fs.readFileSync(require('os').homedir()+'/.codex/config.toml','utf8').match(/^model\s*=\s*\"(.+)\"/m);console.log(m?m[1]:'')"
+       ```
+       Use the output as the model ID (e.g. `gpt-5.3-codex`). If the file doesn't exist or the output is empty, fall back to the agent-reported model ID.
+     - If the provider is supported (`anthropic`, `openai`) → pass `--model <provider>:<model-id>` (e.g. `--model anthropic:claude-opus-4-6`, `--model openai:gpt-5.3-codex`)
      - If the provider is not supported or the agent does not provide them → use `AskUserQuestion` to ask the user for the `provider:model-id` value, then pass it via `--model`
 
 Output is JSON containing: scores, strengths, improvements, rewrite, questions.
