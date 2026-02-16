@@ -73,12 +73,13 @@ function fetchUrl(url, headers) {
     const mod = url.startsWith("https") ? https : http;
     mod
       .get(url, { headers }, (res) => {
-        // Follow redirects
+        // Follow redirects — drain the response to free the socket
         if (
           res.statusCode >= 300 &&
           res.statusCode < 400 &&
           res.headers.location
         ) {
+          res.resume();
           return fetchUrl(res.headers.location, headers).then(resolve, reject);
         }
         if (res.statusCode !== 200) {
