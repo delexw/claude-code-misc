@@ -13,20 +13,17 @@ const path = require("path");
 const input = JSON.parse(fs.readFileSync(0, "utf8"));
 const cwd = input.cwd;
 
-// Find the ticket assets dir
+// Read from the root .implement-assets/ directory
 const assetsBase = path.join(cwd, ".implement-assets");
-if (!fs.existsSync(assetsBase)) process.exit(0);
-
-const subdirs = fs
-  .readdirSync(assetsBase, { withFileTypes: true })
-  .filter((d) => d.isDirectory());
-const logDir =
-  subdirs.length > 0 ? path.join(assetsBase, subdirs[0].name) : assetsBase;
-const logFile = path.join(logDir, "execution-log.jsonl");
+const logFile = path.join(assetsBase, "execution-log.jsonl");
 
 if (!fs.existsSync(logFile)) process.exit(0);
 
-const ticketId = path.basename(logDir);
+// Derive ticket ID from the first subdirectory (ticket assets dir)
+const subdirs = fs
+  .readdirSync(assetsBase, { withFileTypes: true })
+  .filter((d) => d.isDirectory());
+const ticketId = subdirs.length > 0 ? subdirs[0].name : "unknown";
 
 // Parse JSONL into entries
 const raw = fs.readFileSync(logFile, "utf8").trim();
@@ -109,7 +106,7 @@ tasks.forEach((t, i) => {
 
 lines.push("```", "");
 
-const outFile = path.join(logDir, "execution-flow.md");
+const outFile = path.join(assetsBase, "execution-flow.md");
 fs.writeFileSync(outFile, lines.join("\n"));
 
 // Print to stdout so it appears in the conversation
