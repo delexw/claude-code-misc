@@ -34,13 +34,13 @@ Custom slash commands for Claude Code:
   - Collaborative approach with verification at each step
 
 ## 2. Implement Plugin
-**Location**: `plugins/implement-workflow/`
+**Location**: `plugins/routine/`
 
 A Claude Code plugin that orchestrates JIRA ticket implementation end-to-end. Fetches ticket details, discovers domain knowledge, scans linked resources and designs, optimizes the prompt, then executes the task.
 
 **Skills**: implement, jira-ticket-viewer, confluence-page-viewer, figma-reader, domain-discover, meta-prompter
 
-See [plugin README](plugins/implement-workflow/README.md) for setup and usage.
+See [plugin README](plugins/routine/README.md) for setup and usage.
 
 ## 3. StatusLine
 **Location**: `.claude/statusline/`
