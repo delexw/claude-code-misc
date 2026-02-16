@@ -5,6 +5,7 @@ context: fork
 agent: general-purpose
 model: sonnet
 argument-hint: Domain name [OUT_DIR] (e.g. "payments", "auth ./out")
+allowed-tools: Read, Bash
 ---
 
 # Discover Domain Knowledge

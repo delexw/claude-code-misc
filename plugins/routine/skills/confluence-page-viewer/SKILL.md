@@ -4,6 +4,7 @@ description: Read Confluence page content using the confluence CLI. Use when giv
 context: fork
 agent: Explore
 argument-hint: Confluence page URL [OUT_DIR] (e.g. https://envato.atlassian.net/wiki/spaces/MS/pages/... ./out)
+allowed-tools: Read, Bash
 ---
 
 # Confluence Page Viewer
