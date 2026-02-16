@@ -19,15 +19,18 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
 
 ## Execution
 
-1. **Pre-flight check**: Use `ToolSearch` to detect if Figma MCP tools are available — follow [references/rules.md](references/rules.md)
-2. If MCP is not available, use `AskUserQuestion` to guide setup or allow skip
-3. **Resolve design input**:
+1. **Codebase check**: Verify this is a frontend project — follow [references/rules.md](references/rules.md) Codebase Check. If not frontend, skip the entire skill.
+2. **Pre-flight check**: Use `ToolSearch` to detect if Figma MCP tools are available — follow [references/rules.md](references/rules.md)
+3. If MCP is not available, use `AskUserQuestion` to guide setup or allow skip
+4. **Resolve design input**:
    - If `$ARGUMENTS[0]` contains a valid Figma link or prompt → use it directly
    - If `$ARGUMENTS[0]` is an attached UI image → show it for context, then use `AskUserQuestion` to ask the user to select the relevant component in Figma (see [references/rules.md](references/rules.md) Design Input)
    - If `$ARGUMENTS[0]` is empty or not provided → use `AskUserQuestion` to ask user (see [references/rules.md](references/rules.md) Design Input)
-4. Use the Figma MCP tools to read the design from the resolved input
-5. Format the output per [references/output-format.md](references/output-format.md)
-6. **Save output**: Run `mkdir -p $ARGUMENTS[1]` via Bash, then save the full formatted output to `$ARGUMENTS[1]/output.md` using the Write tool. This ensures the complete output is persisted for the orchestrator to read.
+5. **Implement-design handoff**: Follow [references/rules.md](references/rules.md) Implement-Design Handoff — delegates reading and implementation to `implement-design`
+6. **Fallback** (only if `implement-design` is not available and user skips installation):
+   - Use the Figma MCP tools to read the design from the resolved input
+   - Format the output per [references/output-format.md](references/output-format.md)
+   - **Save output**: Run `mkdir -p $ARGUMENTS[1]` via Bash, then save the full formatted output to `$ARGUMENTS[1]/output.md` using the Write tool
 
 <tags>
    <mode>think</mode>
