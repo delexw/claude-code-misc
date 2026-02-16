@@ -22,8 +22,17 @@ Skills installed this way are available across all your projects without the `ro
 
 ### Option 2: Plugin
 
+First add the marketplace, then install the plugin:
+
 ```bash
-claude plugin add /path/to/plugins/routine
+/plugin marketplace add delexw/claude-code-misc
+/plugin install routine@delexw-claude-code-misc
+```
+
+Or load directly for local development:
+
+```bash
+claude --plugin-dir ./path/to/plugins/routine
 ```
 
 > **Known plugin limitations:**
@@ -76,11 +85,31 @@ Example:
 
 ### Execution Flow
 
-Phases 3 and 4 run in parallel — all sub-skills are launched concurrently after Phase 2 completes.
-
 ```
-P1 Pre-flight ──► P2 JIRA Analysis ──┬──► P3 Domain Discovery (concurrent per domain)  ──┬──► P5 Prompt Optimization ──► P6 Execute ──► P7 Verify
-                                      └──► P4 Resource Scanning (links + Figma concurrent) ──┘
+P1  Pre-flight Validation
+│
+▼
+P2  JIRA Analysis (jira-ticket-viewer)
+│
+├──────────────────────┐
+▼                      ▼
+P3  Domain Discovery   P4  Resource Scanning
+    (concurrent per        ├── Links (concurrent)
+     domain)               │   ├── Confluence pages
+                           │   ├── Linked JIRA tickets
+                           │   └── GitHub / other URLs
+                           └── Figma designs (figma-reader)
+│                      │
+└──────────────────────┘
+│
+▼
+P5  Prompt Optimization (meta-prompter)
+│
+▼
+P6  Execute <FINAL_PROMPT>
+│
+▼
+P7  Change Verification
 ```
 
 ### Hooks
