@@ -6,7 +6,7 @@ A Claude Code plugin that orchestrates JIRA ticket implementation end-to-end: fe
 
 ### Option 1: Skills (Recommended)
 
-Install directly to `~/.claude/skills/` using the [Agent Skills](https://agentskills.io) CLI. This is the recommended approach as it avoids known plugin limitations with [hooks](https://github.com/anthropics/claude-code/issues/17688), [model/context/agent](https://github.com/anthropics/claude-code/issues/17283), and [script paths](https://github.com/anthropics/claude-code/issues/11011) not working correctly in plugins.
+Install directly to `~/.claude/skills/` using the [Agent Skills](https://agentskills.io) CLI. This is the recommended approach as it avoids known plugin limitations with [hooks](https://github.com/anthropics/claude-code/issues/17688), [model/context/agent](https://github.com/anthropics/claude-code/issues/16803), and [script paths](https://github.com/anthropics/claude-code/issues/11011) not working correctly in plugins.
 
 ```bash
 npx skills add https://github.com/delexw/claude-code-misc
@@ -28,7 +28,7 @@ claude plugin add /path/to/plugins/routine
 
 > **Known plugin limitations:**
 > - [Skill-scoped hooks not triggered in plugins](https://github.com/anthropics/claude-code/issues/17688) — execution tracing won't work
-> - [`context: fork`, `agent`, `model` frontmatter ignored](https://github.com/anthropics/claude-code/issues/17283) — skills run inline instead of as subagents
+> - [`context: fork`, `agent`, `model` frontmatter ignored](https://github.com/anthropics/claude-code/issues/16803) — skills run inline instead of as subagents
 > - [Relative script paths fail in plugins](https://github.com/anthropics/claude-code/issues/11011) — scripts can't find their own directory
 
 ## Setup
