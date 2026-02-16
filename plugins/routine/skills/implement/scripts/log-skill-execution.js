@@ -4,7 +4,7 @@
  * Used by implement skill hooks (PreToolUse/PostToolUse matching "Skill")
  *
  * Input: JSON on stdin from Claude Code hook system
- * Output: Appends a JSON line to .implement-assets/<ticket>/execution-log.jsonl
+ * Output: Appends a JSON line to .implement-assets/execution-log.jsonl
  */
 
 const fs = require("fs");
@@ -23,21 +23,17 @@ const timestamp = new Date().toTimeString().slice(0, 8); // HH:MM:SS
 // Suppress args for meta-prompter (too large), truncate others to 60 chars
 const args = skillName === "meta-prompter" ? "" : skillArgs.slice(0, 60);
 
-// Find the ticket assets dir
-const assetsBase = path.join(cwd, ".implement-assets");
-let logDir = assetsBase;
-
-if (fs.existsSync(assetsBase)) {
-  const subdirs = fs
-    .readdirSync(assetsBase, { withFileTypes: true })
-    .filter((d) => d.isDirectory());
-  if (subdirs.length > 0) {
-    logDir = path.join(assetsBase, subdirs[0].name);
-  }
-}
-
+// Always log to the root .implement-assets/ directory
+const logDir = path.join(cwd, ".implement-assets");
 fs.mkdirSync(logDir, { recursive: true });
 
 const logFile = path.join(logDir, "execution-log.jsonl");
-const entry = JSON.stringify({ skill: skillName, args, event, time: timestamp });
-fs.appendFileSync(logFile, entry + "\n");
+const entry = JSON.stringify({ skill: skillName, args, event, time: timestamp }) + "\n";
+
+// Use O_APPEND | O_CREAT | O_WRONLY for atomic appends (POSIX guarantee for small writes)
+const fd = fs.openSync(logFile, "a");
+try {
+  fs.writeSync(fd, entry);
+} finally {
+  fs.closeSync(fd);
+}
