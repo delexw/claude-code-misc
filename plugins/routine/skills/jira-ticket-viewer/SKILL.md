@@ -3,6 +3,7 @@ name: jira-ticket-viewer
 description: View Jira ticket details using the jira CLI (jira-cli). Use when given a Jira issue key to fetch and display ticket information.
 model: sonnet
 argument-hint: TICKET-KEY [OUT_DIR]
+allowed-tools: Read, Bash
 ---
 
 # Jira Ticket Viewer

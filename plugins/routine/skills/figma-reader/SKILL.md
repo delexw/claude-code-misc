@@ -5,6 +5,7 @@ context: fork
 agent: general-purpose
 model: sonnet
 argument-hint: Figma link or design prompt [OUT_DIR] (e.g. "https://www.figma.com/design/..." ./out)
+allowed-tools: Read, Bash, mcp__figma-desktop__*
 ---
 
 # Figma Reader
