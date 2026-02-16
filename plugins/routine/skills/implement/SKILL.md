@@ -1,22 +1,22 @@
 ---
 name: implement
 description: "Automate JIRA ticket processing through domain analysis, initialization, prompt evaluation-optimization and final task execution with comprehensive error handling in thinking model. Use when given a JIRA ticket URL (format: https://[domain].atlassian.net/browse/[TICKET-ID]) to process end-to-end."
-argument-hint: "JIRA ticket URL (format: https://[domain].atlassian.net/browse/[TICKET-ID]) \"(Optional) Additional Context\""
+argument-hint: 'JIRA ticket URL (format: https://[domain].atlassian.net/browse/[TICKET-ID]) "(Optional) Additional Context"'
 hooks:
   PreToolUse:
     - matcher: "Skill"
       hooks:
         - type: command
-          command: "node ./scripts/log-skill-execution.js"
+          command: "node \"$CLAUDE_PROJECT_DIR\"/.claude/skills/implement/scripts/log-skill-execution.js"
   PostToolUse:
     - matcher: "Skill"
       hooks:
         - type: command
-          command: "node ./scripts/log-skill-execution.js"
+          command: "node \"$CLAUDE_PROJECT_DIR\"/.claude/skills/implement/scripts/log-skill-execution.js"
   Stop:
     - hooks:
         - type: command
-          command: "node ./scripts/generate-execution-flow.js"
+          command: "node \"$CLAUDE_PROJECT_DIR\"/.claude/skills/implement/scripts/generate-execution-flow.js"
           once: true
   SessionEnd:
     - hooks:
