@@ -22,7 +22,7 @@ hooks:
   SessionEnd:
     - hooks:
         - type: command
-          command: "rm -rf .implement-assets/"
+          command: "rm -rf \"$CLAUDE_PROJECT_DIR\"/.implement-assets/"
 ---
 
 # Implement: JIRA Ticket Processor
