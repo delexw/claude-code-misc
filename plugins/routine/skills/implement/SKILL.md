@@ -7,16 +7,16 @@ hooks:
     - matcher: "Skill"
       hooks:
         - type: command
-          command: "node \"$CLAUDE_PROJECT_DIR\"/.claude/skills/implement/scripts/log-skill-execution.js"
+          command: "s=\"$CLAUDE_PROJECT_DIR/.claude/skills/implement/scripts/log-skill-execution.js\"; [ ! -f \"$s\" ] && s=\"$HOME/.claude/skills/implement/scripts/log-skill-execution.js\"; node \"$s\""
   PostToolUse:
     - matcher: "Skill"
       hooks:
         - type: command
-          command: "node \"$CLAUDE_PROJECT_DIR\"/.claude/skills/implement/scripts/log-skill-execution.js"
+          command: "s=\"$CLAUDE_PROJECT_DIR/.claude/skills/implement/scripts/log-skill-execution.js\"; [ ! -f \"$s\" ] && s=\"$HOME/.claude/skills/implement/scripts/log-skill-execution.js\"; node \"$s\""
   Stop:
     - hooks:
         - type: command
-          command: "node \"$CLAUDE_PROJECT_DIR\"/.claude/skills/implement/scripts/generate-execution-flow.js"
+          command: "s=\"$CLAUDE_PROJECT_DIR/.claude/skills/implement/scripts/generate-execution-flow.js\"; [ ! -f \"$s\" ] && s=\"$HOME/.claude/skills/implement/scripts/generate-execution-flow.js\"; node \"$s\""
           once: true
   SessionEnd:
     - hooks:
