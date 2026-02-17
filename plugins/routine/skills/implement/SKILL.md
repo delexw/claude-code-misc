@@ -19,10 +19,6 @@ hooks:
         - type: command
           command: "s=\"$CLAUDE_PROJECT_DIR/.claude/skills/implement/scripts/generate-execution-flow.js\"; [ ! -f \"$s\" ] && s=\"$HOME/.claude/skills/implement/scripts/generate-execution-flow.js\"; node \"$s\""
           once: true
-  SessionEnd:
-    - hooks:
-        - type: command
-          command: "rm -rf \"$CLAUDE_PROJECT_DIR\"/.implement-assets/"
 ---
 
 # Implement: JIRA Ticket Processor
