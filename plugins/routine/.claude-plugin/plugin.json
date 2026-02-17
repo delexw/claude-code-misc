@@ -1,7 +1,7 @@
 {
   "name": "routine",
   "description": "Orchestrated JIRA ticket implementation workflow — fetches ticket details, discovers domain knowledge, scans resources and designs, optimizes prompts, then executes the task. Requires: jira-cli, confluence-cli, JIRA_API_TOKEN. Optional: Figma MCP, PROMPT_EVAL_API_KEY.",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "author": {
     "name": "YangL"
   },
