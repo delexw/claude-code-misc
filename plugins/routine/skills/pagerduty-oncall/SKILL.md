@@ -58,7 +58,7 @@ If this fails, use `AskUserQuestion` to inform the user and link to the [PagerDu
 ~/.claude/skills/pagerduty-oncall/scripts/run-pd.sh ep $CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp
 ```
 
-Read `$CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp/ep-list.json` and filter to find only the six target escalation policies. Record their IDs for the next step.
+Read `$CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp/ep-list.json` and filter to find only the target escalation policies from config.json. Record their IDs for the next step.
 
 ### 3. List Incidents
 
@@ -72,19 +72,23 @@ Read `$CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp/incidents.json` and filter to on
 
 ### 4. Gather Incident Details
 
-For each incident ID found in Step 3, run these three commands:
+**IMPORTANT: Run each command ONE AT A TIME sequentially to avoid PagerDuty API rate limits. Do NOT run commands in parallel.**
+
+For each incident ID found in Step 3, run these three commands one after another:
 
 ```bash
 ~/.claude/skills/pagerduty-oncall/scripts/run-pd.sh log $CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp <INCIDENT_ID>
 ```
+
 ```bash
 ~/.claude/skills/pagerduty-oncall/scripts/run-pd.sh notes $CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp <INCIDENT_ID>
 ```
+
 ```bash
 ~/.claude/skills/pagerduty-oncall/scripts/run-pd.sh analytics $CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp <INCIDENT_ID>
 ```
 
-Read the parsed JSON files from `logs/`, `notes/`, and `analytics/` subdirectories.
+Complete all three commands for one incident before moving to the next incident. Read the parsed JSON files from `logs/`, `notes/`, and `analytics/` subdirectories after all incidents are processed.
 
 ### 5. Analyse and Report
 
