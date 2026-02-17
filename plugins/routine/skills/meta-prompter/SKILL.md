@@ -10,7 +10,8 @@ allowed-tools: Read, Bash
 Prompt evaluation and optimization using the `meta-prompter-mcp` CLI. Returns <FINAL_PROMPT> for the caller to execute.
 
 ## Arguments
-- `$ARGUMENTS` — The prompt to evaluate and optimize
+- `$ARGUMENTS[0]` — The prompt to evaluate and optimize
+- `$ARGUMENTS[1]` — OUT_DIR (optional). If provided, the FINAL_PROMPT is persisted to `OUT_DIR/output.md`.
 
 ## Session
 - If starting fresh: create **SESSION_ID** = `sess-YYYYMMDD-HHMMSS` and use it for all files.
@@ -61,6 +62,9 @@ Execute all steps A through E:
 - **Max 3 iterations.** If `global < 8` after 3 attempts, use the best-scoring prompt as <FINAL_PROMPT> and note the score.
 
 ### E) Return
+- If `$ARGUMENTS[1]` (OUT_DIR) is provided:
+  1. Run `mkdir -p $ARGUMENTS[1]` via Bash
+  2. Use the **Write** tool to save <FINAL_PROMPT> to `$ARGUMENTS[1]/output.md`
 - Return <FINAL_PROMPT> to the caller for execution
 
 <tags>
