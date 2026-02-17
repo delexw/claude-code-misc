@@ -65,8 +65,8 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 
 ## Phase 5: Prompt Optimization (via `Skill("meta-prompter")`)
 
-- Invoke `Skill("meta-prompter")` with all accumulated `<task>` context
-- `meta-prompter` returns <FINAL_PROMPT> after evaluation and optimization
+- Invoke `Skill("meta-prompter")` with all accumulated `<task>` context **and the output path**: `{task_context} {TICKET_ASSETS_DIR}/meta-prompter`
+- After the skill completes, **read `TICKET_ASSETS_DIR/meta-prompter/output.md`** to get the full <FINAL_PROMPT>
 
 ## Phase 6: Execute <FINAL_PROMPT>
 
