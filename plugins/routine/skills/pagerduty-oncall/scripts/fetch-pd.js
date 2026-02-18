@@ -41,14 +41,17 @@ function main() {
     fs.mkdirSync(path.join(outdir, sub), { recursive: true });
   }
 
-  // Load config
+  // Load config: config.json → PD_ESCALATION_POLICIES env → []
   const configPath = path.join(SCRIPT_DIR, "config.json");
   let targetEpNames = [];
   try {
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     targetEpNames = config.escalation_policies ?? [];
   } catch {
-    console.error(`Warning: Could not read ${configPath}, using no EP filter.`);
+    // config.json missing or invalid, will fall back to env
+  }
+  if (targetEpNames.length === 0 && process.env.PD_ESCALATION_POLICIES) {
+    targetEpNames = process.env.PD_ESCALATION_POLICIES.split(",").map((s) => s.trim()).filter(Boolean);
   }
 
   // 1. Authenticate (skip if already authenticated and no token provided)
