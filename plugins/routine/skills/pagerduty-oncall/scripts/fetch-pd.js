@@ -70,10 +70,11 @@ function main() {
   }
 
   // 2. List escalation policies
+  // Note: pd CLI's --filter is display-only and incompatible with --json,
+  // so we fetch all EPs and filter client-side by targetEpNames.
   console.log("==> Listing escalation policies...");
   const rawEps = runPd(["ep", "list", "--json"]);
   const allEps = parsers.ep(rawEps);
-  writeJson(path.join(outdir, "ep-list.json"), allEps);
 
   let targetEps;
   if (targetEpNames.length > 0) {
@@ -88,6 +89,7 @@ function main() {
     targetEps = allEps;
     console.log(`  No EP filter configured, using all ${targetEps.length} EPs`);
   }
+  writeJson(path.join(outdir, "ep-list.json"), targetEps);
   const targetEpIds = new Set(targetEps.map((ep) => ep.id));
 
   // 3. List incidents

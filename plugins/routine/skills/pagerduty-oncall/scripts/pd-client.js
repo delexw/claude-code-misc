@@ -16,8 +16,13 @@ const { parseJsonFromPdOutput } = require("./parse-pd");
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
 
+function shellEscape(arg) {
+  if (/^[a-zA-Z0-9_.=/:@-]+$/.test(arg)) return arg;
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
 function runPd(args) {
-  const cmd = `pd ${args.join(" ")}`;
+  const cmd = `pd ${args.map(shellEscape).join(" ")}`;
   const tmpFile = path.join(os.tmpdir(), `pd-out-${process.pid}-${Date.now()}.json`);
   let lastError;
 
