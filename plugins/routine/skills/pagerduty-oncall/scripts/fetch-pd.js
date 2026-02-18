@@ -36,12 +36,6 @@ function main() {
   const since = process.argv[3] || today();
   const until = process.argv[4] || today();
 
-  const token = process.env.PAGEDUTY_API_TOKEN;
-  if (!token) {
-    console.error("Error: PAGEDUTY_API_TOKEN environment variable is not set.");
-    process.exit(1);
-  }
-
   // Create output directories
   for (const sub of ["logs", "notes", "analytics"]) {
     fs.mkdirSync(path.join(outdir, sub), { recursive: true });
@@ -57,14 +51,19 @@ function main() {
     console.error(`Warning: Could not read ${configPath}, using no EP filter.`);
   }
 
-  // 1. Authenticate
-  console.log("==> Authenticating...");
-  try {
-    authenticate(token);
-    console.log("  OK: authenticated");
-  } catch (err) {
-    console.error(`Authentication failed: ${err.message}`);
-    process.exit(1);
+  // 1. Authenticate (skip if already authenticated and no token provided)
+  const token = process.env.PAGEDUTY_API_TOKEN;
+  if (token) {
+    console.log("==> Authenticating with token...");
+    try {
+      authenticate(token);
+      console.log("  OK: authenticated");
+    } catch (err) {
+      console.error(`Authentication failed: ${err.message}`);
+      process.exit(1);
+    }
+  } else {
+    console.log("==> No PAGEDUTY_API_TOKEN set, using existing pd auth...");
   }
 
   // 2. List escalation policies
