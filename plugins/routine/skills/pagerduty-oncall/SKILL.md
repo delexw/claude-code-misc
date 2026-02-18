@@ -15,9 +15,10 @@ Authenticate, list escalation policies, fetch all incidents and their details, t
 
 ## Target Escalation Policies
 
-The list of escalation policies to investigate is defined in [config.json](config.json). Only incidents matching these policies are included. If the list is empty, all escalation policies are included.
-
-To customize which teams are investigated, edit `~/.claude/skills/pagerduty-oncall/config.json`.
+The list of escalation policies to investigate is resolved in order:
+1. `config.json` — `escalation_policies` array in [config.json](config.json)
+2. `PD_ESCALATION_POLICIES` — comma-separated env var (e.g. `"Elements On Call, Platform Engineering (GPET) On-Call"`)
+3. If both are empty, all escalation policies are included
 
 ## System Requirements
 - `pd` CLI installed (https://github.com/martindstone/pagerduty-cli)
