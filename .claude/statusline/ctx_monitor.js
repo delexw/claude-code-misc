@@ -10,6 +10,7 @@ const transcript = input.transcript_path;
 const model = input.model || {};
 const name = `\x1b[95m${String(model.display_name ?? "")}\x1b[0m`.trim();
 const CONTEXT_WINDOW = 200_000;
+const costUsd = `\x1b[31m$${(Number(input.cost?.total_cost_usd) || 0).toFixed(2)}\x1b[0m`;
 
 // --- helpers ---
 function readJSON(fd) {
@@ -120,7 +121,7 @@ function newestMainUsageByTimestamp() {
 const usage = newestMainUsageByTimestamp();
 if (!usage) {
   console.log(
-    `${name} | \x1b[36mcontext window usage starts after your first question.\x1b[0m\nsession: ${sessionId}`
+    `${name} | \x1b[36mcontext window usage starts after your first question.\x1b[0m | cost: ${costUsd}\nsession: ${sessionId}`
   );
   process.exit(0);
 }
@@ -134,5 +135,5 @@ const usageCountLabel = `\x1b[33m(${comma(used)}/${comma(
 )})\x1b[0m`;
 
 console.log(
-  `${name} | ${usagePercentLabel} - ${usageCountLabel}\nsession: ${sessionId}`
+  `${name} | ${usagePercentLabel} - ${usageCountLabel} | cost: ${costUsd}\nsession: ${sessionId}`
 );
