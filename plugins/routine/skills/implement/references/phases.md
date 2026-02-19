@@ -68,11 +68,26 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 - Invoke `Skill("meta-prompter")` with all accumulated `<task>` context **and the output path**: `{task_context} {TICKET_ASSETS_DIR}/meta-prompter`
 - After the skill completes, **read `TICKET_ASSETS_DIR/meta-prompter/output.md`** to get the full <FINAL_PROMPT>
 
-## Phase 6: Execute <FINAL_PROMPT>
+## Phase 6: Implementation Planning
 
-- **Execute <FINAL_PROMPT>** using all knowledge from `<task>`
+- Using all accumulated `<task>` context and `<FINAL_PROMPT>`, generate a structured implementation plan:
+  - **Identify task type:** code, debug, content/docs, or safety
+  - **Detect required phases:** look for sequencing constraints in the ticket (e.g., DB migrations → application changes → backfill, feature flags → rollout → cleanup). Each constraint must be its own numbered phase in the plan.
+  - **For each phase, document:**
+    - What will be done (files to change, commands to run)
+    - Why it must happen in this order (dependency / safety reasoning)
+    - Rollback or recovery steps for risky operations (migrations, data changes, deploys)
+  - **List critical files** that will be touched
+  - **Identify risks** and how they will be mitigated
+- Write the plan to `TICKET_ASSETS_DIR/implementation-plan.md`
+- **Present the full plan to the user** by outputting it in the conversation, then immediately proceed to Phase 7
+
+## Phase 7: Execute <FINAL_PROMPT>
+
+- **Execute <FINAL_PROMPT>** using all knowledge from `<task>` and the implementation plan
+- Follow the phased order defined in `TICKET_ASSETS_DIR/implementation-plan.md` — complete each phase fully before starting the next
 - Identify the task type: code, debug, content/docs or safety
-  - **Code:** outline a minimal plan; edit only necessary files; run the project's own checks (e.g., `npm test`, `make test`, linters, type checks) **if available**. If unknown, add TODOs instead of guessing.
+  - **Code:** edit only necessary files; run the project's own checks (e.g., `npm test`, `make test`, linters, type checks) **if available**. If unknown, add TODOs instead of guessing.
   - **Debug:** use systematic debugging approach with <FINAL_PROMPT>
   - **Content/Docs:** save outputs to the project's standard location (**prefer repo conventions**; if unclear, use `./docs/` as a fallback and note it).
   - **Safety:** avoid destructive actions; require explicit confirmation for risky steps (migrations, data changes); include a brief rollback note.
