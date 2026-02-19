@@ -27,14 +27,15 @@ hooks:
 - `$ARGUMENTS[0]` — JIRA ticket URL (format: `https://[domain].atlassian.net/browse/[TICKET-ID]`)
 - `$ARGUMENTS[1]` — Additional context (quoted string, optional)
 
-Orchestrates end-to-end JIRA ticket processing through 7 phases:
+Orchestrates end-to-end JIRA ticket processing through 8 phases:
 1. Pre-flight Validation
 2. JIRA Analysis (via `Skill("jira-ticket-viewer")`)
 3. Domain Discovery (via `Skill("domain-discover")`)
 4. Resource Scanning (links, Figma designs)
 5. Prompt Optimization (via `Skill("meta-prompter")`)
-6. Execute <FINAL_PROMPT>
-7. Change Verification
+6. Implementation Planning (present plan, then proceed)
+7. Execute <FINAL_PROMPT>
+8. Change Verification
 
 ## Phase Dependencies
 
