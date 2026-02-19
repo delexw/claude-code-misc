@@ -80,7 +80,7 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
   - **List critical files** that will be touched
   - **Identify risks** and how they will be mitigated
 - Write the plan to `TICKET_ASSETS_DIR/implementation-plan.md`
-- **Present the full plan to the user** by outputting it in the conversation, then immediately proceed to Phase 7
+- Call the `ExitPlanMode` tool to present the plan to the user, then proceed to Phase 7
 
 ## Phase 7: Execute <FINAL_PROMPT>
 
