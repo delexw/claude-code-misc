@@ -33,6 +33,14 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
    - **Ticket summary:** 20-word objective summary
 - Save domain analysis and summary to `<task><domains>`
 
+## Phase 2.5: Create Git Branch
+
+- Using the ticket ID and ticket title from Phase 2:
+  - Slugify the ticket title: lowercase, replace spaces and special characters with hyphens, collapse consecutive hyphens, strip leading/trailing hyphens, truncate to 50 characters
+  - Compose branch name: `{ticket_id}-{slugified_title}` (e.g. `EC-1234-fix-payment-checkout-bug`)
+- Run `git checkout -b {branch_name}` to create and switch to the new branch
+- If the branch already exists, run `git checkout {branch_name}` instead
+
 ## Phase 3 + 4: Domain Discovery & Resource Scanning (parallel)
 
 > **Parallelism:** Phase 3 and Phase 4 both depend only on Phase 2 output — they do NOT depend on each other. **You MUST issue all Phase 3 and Phase 4 skill calls as multiple `Task` tool calls in a single message** to ensure they run concurrently. Do NOT call them sequentially with `Skill()`. Each `Task` call should include the `Skill("skill-name")` invocation in its prompt — the skill's own frontmatter defines the subagent type. Wait for all to complete before proceeding to Phase 5.
