@@ -133,7 +133,7 @@ $CLAUDE_PROJECT_DIR/.pir-tmp/
 └── ...
 ```
 
-Where `<short-slug>` is a kebab-case summary of the incident (e.g. `elements-admin-health-check`, `storefront-idp-degradation`).
+Where `<short-slug>` is a kebab-case summary of the incident (e.g. `admin-health-check`, `web-idp-degradation`).
 
 Each PIR file should contain:
 
