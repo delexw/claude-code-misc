@@ -42,8 +42,8 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
   1. If `$ARGUMENTS[1]` is provided, read it and use your judgment to infer the intended repo path (it may name a project, describe a service, reference a directory, or give any other hint — resolve it to an absolute path on disk)
   2. Else if the current directory is a git repo (`git rev-parse --is-inside-work-tree` succeeds), use the current directory
   3. Otherwise, skip this phase entirely — log "No git repo found, skipping branch creation" and continue to Phase 3
-- Run the script: `bash "$CLAUDE_PROJECT_DIR/.claude/skills/implement/scripts/create-branch.sh" {branch_name} {repo_dir}`
-- If the script exits with an error, log the error and continue — do not abort the skill
+- Source the script so the `cd` takes effect in the current shell: `. "$CLAUDE_PROJECT_DIR/.claude/skills/implement/scripts/create-branch.sh" {branch_name} {repo_dir}`
+- If the script encounters an error it will print a warning and continue — do not abort the skill
 
 ## Phase 3 + 4: Domain Discovery & Resource Scanning (parallel)
 

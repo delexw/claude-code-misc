@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# create-branch.sh — Create a feature branch from latest main
+# create-branch.sh — Create a git worktree from latest main for a skill run
 #
 # Usage: create-branch.sh <branch-name> [repo-dir]
 #
 # Steps:
-#   1. cd into repo-dir (defaults to current directory)
-#   2. Stash any uncommitted changes
-#   3. Switch to main and pull latest
-#   4. Create and checkout the new branch
-#   5. Pop stash if one was created
+#   1. Resolve repo root from repo-dir (defaults to current directory)
+#   2. Pull latest main in the main worktree
+#   3. Create a new branch off main
+#   4. Add a git worktree at <repo-root>/../<repo-name>-worktrees/<branch-name>
+#   5. Print the worktree path to stdout (for the caller to capture)
 
 BRANCH="${1:-}"
 REPO_DIR="${2:-.}"
@@ -21,46 +21,52 @@ fi
 {
   cd "$REPO_DIR" || { echo "ERROR: cannot cd into '$REPO_DIR'" >&2; exit 1; }
 
-  # Verify this is actually a git repo
+  # Verify this is a git repo
   if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     echo "ERROR: '$REPO_DIR' is not a git repository" >&2
     exit 1
   fi
 
+  REPO_ROOT=$(git rev-parse --show-toplevel)
+  REPO_NAME=$(basename "$REPO_ROOT")
+
   # Determine main branch name
   MAIN=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
   MAIN="${MAIN:-main}"
 
-  # Stash if there are uncommitted changes
-  STASHED=false
-  if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
-    echo "Stashing uncommitted changes..."
-    git stash push -m "implement-skill: stash before branch creation"
-    STASHED=true
+  # Pull latest main (from the main worktree)
+  echo "Pulling latest '$MAIN'..." >&2
+  git fetch origin "$MAIN"
+  git fetch origin "$MAIN":"$MAIN" 2>/dev/null || true
+
+  # Worktree destination: sibling directory of the repo
+  WORKTREE_BASE="$(dirname "$REPO_ROOT")/${REPO_NAME}-worktrees"
+  WORKTREE_PATH="${WORKTREE_BASE}/${BRANCH}"
+
+  # Remove stale worktree entry if the directory no longer exists
+  if git worktree list --porcelain | grep -q "worktree ${WORKTREE_PATH}$" && [[ ! -d "$WORKTREE_PATH" ]]; then
+    echo "Pruning stale worktree entry for '$WORKTREE_PATH'..." >&2
+    git worktree prune
   fi
 
-  # Switch to main and pull
-  echo "Switching to '$MAIN' and pulling latest..."
-  git checkout "$MAIN"
-  git pull origin "$MAIN"
-
-  # Create or checkout the target branch
-  if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
-    echo "Branch '$BRANCH' already exists — checking out..."
-    git checkout "$BRANCH"
+  # Create worktree
+  if [[ -d "$WORKTREE_PATH" ]]; then
+    echo "Worktree already exists at '$WORKTREE_PATH'" >&2
   else
-    echo "Creating branch '$BRANCH'..."
-    git checkout -b "$BRANCH"
+    mkdir -p "$WORKTREE_BASE"
+    if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+      echo "Branch '$BRANCH' already exists — adding worktree..." >&2
+      git worktree add "$WORKTREE_PATH" "$BRANCH"
+    else
+      echo "Creating branch '$BRANCH' and adding worktree..." >&2
+      git worktree add -b "$BRANCH" "$WORKTREE_PATH" "$MAIN"
+    fi
   fi
 
-  # Restore stash
-  if [[ "$STASHED" == true ]]; then
-    echo "Restoring stashed changes..."
-    git stash pop
-  fi
+  echo "Worktree ready: $WORKTREE_PATH" >&2
+  cd "$WORKTREE_PATH"
+  echo "Changed directory to: $(pwd)" >&2
 
-  echo "Ready on branch: $(git rev-parse --abbrev-ref HEAD)"
 } || {
-  echo "WARNING: create-branch.sh encountered an error — skipping branch creation" >&2
-  exit 0
+  echo "WARNING: create-branch.sh encountered an error — skipping worktree creation" >&2
 }
