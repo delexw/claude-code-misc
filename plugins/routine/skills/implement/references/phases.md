@@ -83,7 +83,7 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 - Invoke `Skill("meta-prompter")` with all accumulated `<task>` context **and the output path**: `{task_context} {TICKET_ASSETS_DIR}/meta-prompter`
-- After the skill completes, **read `TICKET_ASSETS_DIR/meta-prompter/output.md`** to get the full <FINAL_PROMPT>
+- After the skill completes, **read `TICKET_ASSETS_DIR/meta-prompter/output.md`** to get the full `<FINAL_PROMPT>`
 
 ## Phase 6: Implementation Planning
 
@@ -101,15 +101,9 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 - Write the plan to `TICKET_ASSETS_DIR/implementation-plan.md`
 - Call the `ExitPlanMode` tool to present the plan to the user, then proceed to Phase 7
 
-## Phase 7: Execute <FINAL_PROMPT>
+## Phase 7: Execute Per Planning
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
-- **Execute <FINAL_PROMPT>** using all knowledge from `<task>` and the implementation plan
-- Follow the phased order defined in `TICKET_ASSETS_DIR/implementation-plan.md` — complete each phase fully before starting the next
-- Identify the task type: code, debug, content/docs or safety
-  - **Code:** edit only necessary files; run the project's own checks (e.g., `npm test`, `make test`, linters, type checks) **if available**. If unknown, add TODOs instead of guessing.
-  - **Debug:** use systematic debugging approach with <FINAL_PROMPT>
-  - **Content/Docs:** save outputs to the project's standard location (**prefer repo conventions**; if unclear, use `./docs/` as a fallback and note it).
-  - **Safety:** avoid destructive actions; require explicit confirmation for risky steps (migrations, data changes); include a brief rollback note.
-- **MUST** execute the task rather than creating a plan only
+- **Execute Per Planning** using all knowledge from `<FINAL_PROMPT>` and the implementation plan. 
+  - Follow the phased order defined in `TICKET_ASSETS_DIR/implementation-plan.md` — complete each phase fully before starting the next
