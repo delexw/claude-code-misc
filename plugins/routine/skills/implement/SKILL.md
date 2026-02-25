@@ -35,7 +35,7 @@ Orchestrates end-to-end JIRA ticket processing through 9 phases:
 4. Resource Scanning (links, Figma designs)
 5. Prompt Optimization (via `Skill("meta-prompter")`)
 6. Implementation Planning (present plan, then proceed)
-7. Execute <FINAL_PROMPT>
+7. Execute per planning
 8. Change Verification
 
 ## Phase Dependencies
@@ -45,7 +45,7 @@ The following skills are invoked during execution using the `Skill()` tool:
 - `Skill("confluence-page-viewer")` — Read Confluence pages via confluence CLI
 - `Skill("figma-reader")` — Read Figma designs (when Figma links present in ticket)
 - `Skill("domain-discover")` — Domain knowledge discovery
-- `Skill("meta-prompter")` — Prompt evaluation and optimization (returns <FINAL_PROMPT>)
+- `Skill("meta-prompter")` — Prompt evaluation and optimization
 
 ## Execution
 
