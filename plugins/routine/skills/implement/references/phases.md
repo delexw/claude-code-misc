@@ -42,10 +42,13 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
   1. If `$ARGUMENTS[1]` is provided, read it and use your judgment to infer the intended repo path (it may name a project, describe a service, reference a directory, or give any other hint — resolve it to an absolute path on disk)
   2. Else if the current directory is a git repo (`git rev-parse --is-inside-work-tree` succeeds), use the current directory
   3. Otherwise, skip this phase entirely — log "No git repo found, skipping branch creation" and continue to Phase 3
-- Source the script so the `cd` takes effect in the current shell: `. "$CLAUDE_PROJECT_DIR/.claude/skills/implement/scripts/create-branch.sh" {branch_name} {repo_dir}`
+- Run the script: `bash "$CLAUDE_PROJECT_DIR/.claude/skills/implement/scripts/create-branch.sh" {branch_name} {repo_dir}`
+- The script prints the worktree path to stdout. Capture it and `cd` into it so all subsequent phases operate in the worktree
 - If the script encounters an error it will print a warning and continue — do not abort the skill
 
 ## Phase 3 + 4: Domain Discovery & Resource Scanning (parallel)
+
+> **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 > **Parallelism:** Phase 3 and Phase 4 both depend only on Phase 2 output — they do NOT depend on each other. **You MUST issue all Phase 3 and Phase 4 skill calls as multiple `Task` tool calls in a single message** to ensure they run concurrently. Do NOT call them sequentially with `Skill()`. Each `Task` call should include the `Skill("skill-name")` invocation in its prompt — the skill's own frontmatter defines the subagent type. Wait for all to complete before proceeding to Phase 5.
 
@@ -77,10 +80,14 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 
 ## Phase 5: Prompt Optimization (via `Skill("meta-prompter")`)
 
+> **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
+
 - Invoke `Skill("meta-prompter")` with all accumulated `<task>` context **and the output path**: `{task_context} {TICKET_ASSETS_DIR}/meta-prompter`
 - After the skill completes, **read `TICKET_ASSETS_DIR/meta-prompter/output.md`** to get the full <FINAL_PROMPT>
 
 ## Phase 6: Implementation Planning
+
+> **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 - Using all accumulated `<task>` context and `<FINAL_PROMPT>`, generate a structured implementation plan:
   - **Identify task type:** code, debug, content/docs, or safety
@@ -95,6 +102,8 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 - Call the `ExitPlanMode` tool to present the plan to the user, then proceed to Phase 7
 
 ## Phase 7: Execute <FINAL_PROMPT>
+
+> **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 - **Execute <FINAL_PROMPT>** using all knowledge from `<task>` and the implementation plan
 - Follow the phased order defined in `TICKET_ASSETS_DIR/implementation-plan.md` — complete each phase fully before starting the next

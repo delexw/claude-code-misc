@@ -64,8 +64,9 @@ fi
   fi
 
   echo "Worktree ready: $WORKTREE_PATH" >&2
-  cd "$WORKTREE_PATH"
-  echo "Changed directory to: $(pwd)" >&2
+
+  # Output the worktree path to stdout for the caller to capture and cd into
+  echo "$WORKTREE_PATH"
 
 } || {
   echo "WARNING: create-branch.sh encountered an error — skipping worktree creation" >&2
