@@ -38,8 +38,8 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 - Using the ticket ID and ticket title from Phase 2:
   - Slugify the ticket title: lowercase, replace spaces and special characters with hyphens, collapse consecutive hyphens, strip leading/trailing hyphens, truncate to 50 characters
   - Compose branch name: `{ticket_id}-{slugified_title}` (e.g. `EC-1234-fix-payment-checkout-bug`)
-- Run `git checkout -b {branch_name}` to create and switch to the new branch
-- If the branch already exists, run `git checkout {branch_name}` instead
+- Run the script: `bash "$CLAUDE_PROJECT_DIR/.claude/skills/implement/scripts/create-branch.sh" {branch_name}`
+- The script will: stash any uncommitted changes, pull latest `main`, create and checkout the branch, then restore the stash
 
 ## Phase 3 + 4: Domain Discovery & Resource Scanning (parallel)
 
