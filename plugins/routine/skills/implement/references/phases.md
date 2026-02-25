@@ -4,6 +4,7 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 
 ```xml
 <task>
+  <model_id/>             <!-- P1: current model ID (e.g. claude-opus-4-6) -->
   <context/>              <!-- P1: additional user-provided context -->
   <requirements/>         <!-- P2: raw jira ticket output -->
   <domains/>              <!-- P2: identified business domains + summary -->
@@ -15,8 +16,9 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 
 > **Output file convention:** Sub-skills with `context: fork` run as subagents whose return values may be summarized. To get the **complete** output, each sub-skill persists its full response to a file on disk. After a forked skill completes, **always read the output file** (e.g. `OUT_DIR/output.md`) rather than relying on the subagent's return value.
 
-## Phase 1: Pre-flight Validation
+## Phase 1: Initialization
 
+- Identify the current model ID you are running as (e.g. `claude-opus-4-6`, `claude-sonnet-4-6`) and save it to `<task><model_id>`
 - Validate `$ARGUMENTS[0]` matches JIRA URL format: `^https://[\w-]+\.atlassian\.net/browse/[A-Z]+-\d+$`
 - Extract the ticket ID (e.g. `PROJ-123`) from the URL for use with `Skill("jira-ticket-viewer")`
 - Define `TICKET_ASSETS_DIR=.implement-assets/{ticket_id}` — this is the base directory for all ticket assets (raw JSON, attachments, skill outputs). Passed to sub-skills as their `OUT_DIR`.
@@ -82,6 +84,7 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
+- Before invoking, use `/model <model_id>` (from `<task><model_id>`) to reset to the original model, in case a previous sub-skill changed it
 - Invoke `Skill("meta-prompter")` with all accumulated `<task>` context **and the output path**: `{task_context} {TICKET_ASSETS_DIR}/meta-prompter`
 - After the skill completes, **read `TICKET_ASSETS_DIR/meta-prompter/output.md`** to get the full `<OPTIMIZED_PROMPT>`
 
