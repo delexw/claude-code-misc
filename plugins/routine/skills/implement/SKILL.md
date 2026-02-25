@@ -50,7 +50,6 @@ The following skills are invoked during execution using the `Skill()` tool:
 ## Execution
 
 Follow [references/phases.md](references/phases.md) for step-by-step phase instructions.
-After execution, run [references/verification.md](references/verification.md) checklist.
 
 <tags>
    <mode>think</mode>

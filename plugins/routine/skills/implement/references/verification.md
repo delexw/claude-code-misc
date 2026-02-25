@@ -4,7 +4,7 @@
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
-Review every change to ensure it is:
+Launch a `Task` call with prompt containing all accumulated `<task>` context, instructing it to review every change and ensure it is:
 - reasonable and well-justified
 - within the scope of the JIRA ticket:
    - If a PR link was provided as an example → "Are my changes aligned with what the example PR guides?"
@@ -13,7 +13,7 @@ Review every change to ensure it is:
 - compliant with project conventions/standards
 - evidence-based (no guesswork)
 
-Must fix or rollback anything that's wrong or off.
+The task must fix or rollback anything that's wrong or off.
 
 ## Error Handling
 

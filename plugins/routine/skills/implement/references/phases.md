@@ -27,3 +27,4 @@ Execute each phase sequentially. Read the linked file for detailed instructions 
 5. **Prompt Optimization** — [phase5-prompt-optimization.md](phase5-prompt-optimization.md)
 6. **Implementation Planning** — [phase6-implementation-planning.md](phase6-implementation-planning.md)
 7. **Execute Per Planning** — [phase7-execution.md](phase7-execution.md)
+8. **Verification** — [verification.md](verification.md)
