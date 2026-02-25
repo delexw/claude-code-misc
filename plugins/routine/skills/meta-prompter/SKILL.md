@@ -1,17 +1,17 @@
 ---
 name: meta-prompter
-description: Evaluate and optimize prompts. Iterates until quality gate passes, then returns the final prompt for the caller to execute.
+description: Evaluate and optimize prompts. Iterates until quality gate passes, then returns the optimized prompt for the caller to execute.
 argument-hint: <prompt to evaluate and optimize>
 allowed-tools: Read, Bash
 ---
 
 # Meta-Prompter
 
-Prompt evaluation and optimization using the `meta-prompter-mcp` CLI. Returns <FINAL_PROMPT> for the caller to execute.
+Prompt evaluation and optimization using the `meta-prompter-mcp` CLI. Returns <OPTIMIZED_PROMPT> for the caller to execute.
 
 ## Arguments
 - `$ARGUMENTS[0]` — The prompt to evaluate and optimize
-- `$ARGUMENTS[1]` — OUT_DIR (optional). If provided, the FINAL_PROMPT is persisted to `OUT_DIR/output.md`.
+- `$ARGUMENTS[1]` — OUT_DIR (optional). If provided, the OPTIMIZED_PROMPT is persisted to `OUT_DIR/output.md`.
 
 ## Session
 - If starting fresh: create **SESSION_ID** = `sess-YYYYMMDD-HHMMSS` and use it for all files.
@@ -58,14 +58,14 @@ Execute all steps A through E:
     - **STOP execution immediately.**
     - **Do NOT invent questions.** Use the **3 questions returned by this re-evaluation**.
     - Redo **B) Clarify**, redo **C) Build PROMPT**, and **re-run this step (D)**.
-- **Repeat** until `global >= 8`, then proceed using the <FINAL_PROMPT>.
-- **Max 3 iterations.** If `global < 8` after 3 attempts, use the best-scoring prompt as <FINAL_PROMPT> and note the score.
+- **Repeat** until `global >= 8`, then proceed using the <OPTIMIZED_PROMPT>.
+- **Max 3 iterations.** If `global < 8` after 3 attempts, use the best-scoring prompt as <OPTIMIZED_PROMPT> and note the score.
 
 ### E) Return
 - If `$ARGUMENTS[1]` (OUT_DIR) is provided:
   1. Run `mkdir -p $ARGUMENTS[1]` via Bash
-  2. Use the **Write** tool to save <FINAL_PROMPT> to `$ARGUMENTS[1]/output.md`
-- Return <FINAL_PROMPT> to the caller for execution
+  2. Use the **Write** tool to save <OPTIMIZED_PROMPT> to `$ARGUMENTS[1]/output.md`
+- Return <OPTIMIZED_PROMPT> to the caller for execution
 
 <tags>
    <mode>think hard</mode>

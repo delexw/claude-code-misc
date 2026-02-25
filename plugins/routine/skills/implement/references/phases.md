@@ -83,13 +83,13 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 - Invoke `Skill("meta-prompter")` with all accumulated `<task>` context **and the output path**: `{task_context} {TICKET_ASSETS_DIR}/meta-prompter`
-- After the skill completes, **read `TICKET_ASSETS_DIR/meta-prompter/output.md`** to get the full `<FINAL_PROMPT>`
+- After the skill completes, **read `TICKET_ASSETS_DIR/meta-prompter/output.md`** to get the full `<OPTIMIZED_PROMPT>`
 
 ## Phase 6: Implementation Planning
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
-- Using all accumulated `<task>` context and `<FINAL_PROMPT>`, generate a structured implementation plan:
+- Using all accumulated `<task>` context and `<OPTIMIZED_PROMPT>`, generate a structured implementation plan:
   - **Identify task type:** code, debug, content/docs, or safety
   - **Detect required phases:** look for sequencing constraints in the ticket (e.g., DB migrations → application changes → backfill, feature flags → rollout → cleanup). Each constraint must be its own numbered phase in the plan.
   - **For each phase, document:**
@@ -105,5 +105,5 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
-- **Execute Per Planning** using all knowledge from `<FINAL_PROMPT>` and the implementation plan. 
+- **Execute Per Planning** using all knowledge from `<OPTIMIZED_PROMPT>` and the implementation plan. 
   - Follow the phased order defined in `TICKET_ASSETS_DIR/implementation-plan.md` — complete each phase fully before starting the next
