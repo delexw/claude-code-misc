@@ -21,6 +21,11 @@
 - **Help text**: Date to be used on this incident.
 - **Format**: YYYY-MM-DD
 
+### Culprit
+- **Help text**: Root cause or source of the incident. What triggered it.
+- **Format**: Multi-line text
+- **Example**: "Aggressive bot crawler (JA4 fingerprint: t13d1516h2_8daaf6152771_02713d6af862) sending ~4,000 req/s to /search endpoints, overwhelming the RSS feed service and triggering cascading failures."
+
 ### When
 - **Help text**: Time for the incident. Be as specific as you can.
 - **Format**: Free text with time range
@@ -49,6 +54,8 @@
 **What**: [feature impact description]
 
 **Who**: [user impact with counts]
+
+**Culprit**: [root cause or trigger source]
 
 **Incident date**: [YYYY-MM-DD]
 

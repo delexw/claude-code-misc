@@ -11,6 +11,7 @@ Use the Task tool and a prompt like:
 - User impact metrics from RUM/error tracking → **Who**
 - Monitor alerts and SLO breaches → severity input
 - Timeline of degradation → refine **When**
+- Error traces, failing dependencies → **Culprit**
 - Remediation actions visible in monitors → **Remediation**
 
 **On failure**: Note reason (e.g. "pup CLI not installed, DD_API_KEY not set"). Continue.

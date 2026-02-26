@@ -22,6 +22,7 @@ Each PIR maps to these fields — see [PIR Form Fields](references/pir-form-fiel
 | Impact Summary | Yes | Synthesised from all skills |
 | What | Yes | PagerDuty incident + Datadog + Cloudflare |
 | Who | Yes | Datadog (RUM/error tracking) + Cloudflare (user counts) |
+| Culprit | Yes | Cloudflare (JA4, traffic sources) + Datadog (error traces) + PagerDuty (trigger details) |
 | Incident date | Yes | PagerDuty incident created timestamp |
 | When | Yes | PagerDuty created/resolved + Datadog timeline |
 | Remediation | Optional | PagerDuty notes + Datadog monitors |
