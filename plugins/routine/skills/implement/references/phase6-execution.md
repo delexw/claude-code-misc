@@ -1,4 +1,4 @@
-# Phase 7: Execute Per Planning
+# Phase 6: Execute Per Planning
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 

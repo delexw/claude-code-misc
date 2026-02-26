@@ -8,9 +8,9 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
   <context/>              <!-- P1: additional user-provided context -->
   <requirements/>         <!-- P2: raw jira ticket output -->
   <domains/>              <!-- P2: identified business domains + summary -->
-  <domain_knowledge/>     <!-- P3: codebase knowledge per domain -->
-  <supporting_context/>   <!-- P4: content from scanned links -->
-  <design/>               <!-- P4: Figma/UI design context -->
+  <domain_knowledge/>     <!-- P3.1: codebase knowledge per domain -->
+  <supporting_context/>   <!-- P3.2: content from scanned links -->
+  <design/>               <!-- P3.2: Figma/UI design context -->
 </task>
 ```
 
@@ -23,8 +23,10 @@ Execute each phase sequentially. Read the linked file for detailed instructions 
 1. **Initialization** — [phase1-initialization.md](phase1-initialization.md)
 2. **JIRA Analysis** — [phase2-jira-analyzer.md](phase2-jira-analyzer.md)
 3. **Create Git Branch** — [phase2.5-create-branch.md](phase2.5-create-branch.md)
-4. **Domain Discovery & Resource Scanning** (parallel) — [phase3-4-discovery-scanning.md](phase3-4-discovery-scanning.md)
-5. **Prompt Optimization** — [phase5-prompt-optimization.md](phase5-prompt-optimization.md)
-6. **Implementation Planning** — [phase6-implementation-planning.md](phase6-implementation-planning.md)
-7. **Execute Per Planning** — [phase7-execution.md](phase7-execution.md)
+4. **Discovery & Scanning** (all 3.x phases run concurrently):
+   - 3.1 **Domain Discovery** — [phase3.1-domain-discovery.md](phase3.1-domain-discovery.md)
+   - 3.2 **Resource Scanning** — [phase3.2-resource-scanning.md](phase3.2-resource-scanning.md)
+5. **Prompt Optimization** — [phase4-prompt-optimization.md](phase4-prompt-optimization.md)
+6. **Implementation Planning** — [phase5-implementation-planning.md](phase5-implementation-planning.md)
+7. **Execute Per Planning** — [phase6-execution.md](phase6-execution.md)
 8. **Verification** — [verification.md](verification.md)
