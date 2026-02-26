@@ -9,8 +9,8 @@ Use the Task tool and a prompt like:
 **Extract from report** (`$CLAUDE_PROJECT_DIR/.traffic-spikes-investigator-tmp/report.md`):
 - Traffic volume and spike details → **What**
 - Affected endpoints and user counts → **Who**
-- JA4 fingerprints and traffic sources
-- Bot/WAF security assessment
+- JA4 fingerprints and traffic sources → **Culprit**
+- Bot/WAF security assessment → **Culprit**
 - Requests/second calculations → severity input
 
 **On failure**: Note reason (e.g. "Cloudflare MCP tools not available"). Continue.

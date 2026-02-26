@@ -15,6 +15,12 @@ For each PagerDuty incident, combine enrichment data and produce a PIR. Correlat
 - Datadog: RUM sessions, error tracking affected users
 - If no precise count, estimate and note the method
 
+**Culprit**: Root cause or trigger source, combining:
+- Cloudflare: JA4 fingerprints, traffic sources, bot activity, IP ranges
+- Datadog: error traces, failing dependencies, upstream service failures
+- PagerDuty: trigger details, alert conditions
+- If root cause is unclear, state what is known and note "Under investigation"
+
 **Incident date**: PagerDuty incident created date (`YYYY-MM-DD`).
 
 **When**: Specific time range with timezone.
