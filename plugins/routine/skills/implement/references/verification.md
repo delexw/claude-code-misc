@@ -1,6 +1,6 @@
 # Verification Checklist
 
-## Phase 8: Verify Changes
+## Phase 7: Verify Changes
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 

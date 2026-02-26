@@ -1,4 +1,4 @@
-# Phase 6: Implementation Planning
+# Phase 5: Implementation Planning
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
@@ -13,4 +13,4 @@
   - **Identify risks** and how they will be mitigated
   - Write the plan to `TICKET_ASSETS_DIR/implementation-plan.md`
 - After the task completes, **read `TICKET_ASSETS_DIR/implementation-plan.md`**
-- Call the `ExitPlanMode` tool to present the plan to the user, then proceed to Phase 7
+- Call the `ExitPlanMode` tool to present the plan to the user, then proceed to Phase 6
