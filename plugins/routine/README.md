@@ -55,7 +55,6 @@ claude --plugin-dir ./path/to/plugins/routine
 | Dependency | Description |
 |---|---|
 | [Figma MCP](https://github.com/nichochar/figma-mcp) | Read Figma designs from ticket links |
-| [implement-design](https://github.com/figma/mcp-server-guide/tree/main/skills/implement-design) | Translate Figma designs into production code. Install via `npx skills add https://github.com/figma/mcp-server-guide` |
 | `PROMPT_EVAL_API_KEY` | Prompt optimization via [meta-prompter](https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli) |
 | `PROMPT_EVAL_MODEL` | Model for prompt evaluation (default: `anthropic:claude-sonnet-4-5`). Format: `provider:model-id` |
 

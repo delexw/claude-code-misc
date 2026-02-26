@@ -35,20 +35,6 @@ If `$ARGUMENTS` is empty or not provided, use `AskUserQuestion`:
 2. **"Example prompt from Figma"** — User provides the prompt copied from Figma's dev mode
 3. **"Skip"** — Return empty design context
 
-## Implement-Design Handoff
-
-After saving the design output, check if the `implement-design` skill is available and hand off implementation.
-
-1. Check the available skills list (from the system-reminder) for `implement-design`
-2. **If `implement-design` is available** → invoke `Skill("implement-design")` with the Figma link
-3. **If `implement-design` is NOT available** → use `AskUserQuestion`:
-
-**Question:** "The `implement-design` skill can translate Figma designs into production code. Would you like to install it?"
-
-**Options:**
-1. **"Yes, install it"** — Run `npx skills add https://github.com/figma/mcp-server-guide` via Bash, then invoke `Skill("implement-design")` after installation
-2. **"Skip implementation"** — End with the design context only, do NOT proceed to implementation
-
 ## Error Handling
 
 - **MCP Not Available**: Use `AskUserQuestion` — guide user to install Figma MCP: https://developers.figma.com/docs/figma-mcp-server/local-server-installation/

@@ -27,9 +27,7 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
    - If `$ARGUMENTS[0]` contains a valid Figma link or prompt → use it directly
    - If `$ARGUMENTS[0]` is an attached UI image → show it for context, then use `AskUserQuestion` to ask the user to select the relevant component in Figma (see [references/rules.md](references/rules.md) Design Input)
    - If `$ARGUMENTS[0]` is empty or not provided → use `AskUserQuestion` to ask user (see [references/rules.md](references/rules.md) Design Input)
-5. **Implement-design handoff**: Follow [references/rules.md](references/rules.md) Implement-Design Handoff — delegates reading and implementation to `implement-design`
-6. **Fallback** (only if `implement-design` is not available and user skips installation):
-   - Use the Figma MCP tools to read the design from the resolved input
+5. **Read design**: Use the Figma MCP tools to read the design from the Figma link resolved in step 4
    - Format the output per [references/output-format.md](references/output-format.md)
    - **Save output**: Run `mkdir -p $ARGUMENTS[1]` via Bash, then save the full formatted output to `$ARGUMENTS[1]/output.md` using the Write tool
 
