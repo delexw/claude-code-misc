@@ -8,10 +8,10 @@ Forge takes a JIRA ticket URL and produces a working implementation through two 
 
 ### Stage 1: Context gathering (Phases 1-5)
 
-Each phase runs as a `Task` **subagent** with its own isolated context window, writing output to files inside a **dynamically created skill** at `.claude/skills/{ticket_id}/`:
+Each phase runs as a `Task` **subagent** with its own isolated context window, writing output to files inside a **dynamically created skill** at `~/.claude/skills/{ticket_id}/`:
 
 ```
-.claude/skills/{ticket_id}/
+~/.claude/skills/{ticket_id}/
 ├── SKILL.md                    # Generated in Phase 5 — ties everything together
 ├── context.md                  # User-provided context
 ├── jira/output.json            # JIRA ticket data
@@ -43,7 +43,7 @@ The core insight: **the dynamic skill is a context container with on-demand acce
 implement (v1)                          forge (v2)
 ─────────────────                       ──────────────────
 Phase 1-5: gather context               Phase 1-5: gather context
-    ↓ accumulate into <task> XML             ↓ write to .claude/skills/{ticket_id}/
+    ↓ accumulate into <task> XML             ↓ write to ~/.claude/skills/{ticket_id}/
 Phase 6: subagent gets full <task>       Phase 5: generate SKILL.md
     ↓ everything loaded at once              ↓ references all output files
     ↓ context exhaustion risk            Phase 6: invoke Skill("{ticket_id}-impl")

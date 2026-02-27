@@ -2,12 +2,12 @@
 
 ## Architecture
 
-Each phase writes its output to files inside a **dynamically created skill** at `.claude/skills/{ticket_id}/`.
+Each phase writes its output to files inside a **dynamically created skill** at `~/.claude/skills/{ticket_id}/`.
 
 ### Skill directory structure (built progressively)
 
 ```
-.claude/skills/{ticket_id}/
+~/.claude/skills/{ticket_id}/
 ├── SKILL.md                    # Created in Phase 5, references all context files
 ├── context.md                  # P1: additional user-provided context
 ├── jira/                       # P2: raw JIRA ticket output

@@ -27,9 +27,9 @@ hooks:
 - `$ARGUMENTS[0]` — JIRA ticket URL (format: `https://[domain].atlassian.net/browse/[TICKET-ID]`)
 - `$ARGUMENTS[1]` — Additional context (quoted string, optional)
 
-Orchestrates end-to-end JIRA ticket processing. Phases 1–5 gather context and write output files into a **dynamically created skill** at `.claude/skills/{ticket_id}/`. Phase 6 invokes that skill — context files are lazy-loaded on demand.
+Orchestrates end-to-end JIRA ticket processing. Phases 1–5 gather context and write output files into a **dynamically created skill** at `~/.claude/skills/{ticket_id}/`. Phase 6 invokes that skill — context files are lazy-loaded on demand.
 
-1. Initialization — create skill directory at `.claude/skills/{ticket_id}/`
+1. Initialization — create skill directory at `~/.claude/skills/{ticket_id}/`
 2. JIRA Analysis (via `Skill("jira-ticket-viewer")`)
 2.5. Create Git Branch (named `{TICKET-ID}-{slugified-title}`)
 3. Discovery & Scanning (all 3.x run concurrently):
