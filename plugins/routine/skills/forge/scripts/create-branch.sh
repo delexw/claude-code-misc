@@ -36,8 +36,15 @@ fi
 
   # Pull latest main (from the main worktree)
   echo "Pulling latest '$MAIN'..." >&2
+  git checkout "$MAIN"
   git fetch origin "$MAIN"
   git fetch origin "$MAIN":"$MAIN" 2>/dev/null || true
+
+  # Run uptodate.sh on main if it exists in the repo
+  if [[ -f "$REPO_ROOT/scripts/uptodate.sh" ]]; then
+    echo "Running scripts/uptodate.sh on $MAIN..." >&2
+    bash "$REPO_ROOT/scripts/uptodate.sh"
+  fi
 
   # Worktree destination: sibling directory of the repo
   WORKTREE_BASE="$(dirname "$REPO_ROOT")/${REPO_NAME}-worktrees"
