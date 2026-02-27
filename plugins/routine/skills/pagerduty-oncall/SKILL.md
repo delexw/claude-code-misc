@@ -2,7 +2,7 @@
 name: pagerduty-oncall
 description: Investigate PagerDuty incidents for Envato on-call escalation policies. Use when asked about incidents, on-call status, incident analysis, or PagerDuty investigation.
 argument-hint: "YYYY-MM-DD YYYY-MM-DD"
-allowed-tools: Bash(node ~/.claude/skills/pagerduty-oncall/scripts/fetch-pd.js *), Read, Write
+allowed-tools: Bash(node scripts/fetch-pd.js *), Read, Write
 model: sonnet
 context: fork
 ---
@@ -32,7 +32,7 @@ The list of escalation policies to investigate is resolved in order:
 All intermediate JSON and the final report are saved to:
 
 ```
-$CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp/
+.pagerduty-oncall-tmp/
 ├── ep-list.json              # Parsed escalation policies
 ├── incidents.json            # Parsed incident list (filtered by target EPs)
 ├── logs/<INCIDENT_ID>.json   # Parsed log per incident
@@ -49,7 +49,7 @@ $CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp/
 Run the single fetch script. It handles authentication, EP listing, incident listing, and gathering logs/notes/analytics for each incident — all sequentially to avoid PagerDuty API rate limits.
 
 ```bash
-node ~/.claude/skills/pagerduty-oncall/scripts/fetch-pd.js $CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp $ARGUMENTS[0] $ARGUMENTS[1]
+node scripts/fetch-pd.js .pagerduty-oncall-tmp $ARGUMENTS[0] $ARGUMENTS[1]
 ```
 
 If this fails with an authentication error, use `AskUserQuestion` to inform the user and link to the [PagerDuty CLI User Guide](https://github.com/martindstone/pagerduty-cli/wiki/PagerDuty-CLI-User-Guide) for setup instructions. Do NOT continue until the script succeeds.
@@ -58,7 +58,7 @@ If this fails with an authentication error, use `AskUserQuestion` to inform the 
 
 Read `summary.json` first to understand the scope. Then read `incidents.json` and all files from `logs/`, `notes/`, and `analytics/` subdirectories using the Read tool.
 
-Produce a structured analysis and save it using Write to `$CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp/report.md`:
+Produce a structured analysis and save it using Write to `.pagerduty-oncall-tmp/report.md`:
 
 1. **Incident Summary Table** — For each incident: ID, title, service, escalation policy, status, urgency, created/resolved timestamps, duration
 2. **Cross-Team Correlation** — Identify incidents that overlap in time across different escalation policies. Flag potential cascading failures or shared root causes
@@ -66,7 +66,7 @@ Produce a structured analysis and save it using Write to `$CLAUDE_PROJECT_DIR/.p
 4. **Key Findings** — Patterns, recurring services, repeated triggers, or escalation policy gaps
 5. **Recommendations** — Actionable suggestions based on the analysis
 
-After writing the report, inform the user of the report location: `$CLAUDE_PROJECT_DIR/.pagerduty-oncall-tmp/report.md`
+After writing the report, inform the user of the report location: `.pagerduty-oncall-tmp/report.md`
 
 <tags>
    <mode>think</mode>

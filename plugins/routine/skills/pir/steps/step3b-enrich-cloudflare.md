@@ -4,9 +4,9 @@
 
 Use the Task tool and a prompt like:
 
-> Use the Skill tool to invoke "traffic-spikes-investigator". Then read and return the report contents from $CLAUDE_PROJECT_DIR/.traffic-spikes-investigator-tmp/report.md
+> Use the Skill tool to invoke "traffic-spikes-investigator". Then read and return the report contents from .traffic-spikes-investigator-tmp/report.md
 
-**Extract from report** (`$CLAUDE_PROJECT_DIR/.traffic-spikes-investigator-tmp/report.md`):
+**Extract from report** (`.traffic-spikes-investigator-tmp/report.md`):
 - Traffic volume and spike details → **What**
 - Affected endpoints and user counts → **Who**
 - JA4 fingerprints and traffic sources → **Culprit**

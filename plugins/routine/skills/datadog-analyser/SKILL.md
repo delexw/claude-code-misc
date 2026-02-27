@@ -22,7 +22,7 @@ Investigate and analyse Datadog observability data using the `pup` CLI.
 ## Output Directory
 
 ```
-$CLAUDE_PROJECT_DIR/.datadog-analyser-tmp/
+.datadog-analyser-tmp/
 └── report.md    # Final analysis report
 ```
 
@@ -73,14 +73,14 @@ All commands default to JSON output. Use flags like `--from`, `--to`, `--query`,
 
 ### 4. Report
 
-Write a structured analysis to `$CLAUDE_PROJECT_DIR/.datadog-analyser-tmp/report.md` using the Write tool:
+Write a structured analysis to `.datadog-analyser-tmp/report.md` using the Write tool:
 
 1. **Summary** — Overall health status and key findings
 2. **Details** — Breakdown of findings per domain (monitors, logs, metrics, etc.)
 3. **Anomalies** — Anything alerting, degraded, or unusual
 4. **Recommendations** — Suggested follow-up actions
 
-Inform the user of the report location: `$CLAUDE_PROJECT_DIR/.datadog-analyser-tmp/report.md`
+Inform the user of the report location: `.datadog-analyser-tmp/report.md`
 
 <tags>
   <mode>think</mode>
