@@ -4,20 +4,21 @@
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
-Launch a `Task` call with prompt: `Invoke Skill("{ticket_id}-impl")` and instruct it to verify all changes, reading context files as needed to ensure changes are:
-- reasonable and well-justified
-- within the scope of the JIRA ticket:
-   - If a PR link was provided as an example → "Are my changes aligned with what the example PR guides?"
-   - If a Figma design or UI image was present → "Are the UI changes compliant with design specs?"
-   - If a runbook or guidance link was present → "Are my changes fully following the runbook?"
-- compliant with project conventions/standards
-- evidence-based (no guesswork)
+Loop until all issues are resolved:
 
-The task must fix or rollback anything that's wrong or off.
+1. **Verify** — Launch a `Task` call to verify all changes, reading context files from `SKILL_DIR/` as needed to ensure changes are:
+   - reasonable and well-justified
+   - within the scope of the JIRA ticket:
+     - If a PR link was provided as an example → "Are my changes aligned with what the example PR guides?"
+     - If a Figma design or UI image was present → "Are the UI changes compliant with design specs?"
+     - If a runbook or guidance link was present → "Are my changes fully following the runbook?"
+   - compliant with project conventions/standards
+   - evidence-based (no guesswork)
+2. **If issues found** — fix or rollback anything that's wrong or off
+3. **Re-verify** — repeat from step 1 until no issues remain
 
 ## Error Handling
 
-- Network failures → Return timeout error with retry suggestion
 - If any phase failed, report which phase and why
 
 ## Output
