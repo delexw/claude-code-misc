@@ -41,4 +41,5 @@ Execute each phase sequentially. Read the linked file for detailed instructions 
 5. **Prompt Optimization** — [phase4-prompt-optimization.md](references/phase4-prompt-optimization.md)
 6. **Implementation Planning + Skill Generation** — [phase5-implementation-planning.md](references/phase5-implementation-planning.md)
 7. **Execute** — [phase6-execution.md](references/phase6-execution.md)
-8. **Verification** — [verification.md](references/verification.md)
+8. **QA Web Test** (conditional: user-visible web changes) — [phase6.5-qa-web-test.md](references/phase6.5-qa-web-test.md)
+9. **Verification** — [verification.md](references/verification.md)
