@@ -37,6 +37,7 @@ Orchestrates end-to-end JIRA ticket processing:
 4. Prompt Optimization (via `Skill("meta-prompter")`)
 5. Implementation Planning (present plan, then proceed)
 6. Execute per planning
+6.5. QA Web Test (conditional: user-visible web changes)
 7. Verification
 
 ## Phase Dependencies
@@ -47,6 +48,7 @@ The following skills are invoked during execution using the `Skill()` tool:
 - `Skill("figma-reader")` — Read Figma designs (when Figma links present in ticket)
 - `Skill("domain-discover")` — Domain knowledge discovery
 - `Skill("meta-prompter")` — Prompt evaluation and optimization
+- `Skill("qa-web-test")` — Visual QA testing via Chrome DevTools MCP (conditional: user-visible web changes)
 
 ## Execution
 
