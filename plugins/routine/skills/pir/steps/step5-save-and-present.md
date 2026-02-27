@@ -1,9 +1,9 @@
 # Step 5: Save and Present Results
 
-Save each PIR as a separate markdown file in `$CLAUDE_PROJECT_DIR/.pir-tmp/`, using the naming convention:
+Save each PIR as a separate markdown file in `.pir-tmp/`, using the naming convention:
 
 ```
-$CLAUDE_PROJECT_DIR/.pir-tmp/
+.pir-tmp/
 ├── PIR-YYYY-MM-DD-<short-slug>.md   # One file per PIR
 └── ...
 ```
@@ -21,6 +21,6 @@ After writing all files, display a summary table to the user listing the files, 
 - Cloudflare: [✅ Success / ❌ Skipped — reason]
 ```
 
-Inform the user of the output directory: `$CLAUDE_PROJECT_DIR/.pir-tmp/`
+Inform the user of the output directory: `.pir-tmp/`
 
 Ask the user to review. Offer to adjust any field or regenerate individual PIRs.
