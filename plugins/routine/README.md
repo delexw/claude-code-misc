@@ -55,6 +55,7 @@ claude --plugin-dir ./path/to/plugins/routine
 | Dependency | Description |
 |---|---|
 | [Figma MCP](https://github.com/nichochar/figma-mcp) | Read Figma designs from ticket links |
+| [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) | Browser automation for QA testing and visual verification |
 | `PROMPT_EVAL_API_KEY` | Prompt optimization via [meta-prompter](https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli) |
 | `PROMPT_EVAL_MODEL` | Model for prompt evaluation (default: `anthropic:claude-sonnet-4-5`). Format: `provider:model-id` |
 
