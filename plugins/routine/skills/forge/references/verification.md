@@ -22,7 +22,13 @@ The task must fix or rollback anything that's wrong or off.
 
 ## Output
 
-After verification, output a JSON summary as the skill's response:
+After verification, clean up the dynamic skill directory — only delete the exact `~/.claude/skills/{ticket_id}` directory, nothing else:
+
+```bash
+rm -rf ~/.claude/skills/{ticket_id}
+```
+
+Then output a JSON summary as the skill's response:
 
 ```json
 {
