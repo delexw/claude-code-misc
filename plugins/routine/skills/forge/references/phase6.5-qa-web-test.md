@@ -15,7 +15,8 @@ If the changes have no web-visible effect, skip this phase.
 
 Determine the development web URL to test against:
 
-1. Check for a running dev server (e.g. `localhost:3000`, `localhost:5173`, `localhost:8080`)
+1. If `$ARGUMENTS[1]` is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context)
+2. Check for a running dev server (e.g. `localhost:3000`, `localhost:5173`, `localhost:8080`)
 2. Look in `package.json` scripts, `.env` files, or project README for the dev server URL
 3. If no dev server is found, skip this phase and note "QA web test skipped: no dev server running"
 
