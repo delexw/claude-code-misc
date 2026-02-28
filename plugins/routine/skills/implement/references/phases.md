@@ -10,7 +10,7 @@ All phases accumulate data into a single `<task>` tag with structured sub-tags:
   <domains/>              <!-- P2: identified business domains + summary -->
   <domain_knowledge/>     <!-- P3.1: codebase knowledge per domain -->
   <supporting_context/>   <!-- P3.2: content from scanned links -->
-  <design/>               <!-- P3.2: Figma/UI design context -->
+  <design/>               <!-- P3.2: Figma/UI design context, P3.3: page inspector baseline -->
 </task>
 ```
 
@@ -26,6 +26,7 @@ Execute each phase sequentially. Read the linked file for detailed instructions 
 4. **Discovery & Scanning** (all 3.x phases run concurrently):
    - 3.1 **Domain Discovery** — [phase3.1-domain-discovery.md](references/phase3.1-domain-discovery.md)
    - 3.2 **Resource Scanning** — [phase3.2-resource-scanning.md](references/phase3.2-resource-scanning.md)
+   - 3.3 **Page Inspection** (conditional: frontend/UI-affecting changes) — [phase3.3-page-inspection.md](references/phase3.3-page-inspection.md)
 5. **Prompt Optimization** — [phase4-prompt-optimization.md](references/phase4-prompt-optimization.md)
 6. **Implementation Planning** — [phase5-implementation-planning.md](references/phase5-implementation-planning.md)
 7. **Execute Per Planning** — [phase6-execution.md](references/phase6-execution.md)
