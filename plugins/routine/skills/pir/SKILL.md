@@ -3,6 +3,7 @@ name: pir
 description: Create Post Incident Records (PIRs) by analysing incidents discovered from PagerDuty. Orchestrates pagerduty-oncall, datadog-analyser, and traffic-spikes-investigator skills to enrich each incident with observability and traffic data, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
+argument-hint: "[start-date] [end-date] [additional-context]"
 ---
 
 # Post Incident Record (PIR)
@@ -12,6 +13,7 @@ Discover incidents from PagerDuty, enrich with Datadog and Cloudflare data, auto
 ## Arguments
 - `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today.
 - `$ARGUMENTS[1]` — (optional) End date in `YYYY-MM-DD` format. Defaults to today.
+- `$ARGUMENTS[2]` — (optional) Additional context as free-form text (e.g. known root cause, specific services, Slack threads, prior investigation notes). When provided, infer how to best use this context between steps — pass it to subagent prompts, use it to narrow queries, filter incidents, or incorporate into the PIR narrative as appropriate.
 
 ## PIR Form Fields
 
