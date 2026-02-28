@@ -42,7 +42,7 @@ screenshots, and inspects CSS properties to catch responsive layout bugs.
 
 1. Chrome running with remote debugging enabled (or Chrome DevTools MCP server configured)
 2. Target page accessible (dev server running, or staging/production URL)
-3. If the page requires authentication, the browser session should already be logged in
+3. If the page requires authentication, attempt to find credentials from environment variables. If none are found or authentication fails, skip the test
 
 ## Workflow
 
