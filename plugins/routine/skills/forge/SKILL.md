@@ -35,6 +35,7 @@ Orchestrates end-to-end JIRA ticket processing. Phases 1–5 gather context and 
 3. Discovery & Scanning (all 3.x run concurrently):
    - 3.1 Domain Discovery (via `Skill("domain-discover")`)
    - 3.2 Resource Scanning (links, Figma designs)
+   - 3.3 Page Inspection (conditional, via `Skill("page-inspector")`)
 4. Prompt Optimization (via `Skill("meta-prompter")`)
 5. Implementation Planning + generate `SKILL.md` for the dynamic skill
 6. Execute — invoke `Skill("{ticket_id}-impl")`
@@ -48,6 +49,7 @@ The following skills are invoked during orchestration:
 - `Skill("confluence-page-viewer")` — Read Confluence pages via confluence CLI
 - `Skill("figma-reader")` — Read Figma designs (when Figma links present in ticket)
 - `Skill("domain-discover")` — Domain knowledge discovery
+- `Skill("page-inspector")` — Capture current page layout/styles as baseline (conditional: frontend/UI-affecting changes)
 - `Skill("meta-prompter")` — Prompt evaluation and optimization
 - `Skill("{ticket_id}-impl")` — Dynamically generated skill for execution (created in Phase 5)
 - `Skill("qa-web-test")` — Visual QA testing via Chrome DevTools MCP (conditional: user-visible web changes)
