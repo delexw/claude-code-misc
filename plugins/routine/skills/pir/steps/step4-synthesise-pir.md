@@ -1,14 +1,14 @@
-# Step 4: Synthesise PIR for Each Incident
+# Step 4: Synthesise PIR for Each Issue
 
-For each PagerDuty incident, combine enrichment data and produce a PIR. Correlate Datadog/Cloudflare/codebase data to the incident by matching time windows and service names. If `.codebase-analysis-tmp/report.md` exists, read it and incorporate findings.
+Produce a PIR for each distinct issue identified across all three discovery sources (PagerDuty incidents, Datadog abnormalities, Cloudflare traffic anomalies). Correlate findings across sources by matching time windows and service names — a single issue may have signals in multiple sources. Deduplicate where the same underlying issue appears in more than one source. If `.codebase-analysis-tmp/report.md` exists, read it and incorporate findings.
 
 **Impact Summary**: Concise 1-2 sentence title.
 - Pattern: `"[Service/Feature] [failure type] for [duration] affecting [user scope]"`
 
 **What**: Which feature was impacted and how, combining:
 - PagerDuty: incident title, service name, triggered alerts
-- Datadog: error types, status codes, failing services
-- Cloudflare: traffic patterns, affected endpoints
+- Datadog: error types, status codes, failing services, abnormal monitors, SLO breaches
+- Cloudflare: traffic patterns, affected endpoints, traffic anomalies
 
 **Who**: Which users and how many, using:
 - Cloudflare: unique user counts from sampled data (note sampling)
@@ -23,14 +23,14 @@ For each PagerDuty incident, combine enrichment data and produce a PIR. Correlat
 - If codebase analysis identified high-confidence culprit commits, lead with those and reference the specific commit hash, file, and code change
 - If root cause is unclear, state what is known and note "Under investigation"
 
-**Incident date**: PagerDuty incident created date (`YYYY-MM-DD`).
+**Incident date**: Date the issue first appeared (`YYYY-MM-DD`), from whichever source detected it earliest.
 
 **When**: Specific time range in current agent's local timezone (detect via system clock).
 - Format: `"YYYY-MM-DD HH:MM - HH:MM TZ"`
-- Boundaries from PagerDuty created/resolved, refined by Datadog error timeline
+- Boundaries from the earliest signal (PagerDuty created, Datadog error spike, or Cloudflare traffic anomaly) to resolution or end of observation window
 
 **Remediation**: Mitigations applied from PagerDuty notes, Datadog monitor changes, Cloudflare WAF rules. If none found, output "To be determined".
 
-**Incident controller**: From PagerDuty escalation policy responders. Note: mandatory for SEV1 and SEV2.
+**Incident controller**: From PagerDuty escalation policy responders (if a PagerDuty incident exists for this issue). Note: mandatory for SEV1 and SEV2.
 
 **Severity**: Auto-classified per the severity table in SKILL.md.
