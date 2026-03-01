@@ -4,6 +4,7 @@ description: Create Post Incident Records (PIRs) by analysing incidents discover
 model: sonnet
 context: fork
 argument-hint: "[start-date] [end-date] [additional-context]"
+allowed-tools: Read, Bash, Write
 ---
 
 # Post Incident Record (PIR)
