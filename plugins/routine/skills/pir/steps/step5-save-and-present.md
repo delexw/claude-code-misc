@@ -8,7 +8,7 @@ Save each PIR as a separate markdown file in `.pir-tmp/`, using the naming conve
 └── ...
 ```
 
-Where `<short-slug>` is a kebab-case summary of the incident (e.g. `admin-health-check`, `web-idp-degradation`).
+Where `YYYY-MM-DD` is the issue date in the current agent's local timezone (detect via system clock, not UTC) and `<short-slug>` is a kebab-case summary of the issue (e.g. `admin-health-check`, `web-idp-degradation`).
 
 Each PIR file should follow the output template in [PIR Form Fields](../references/pir-form-fields.md).
 
