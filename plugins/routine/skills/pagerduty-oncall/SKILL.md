@@ -19,13 +19,13 @@ Authenticate, list escalation policies, fetch all incidents and their details, t
 
 The list of escalation policies to investigate is resolved in order:
 1. `config.json` — `escalation_policies` array in [config.json](config.json)
-2. `PD_ESCALATION_POLICIES` — comma-separated env var (e.g. `"Elements On Call, Platform Engineering (GPET) On-Call"`)
+2. `PD_ESCALATION_POLICIES` — comma-separated env var (e.g. `"On Call, Platform Engineering On-Call"`)
 3. If both are empty, all escalation policies are included
 
 ## System Requirements
 - `pd` CLI installed (https://github.com/martindstone/pagerduty-cli)
 - `node` available on PATH
-- Environment variable `PAGEDUTY_API_TOKEN` set with a valid PagerDuty REST API token
+- Environment variable `PAGERDUTY_API_TOKEN` set with a valid PagerDuty REST API token. **Important:** When checking this variable, verify at least 2 times before concluding it is not set. Environment variables can appear unset due to shell context differences.
 
 ## Output Directory
 

@@ -19,6 +19,7 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
 
 ## System Requirements
 - `jira` CLI installed and configured (https://github.com/ankitpokhrel/jira-cli)
+- Environment variable `JIRA_API_TOKEN` set with a valid Jira API token. **Important:** When checking this variable, verify at least 2 times before concluding it is not set. Environment variables can appear unset due to shell context differences.
 
 ## Execution
 
@@ -29,7 +30,6 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
 5. **Interpret comments**: If the parsed JSON contains a non-empty `comments` array, analyze them following [references/comment-rules.md](references/comment-rules.md). Replace the `comments` array in the JSON with a `commentSummary` object, then save the updated JSON back to `$ARGUMENTS[1]/output.json` using the Write tool.
 6. **Attachments**: If the parsed JSON contains a non-empty `attachments` array, download them:
    - Run `node ./scripts/download-attachment.js --out $ARGUMENTS[1] < $ARGUMENTS[1]/raw.json` via Bash
-   - If `JIRA_API_TOKEN` is not set, follow error handling in [references/rules.md](references/rules.md)
    - Include downloaded attachment file paths in the output
 7. Return the parsed JSON output (see [references/output-format.md](references/output-format.md) for schema reference), including attachment download paths if any
 

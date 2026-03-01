@@ -11,5 +11,5 @@
 - **Invalid Issue Key**: "Issue key format invalid. Use PROJECT-123 format (uppercase letters, hyphen, numbers)."
 - **Issue Not Found**: "Issue '{key}' not found. Verify the issue key exists in your Jira instance."
 - **Auth Error**: Use `AskUserQuestion` — guide user to reconfigure credentials via `jira init`
-- **JIRA_API_TOKEN Not Set** (attachment download): Use `AskUserQuestion` — guide user to set `JIRA_API_TOKEN` environment variable with their Jira API token (generate at https://id.atlassian.com/manage-profile/security/api-tokens). Do NOT block the workflow — ticket content is still available, only attachments are skipped.
+- **JIRA_API_TOKEN Not Set**: Use `AskUserQuestion` — guide user to set `JIRA_API_TOKEN` environment variable with their Jira API token (generate at https://id.atlassian.com/manage-profile/security/api-tokens). Do NOT continue until the token is available.
 - **Attachment Download Failed**: Warn but continue — attachment download is best-effort
