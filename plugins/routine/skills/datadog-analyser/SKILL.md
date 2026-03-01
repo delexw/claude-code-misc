@@ -3,7 +3,7 @@ name: datadog-analyser
 description: Analyse Datadog observability data including metrics, logs, monitors, incidents, SLOs, APM traces, RUM, security signals, and more. Use when asked to investigate infrastructure health, query metrics, search logs, check monitors, diagnose errors, or analyse any Datadog data.
 argument-hint: "what to analyse (e.g. 'error rate last 1h', 'triggered monitors', 'incidents today')"
 allowed-tools: Bash(pup test), Bash(pup auth status), Bash(pup agent *), Bash(pup monitors list *), Bash(pup monitors get *), Bash(pup monitors search *), Bash(pup metrics query *), Bash(pup metrics list *), Bash(pup metrics get *), Bash(pup metrics search *), Bash(pup logs search *), Bash(pup logs list *), Bash(pup logs aggregate *), Bash(pup events list *), Bash(pup events search *), Bash(pup events get *), Bash(pup incidents list *), Bash(pup incidents get *), Bash(pup incidents attachments *), Bash(pup dashboards list *), Bash(pup dashboards get *), Bash(pup dashboards url *), Bash(pup slos list *), Bash(pup slos get *), Bash(pup slos status *), Bash(pup apm *), Bash(pup rum apps *), Bash(pup rum sessions *), Bash(pup rum metrics *), Bash(pup synthetics tests *), Bash(pup synthetics locations *), Bash(pup infrastructure hosts *), Bash(pup error-tracking issues *), Bash(pup service-catalog list *), Bash(pup service-catalog get *), Bash(pup scorecards list *), Bash(pup scorecards get *), Bash(pup security rules list *), Bash(pup security signals list *), Bash(pup security findings *), Bash(pup cicd pipelines *), Bash(pup cicd events *), Bash(pup on-call teams *), Bash(pup cases search *), Bash(pup cases get *), Bash(pup notebooks list *), Bash(pup notebooks get *), Bash(pup misc status), Bash(pup misc ip-ranges), Read, Write, Edit
-model: sonnet
+model: haiku
 context: fork
 ---
 
@@ -12,7 +12,7 @@ context: fork
 Investigate and analyse Datadog observability data using the `pup` CLI.
 
 ## Arguments
-- `$ARGUMENTS[0]` — (optional) What to analyse (e.g. `"error rate last 1h"`, `"triggered monitors"`, `"incidents today"`, `"service:api logs"`). If not provided, perform a general health overview.
+- `$ARGUMENTS[0]` — (optional) What to analyse (e.g. `"error rate last 1h"`, `"triggered monitors"`, `"incidents today"`, `"service:api logs"`). If not provided, perform a general health overview. Use current agent's local timezone (detect via system clock) for any time-based queries (e.g. "last 1h" means the last hour in current agent's local timezone, not UTC).
 
 ## System Requirements
 - `pup` CLI installed — see https://github.com/datadog-labs/pup/blob/main/README.md
@@ -73,7 +73,7 @@ All commands default to JSON output. Use flags like `--from`, `--to`, `--query`,
 
 ### 4. Report
 
-All timestamps in the report must use user's local time, not UTC.
+All timestamps in the report must use current agent's local timezone (detect via system clock), not UTC.
 
 Write a structured analysis to `.datadog-analyser-tmp/report.md` using the Write tool:
 

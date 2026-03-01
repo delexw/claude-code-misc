@@ -3,7 +3,7 @@ name: pagerduty-oncall
 description: Investigate PagerDuty incidents for Envato on-call escalation policies. Use when asked about incidents, on-call status, incident analysis, or PagerDuty investigation.
 argument-hint: "YYYY-MM-DD YYYY-MM-DD"
 allowed-tools: Bash(node scripts/fetch-pd.js *), Read, Write, Edit
-model: sonnet
+model: haiku
 context: fork
 ---
 
@@ -12,8 +12,8 @@ context: fork
 Authenticate, list escalation policies, fetch all incidents and their details, then analyse relevance across Envato on-call teams.
 
 ## Arguments
-- `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today's date.
-- `$ARGUMENTS[1]` — (optional) End date in `YYYY-MM-DD` format. Defaults to today's date.
+- `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today's date. In current agent's local timezone (detect via system clock), not UTC.
+- `$ARGUMENTS[1]` — (optional) End date in `YYYY-MM-DD` format. Defaults to today's date. In current agent's local timezone (detect via system clock), not UTC.
 
 ## Target Escalation Policies
 
@@ -60,9 +60,9 @@ Read `summary.json` first to understand the scope. Then read `incidents.json` an
 
 Produce a structured analysis and save it using Write to `.pagerduty-oncall-tmp/report.md`:
 
-1. **Incident Summary Table** — For each incident: ID, title, service, escalation policy, status, urgency, created/resolved timestamps (user's local time, not UTC), duration
+1. **Incident Summary Table** — For each incident: ID, title, service, escalation policy, status, urgency, created/resolved timestamps (current agent's local timezone via system clock, not UTC), duration
 2. **Cross-Team Correlation** — Identify incidents that overlap in time across different escalation policies. Flag potential cascading failures or shared root causes
-3. **Timeline** — Chronological view of all incidents across all teams in user's local time, highlighting clusters of activity
+3. **Timeline** — Chronological view of all incidents across all teams in current agent's local timezone, highlighting clusters of activity
 4. **Key Findings** — Patterns, recurring services, repeated triggers, or escalation policy gaps
 5. **Recommendations** — Actionable suggestions based on the analysis
 
