@@ -101,6 +101,21 @@ Document findings using the **[Incident Report Template](references/incident-rep
 
 ## Reference Files
 
-**Steps:** [1](steps/step-01-get-parameters.md) · [2](steps/step-02-confirm-spike.md) · [3](steps/step-03-minute-detail.md) · [4](steps/step-04-apm-traces.md) · [5](steps/step-05-identify-ja4.md) · [6](steps/step-06-analyze-traffic.md) · [7](steps/step-07-verify-legitimacy.md) · [8](steps/step-08-extract-users.md) · [9](steps/step-09-map-and-calculate.md) · [10](steps/step-10-synthesize.md)
+### Steps
+1. [Get parameters](steps/step-01-get-parameters.md)
+2. [Confirm spike](steps/step-02-confirm-spike.md)
+3. [Minute-level detail](steps/step-03-minute-detail.md)
+4. [Request APM traces](steps/step-04-apm-traces.md)
+5. [Identify culprit JA4](steps/step-05-identify-ja4.md)
+6. [Analyze traffic](steps/step-06-analyze-traffic.md)
+7. [Verify legitimacy](steps/step-07-verify-legitimacy.md)
+8. [Extract top users](steps/step-08-extract-users.md)
+9. [Map to code & calculate load](steps/step-09-map-and-calculate.md)
+10. [Synthesize & report](steps/step-10-synthesize.md)
 
-**References:** [Cloudflare API MCP](references/cloudflare-api-mcp.md) · [Known Fingerprints](references/known-fingerprints.json) · [Security Scores](references/security-scores.md) · [Failure Patterns](references/failure-patterns.md) · [Incident Report Template](references/incident-report-template.md)
+### References
+- [Cloudflare API MCP](references/cloudflare-api-mcp.md)
+- [Known Fingerprints](references/known-fingerprints.json)
+- [Security Scores](references/security-scores.md)
+- [Failure Patterns](references/failure-patterns.md)
+- [Incident Report Template](references/incident-report-template.md)
