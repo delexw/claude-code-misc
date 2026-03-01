@@ -2,7 +2,7 @@
 name: implement
 description: "Automate JIRA ticket processing through domain analysis, initialization, prompt evaluation-optimization and final task execution with comprehensive error handling in thinking model. Use when given a JIRA ticket URL (format: https://[domain].atlassian.net/browse/[TICKET-ID]) to process end-to-end."
 argument-hint: 'JIRA ticket URL (format: https://[domain].atlassian.net/browse/[TICKET-ID]) "(Optional) Additional Context"'
-allowed-tools: Read, Bash, ExitPlanMode, Write
+allowed-tools: Read, Bash, ExitPlanMode, Write, Edit
 hooks:
   PreToolUse:
     - matcher: "Skill"
