@@ -1,6 +1,6 @@
 ---
 name: pir
-description: Create Post Incident Records (PIRs) by analysing incidents discovered from PagerDuty. Orchestrates pagerduty-oncall, datadog-analyser, and cloudflare-traffic-investigator skills to enrich each incident with observability and traffic data, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
+description: Create Post Incident Records (PIRs) by discovering issues from PagerDuty, Datadog, and Cloudflare concurrently. Orchestrates pagerduty-oncall, datadog-analyser, and cloudflare-traffic-investigator skills, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
 argument-hint: "[start-date] [end-date] [repos-list] [domain:zone-id]"
@@ -9,7 +9,7 @@ allowed-tools: Read, Bash, Write, Edit
 
 # Post Incident Record (PIR)
 
-Discover incidents from PagerDuty, enrich with Datadog and Cloudflare data, auto-determine severity, and produce completed PIR forms for each incident.
+Discover issues from PagerDuty, Datadog, and Cloudflare concurrently, auto-determine severity, and produce completed PIR forms for each issue.
 
 ## Arguments
 - `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today. In current agent's local timezone (detect via system clock), not UTC.
