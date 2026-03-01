@@ -69,7 +69,7 @@ See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
 See [step3-codebase-analysis.md](steps/step3-codebase-analysis.md)
 — Only runs when `$ARGUMENTS[2]` (repos list) is provided. Investigates recent commits on `origin/main` to identify culprit code changes. Saves findings to `.codebase-analysis-tmp/report.md`.
 
-### Step 4: Synthesise PIR for Each Incident
+### Step 4: Synthesise PIR for Each Issue
 See [step4-synthesise-pir.md](steps/step4-synthesise-pir.md)
 
 ### Step 5: Save and Present Results
