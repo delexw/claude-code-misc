@@ -15,7 +15,7 @@ context: fork
 |----------|-------------|
 | `$ARGUMENTS[0]` | Cloudflare-protected domain to investigate (e.g., `example.com`) |
 | `$ARGUMENTS[1]` | Cloudflare zone ID for the domain (e.g., `abc123def456`) |
-| `$ARGUMENTS[2]` | *(optional)* Time range to investigate (e.g., `"2025-06-01 04:00-05:00 NZST"`, `"today 9:00-10:00 AEDT"`) |
+| `$ARGUMENTS[2]` | *(optional)* Time range to investigate (e.g., `"2025-06-01 04:00-05:00 NZST"`, `"today 9:00-10:00 AEDT"`). In current agent's local timezone (detect via system clock), not UTC. |
 
 If domain or zone ID is not provided, ask the user via `AskUserQuestion`. Time range is collected in Step 1 if not passed here.
 
@@ -43,10 +43,6 @@ All Cloudflare interactions use two tools:
 - `mcp__cloudflare-api__execute` — Execute API calls via `cloudflare.request()` (GraphQL analytics via POST to `/graphql`, Radar via REST, zone operations via `/zones`)
 
 See **[Cloudflare API MCP Reference](references/cloudflare-api-mcp.md)** for query patterns and examples.
-
-## Time Zone Handling
-
-Always present times in the current agent timezone. Convert user-provided times to UTC for Cloudflare queries, then convert results back for display.
 
 ## JA4 TLS Fingerprints
 

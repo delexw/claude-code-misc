@@ -7,7 +7,7 @@ Use this template when documenting traffic spike incidents. Fill in all sections
 ```markdown
 ## Incident: [Traffic Spike - Brief Description]
 
-**Time Window:** [Time in current agent timezone]
+**Time Window:** [Time in pinned timezone (detect via system clock at start)]
 **Affected Service:** [Service/API name that failed]
 **Affected Endpoint:** [Path that received traffic]
 
@@ -143,7 +143,7 @@ Use this template when documenting traffic spike incidents. Fill in all sections
 
 ---
 
-**Generated:** [Date]
+**Generated:** [Date and time in pinned timezone, detected via system clock]
 **Analyst:** [Your name]
 **Report Status:** [Draft / Final / Under Review]
 
@@ -168,7 +168,7 @@ Create incident reports for:
 - Calculate percentages for context
 
 **Timeline:**
-- Always use current agent timezone
+- Always use pinned timezone (detected via system clock at Step 1)
 - Mark key events (spike start, errors start, circuit breaker, peak, resolution)
 
 **Technical Details:**
