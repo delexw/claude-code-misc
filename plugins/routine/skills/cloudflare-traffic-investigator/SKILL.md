@@ -2,7 +2,7 @@
 name: cloudflare-traffic-investigator
 description: Investigate traffic anomalies, spikes, and service degradation on Cloudflare-protected domains. Uses Cloudflare MCP tools for GraphQL analytics, JA4 fingerprint analysis, bot/WAF security scoring, and incident reporting. Use this skill whenever traffic spikes, service overloads, 429 errors, circuit breaker events, Cloudflare analytics, or domain performance issues are mentioned — even if the user doesn't explicitly say "traffic spike". Also triggers for APM error investigation correlated with traffic patterns, or when asked to check Cloudflare data for any domain.
 allowed-tools: mcp__cloudflare-api__search, mcp__cloudflare-api__execute, Read, Bash, Write, Edit
-argument-hint: "[domain] [zone-id]"
+argument-hint: "[domain] [zone-id] [timerange]"
 model: sonnet
 context: fork
 ---
@@ -15,8 +15,9 @@ context: fork
 |----------|-------------|
 | `$ARGUMENTS[0]` | Cloudflare-protected domain to investigate (e.g., `example.com`) |
 | `$ARGUMENTS[1]` | Cloudflare zone ID for the domain (e.g., `abc123def456`) |
+| `$ARGUMENTS[2]` | *(optional)* Time range to investigate (e.g., `"2025-06-01 04:00-05:00 NZST"`, `"today 9:00-10:00 AEDT"`) |
 
-If any argument is not provided, ask the user via `AskUserQuestion`.
+If domain or zone ID is not provided, ask the user via `AskUserQuestion`. Time range is collected in Step 1 if not passed here.
 
 ---
 
