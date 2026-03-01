@@ -6,9 +6,9 @@ PagerDuty is the primary source of truth. Run it first to discover all incidents
 
 Use the Task tool and a prompt like:
 
-> Use the Skill tool to invoke "pagerduty-oncall" with args "$ARGUMENTS[0] $ARGUMENTS[1]". Then read and return the report contents from .pagerduty-oncall-tmp/report.md
+> Use the Skill tool to invoke "pageduty-oncall" with args "$ARGUMENTS[0] $ARGUMENTS[1]". Then read and return the report contents from .pageduty-oncall-tmp/report.md
 
-**Extract from report** (`.pagerduty-oncall-tmp/report.md`):
+**Extract from report** (`.pageduty-oncall-tmp/report.md`):
 - All incident IDs, titles, services, statuses
 - Created/resolved timestamps → **When**, **Incident date**
 - Escalation policies and responders → **Incident controller**

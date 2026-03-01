@@ -1,6 +1,6 @@
 ---
 name: pir
-description: Create Post Incident Records (PIRs) by analysing incidents discovered from PagerDuty. Orchestrates pagerduty-oncall, datadog-analyser, and traffic-spikes-investigator skills to enrich each incident with observability and traffic data, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
+description: Create Post Incident Records (PIRs) by analysing incidents discovered from PagerDuty. Orchestrates pageduty-oncall, datadog-analyser, and traffic-spikes-investigator skills to enrich each incident with observability and traffic data, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
 argument-hint: "[start-date] [end-date] [repos-list]"
@@ -50,7 +50,7 @@ See [step1-gather-date-range.md](steps/step1-gather-date-range.md)
 
 ### Step 2: Discover Incidents from PagerDuty *(Task subagent)*
 See [step2-discover-incidents.md](steps/step2-discover-incidents.md)
-— Runs `Skill("pagerduty-oncall")` via a Task subagent to isolate context.
+— Runs `Skill("pageduty-oncall")` via a Task subagent to isolate context.
 
 ### Step 3: Enrich with Datadog and Cloudflare
 
