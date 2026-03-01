@@ -1,6 +1,6 @@
 # Step 2a: Discover Incidents from PagerDuty
 
-PagerDuty is the primary source of truth for incident discovery. Runs concurrently with Datadog and Cloudflare discovery.
+One of three concurrent discovery sources (alongside Datadog and Cloudflare). All three sources carry equal weight for incident discovery.
 
 **Run via Task subagent** to isolate context:
 

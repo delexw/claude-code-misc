@@ -14,4 +14,4 @@ Use the Task tool and a prompt like:
 - Error traces, failing dependencies → **Culprit**
 - Remediation actions visible in monitors → **Remediation**
 
-**On failure**: Note reason (e.g. "pup CLI not installed, DD_API_KEY not set"). Continue.
+**On failure**: Note reason (e.g. "pup CLI not installed, DD_API_KEY not set"). Use `AskUserQuestion` to ask the user for observability details manually (e.g. error rates, affected services, monitor alerts), then continue.

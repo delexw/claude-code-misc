@@ -21,4 +21,4 @@ Note: The time range covers the full date range from arguments since this step r
 - Bot/WAF security assessment → **Culprit**
 - Requests/second calculations → severity input
 
-**On failure**: Note reason (e.g. "Cloudflare MCP tools not available"). Continue.
+**On failure**: Note reason (e.g. "Cloudflare MCP tools not available"). Use `AskUserQuestion` to ask the user for traffic analysis details manually (e.g. traffic patterns, affected endpoints, suspicious sources), then continue.
