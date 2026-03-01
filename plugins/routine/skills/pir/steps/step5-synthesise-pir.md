@@ -1,6 +1,6 @@
-# Step 4: Synthesise PIR for Each Incident
+# Step 5: Synthesise PIR for Each Incident
 
-For each PagerDuty incident, combine enrichment data and produce a PIR. Correlate Datadog/Cloudflare data to the incident by matching time windows and service names.
+For each PagerDuty incident, combine enrichment data and produce a PIR. Correlate Datadog/Cloudflare/codebase data to the incident by matching time windows and service names. If `.codebase-analysis-tmp/report.md` exists, read it and incorporate findings.
 
 **Impact Summary**: Concise 1-2 sentence title.
 - Pattern: `"[Service/Feature] [failure type] for [duration] affecting [user scope]"`
@@ -16,9 +16,11 @@ For each PagerDuty incident, combine enrichment data and produce a PIR. Correlat
 - If no precise count, estimate and note the method
 
 **Culprit**: Root cause or trigger source, combining:
+- Codebase analysis: culprit commits, specific file/code references, deploy correlation (from `.codebase-analysis-tmp/report.md` if available)
 - Cloudflare: JA4 fingerprints, traffic sources, bot activity, IP ranges
 - Datadog: error traces, failing dependencies, upstream service failures
 - PagerDuty: trigger details, alert conditions
+- If codebase analysis identified high-confidence culprit commits, lead with those and reference the specific commit hash, file, and code change
 - If root cause is unclear, state what is known and note "Under investigation"
 
 **Incident date**: PagerDuty incident created date (`YYYY-MM-DD`).

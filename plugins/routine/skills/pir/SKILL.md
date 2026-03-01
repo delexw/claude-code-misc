@@ -3,7 +3,7 @@ name: pir
 description: Create Post Incident Records (PIRs) by analysing incidents discovered from PagerDuty. Orchestrates pagerduty-oncall, datadog-analyser, and traffic-spikes-investigator skills to enrich each incident with observability and traffic data, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
-argument-hint: "[start-date] [end-date] [additional-context]"
+argument-hint: "[start-date] [end-date] [repos-list]"
 allowed-tools: Read, Bash, Write
 ---
 
@@ -14,7 +14,7 @@ Discover incidents from PagerDuty, enrich with Datadog and Cloudflare data, auto
 ## Arguments
 - `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today.
 - `$ARGUMENTS[1]` — (optional) End date in `YYYY-MM-DD` format. Defaults to today.
-- `$ARGUMENTS[2]` — (optional) Additional context as free-form text (e.g. known root cause, specific services, Slack threads, prior investigation notes). When provided, infer how to best use this context between steps — pass it to subagent prompts, use it to narrow queries, filter incidents, or incorporate into the PIR narrative as appropriate.
+- `$ARGUMENTS[2]` — (optional) Comma-separated local repo paths for codebase root cause analysis (e.g. `~/repos/frontend,~/repos/backend`).
 
 ## PIR Form Fields
 
@@ -25,7 +25,7 @@ Each PIR maps to these fields — see [PIR Form Fields](references/pir-form-fiel
 | Impact Summary | Yes | Synthesised from all skills |
 | What | Yes | PagerDuty incident + Datadog + Cloudflare |
 | Who | Yes | Datadog (RUM/error tracking) + Cloudflare (user counts) |
-| Culprit | Yes | Cloudflare (JA4, traffic sources) + Datadog (error traces) + PagerDuty (trigger details) |
+| Culprit | Yes | Cloudflare (JA4, traffic sources) + Datadog (error traces) + PagerDuty (trigger details) + Codebase analysis (culprit commits) |
 | Incident date | Yes | PagerDuty incident created timestamp |
 | When | Yes | PagerDuty created/resolved + Datadog timeline |
 | Remediation | Optional | PagerDuty notes + Datadog monitors |
@@ -64,11 +64,15 @@ See [step3a-enrich-datadog.md](steps/step3a-enrich-datadog.md)
 See [step3b-enrich-cloudflare.md](steps/step3b-enrich-cloudflare.md)
 — Runs `Skill("traffic-spikes-investigator")` via a Task subagent.
 
-### Step 4: Synthesise PIR for Each Incident
-See [step4-synthesise-pir.md](steps/step4-synthesise-pir.md)
+### Step 4: Codebase Analysis *(Task subagent, conditional)*
+See [step4-codebase-analysis.md](steps/step4-codebase-analysis.md)
+— Only runs when `$ARGUMENTS[2]` (repos list) is provided. Investigates recent commits on `origin/main` to identify culprit code changes. Saves findings to `.codebase-analysis-tmp/report.md`.
 
-### Step 5: Save and Present Results
-See [step5-save-and-present.md](steps/step5-save-and-present.md)
+### Step 5: Synthesise PIR for Each Incident
+See [step5-synthesise-pir.md](steps/step5-synthesise-pir.md)
+
+### Step 6: Save and Present Results
+See [step6-save-and-present.md](steps/step6-save-and-present.md)
 
 <tags>
    <mode>think</mode>
