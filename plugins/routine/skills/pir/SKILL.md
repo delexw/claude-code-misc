@@ -1,9 +1,9 @@
 ---
 name: pir
-description: Create Post Incident Records (PIRs) by analysing incidents discovered from PagerDuty. Orchestrates pagerduty-oncall, datadog-analyser, and traffic-spikes-investigator skills to enrich each incident with observability and traffic data, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
+description: Create Post Incident Records (PIRs) by analysing incidents discovered from PagerDuty. Orchestrates pagerduty-oncall, datadog-analyser, and cloudflare-traffic-investigator skills to enrich each incident with observability and traffic data, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
-argument-hint: "[start-date] [end-date] [repos-list]"
+argument-hint: "[start-date] [end-date] [repos-list] [domain:zone-id]"
 allowed-tools: Read, Bash, Write, Edit
 ---
 
@@ -15,6 +15,7 @@ Discover incidents from PagerDuty, enrich with Datadog and Cloudflare data, auto
 - `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today.
 - `$ARGUMENTS[1]` — (optional) End date in `YYYY-MM-DD` format. Defaults to today.
 - `$ARGUMENTS[2]` — (optional) Comma-separated local repo paths for codebase root cause analysis (e.g. `~/repos/frontend,~/repos/backend`).
+- `$ARGUMENTS[3]` — (optional) Cloudflare domain and zone ID in `domain:zone_id` format (e.g. `example.com:abc123def456`). Passed to the `cloudflare-traffic-investigator` skill. If not provided, the cloudflare skill will ask the user.
 
 ## PIR Form Fields
 
@@ -62,7 +63,7 @@ See [step3a-enrich-datadog.md](steps/step3a-enrich-datadog.md)
 
 #### 3b. Cloudflare *(Task subagent)*
 See [step3b-enrich-cloudflare.md](steps/step3b-enrich-cloudflare.md)
-— Runs `Skill("traffic-spikes-investigator")` via a Task subagent.
+— Runs `Skill("cloudflare-traffic-investigator")` via a Task subagent. Passes domain and zone ID from `$ARGUMENTS[3]` if provided.
 
 ### Step 4: Codebase Analysis *(Task subagent, conditional)*
 See [step4-codebase-analysis.md](steps/step4-codebase-analysis.md)
