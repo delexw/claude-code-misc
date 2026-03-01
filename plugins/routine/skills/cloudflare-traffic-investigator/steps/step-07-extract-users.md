@@ -1,6 +1,6 @@
-# Step 8: Extract Top Users
+# Step 7: Extract Top Users
 
-For the high-traffic endpoints identified in Step 6, find which users are driving the most requests.
+For the high-traffic endpoints identified in Step 5, find which users are driving the most requests.
 
 Filter by `clientRequestPath` (paths hit by culprit JA4) and group by `clientRequestQuery` to extract user identifiers.
 

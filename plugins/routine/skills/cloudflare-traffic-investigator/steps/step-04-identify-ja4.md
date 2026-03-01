@@ -1,4 +1,4 @@
-# Step 5: Identify Culprit JA4 Fingerprints
+# Step 4: Identify Culprit JA4 Fingerprints
 
 This is the pivotal step — dynamically discover which JA4 TLS fingerprint(s) drove the spike.
 
