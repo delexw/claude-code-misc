@@ -28,11 +28,14 @@ function today() {
 }
 
 function main() {
-  const outdir = process.argv[2];
-  if (!outdir) {
+  const rawOutdir = process.argv[2];
+  if (!rawOutdir) {
     console.error("Usage: node fetch-pd.js <outdir> [since] [until]");
     process.exit(1);
   }
+  const outdir = path.isAbsolute(rawOutdir)
+    ? rawOutdir
+    : path.join(process.env.PWD || process.cwd(), rawOutdir);
   const since = process.argv[3] || today();
   const until = process.argv[4] || today();
 
