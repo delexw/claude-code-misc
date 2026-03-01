@@ -20,7 +20,7 @@ Supported providers: `anthropic`, `openai`.
 
 Before calling the CLI, verify the following. If any check fails, use `AskUserQuestion` with the options shown. Do NOT proceed until resolved or skipped.
 
-1. **API key**: Check if `PROMPT_EVAL_API_KEY` env is set — verify at least 2 times before concluding it is not set (environment variables can appear unset due to shell context differences). If not set → ask:
+1. **API key**: Check if `PROMPT_EVAL_API_KEY` env is set — verify at least 2 times before concluding it is not set (environment variables can appear unset due to shell context differences). **Never expose the value** — use existence checks only (e.g. `test -n "$PROMPT_EVAL_API_KEY"`). If not set → ask:
    - **"Help me set it up"** — Guide user to: https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli
    - **"Skip"** — Return empty evaluation, do NOT block the workflow
 

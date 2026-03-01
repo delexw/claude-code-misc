@@ -25,7 +25,7 @@ The list of escalation policies to investigate is resolved in order:
 ## System Requirements
 - `pd` CLI installed (https://github.com/martindstone/pagerduty-cli)
 - `node` available on PATH
-- Environment variable `PAGERDUTY_API_TOKEN` set with a valid PagerDuty REST API token. **Important:** When checking this variable, verify at least 2 times before concluding it is not set. Environment variables can appear unset due to shell context differences.
+- Environment variable `PAGERDUTY_API_TOKEN` set with a valid PagerDuty REST API token. **Important:** When checking this variable, verify at least 2 times before concluding it is not set. Environment variables can appear unset due to shell context differences. **Never expose the value** — use existence checks only (e.g. `test -n "$PAGERDUTY_API_TOKEN"`).
 
 ## Output Directory
 
@@ -56,7 +56,7 @@ If this fails with an authentication error, use `AskUserQuestion` to inform the 
 
 ### 2. Analyse and Report
 
-Read `summary.json` first to understand the scope. Then read `incidents.json` and all files from `logs/`, `notes/`, and `analytics/` subdirectories using the Read tool.
+Read all JSON files produced by Step 1 in `.pagerduty-oncall-tmp/` (including subdirectories) using the Read tool.
 
 Produce a structured analysis and save it using Write to `.pagerduty-oncall-tmp/report.md`:
 

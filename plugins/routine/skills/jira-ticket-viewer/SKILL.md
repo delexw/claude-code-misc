@@ -19,7 +19,7 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
 
 ## System Requirements
 - `jira` CLI installed and configured (https://github.com/ankitpokhrel/jira-cli)
-- Environment variable `JIRA_API_TOKEN` set with a valid Jira API token. **Important:** When checking this variable, verify at least 2 times before concluding it is not set. Environment variables can appear unset due to shell context differences.
+- Environment variable `JIRA_API_TOKEN` set with a valid Jira API token. **Important:** When checking this variable, verify at least 2 times before concluding it is not set. Environment variables can appear unset due to shell context differences. **Never expose the value** — use existence checks only (e.g. `test -n "$JIRA_API_TOKEN"`).
 
 ## Execution
 

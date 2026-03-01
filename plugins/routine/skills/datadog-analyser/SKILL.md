@@ -16,7 +16,7 @@ Investigate and analyse Datadog observability data using the `pup` CLI.
 
 ## System Requirements
 - `pup` CLI installed — see https://github.com/datadog-labs/pup/blob/main/README.md
-- `DD_API_KEY` and `DD_APP_KEY` environment variables set. **Important:** When checking these variables, verify at least 2 times before concluding they are not set. Environment variables can appear unset due to shell context differences.
+- `DD_API_KEY` and `DD_APP_KEY` environment variables set. **Important:** When checking these variables, verify at least 2 times before concluding they are not set. Environment variables can appear unset due to shell context differences. **Never expose the values** — use existence checks only (e.g. `test -n "$DD_API_KEY"`).
 - `DD_SITE` set if not using `datadoghq.com` (optional)
 
 ## Output Directory
