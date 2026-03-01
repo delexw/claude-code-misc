@@ -13,7 +13,7 @@
  *   until   — End date YYYY-MM-DD (defaults to today)
  *
  * Environment:
- *   PAGEDUTY_API_TOKEN — PagerDuty REST API token (required)
+ *   PAGERDUTY_API_TOKEN — PagerDuty REST API token (required)
  */
 
 const fs = require("fs");
@@ -55,7 +55,7 @@ function main() {
   }
 
   // 1. Authenticate (skip if already authenticated and no token provided)
-  const token = process.env.PAGEDUTY_API_TOKEN;
+  const token = process.env.PAGERDUTY_API_TOKEN;
   if (token) {
     console.log("==> Authenticating with token...");
     try {
@@ -66,7 +66,7 @@ function main() {
       process.exit(1);
     }
   } else {
-    console.log("==> No PAGEDUTY_API_TOKEN set, using existing pd auth...");
+    console.log("==> No PAGERDUTY_API_TOKEN set, using existing pd auth...");
   }
 
   // 2. List escalation policies

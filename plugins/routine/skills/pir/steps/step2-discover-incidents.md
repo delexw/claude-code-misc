@@ -16,4 +16,4 @@ Use the Task tool and a prompt like:
 - Trigger details and alert conditions → **Culprit**
 - Timeline, duration, and urgency
 
-**On failure**: Note reason (e.g. "PagerDuty CLI not configured, PAGEDUTY_API_TOKEN not set"). Use `AskUserQuestion` to ask the user for incident details manually, then continue to enrichment.
+**On failure**: Note reason (e.g. "PagerDuty CLI not configured, PAGERDUTY_API_TOKEN not set"). Use `AskUserQuestion` to ask the user for incident details manually, then continue to enrichment.
