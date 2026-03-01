@@ -3,17 +3,6 @@
  * PagerDuty CLI JSON output to reduce token and context usage.
  */
 
-/**
- * Convert an ISO 8601 / UTC timestamp to a local timezone string.
- * Returns null for falsy inputs. Format: "YYYY-MM-DD HH:MM:SS TZ"
- */
-function toLocal(ts) {
-  if (!ts) return null;
-  const d = new Date(ts);
-  if (isNaN(d.getTime())) return ts;
-  return d.toLocaleString();
-}
-
 function parseJsonFromPdOutput(raw) {
   const jsonStart =
     raw.indexOf("[") !== -1 &&
@@ -48,8 +37,8 @@ const parsers = {
       title: inc.title ?? inc.summary,
       status: inc.status,
       urgency: inc.urgency,
-      created_at: toLocal(inc.created_at),
-      resolved_at: toLocal(inc.resolved_at),
+      created_at: inc.created_at ?? null,
+      resolved_at: inc.resolved_at ?? null,
       service: inc.service
         ? { id: inc.service.id, name: inc.service.summary ?? inc.service.name }
         : null,
@@ -69,7 +58,7 @@ const parsers = {
   log(data) {
     return asArray(data).map((entry) => ({
       type: entry.type,
-      created_at: toLocal(entry.created_at),
+      created_at: entry.created_at ?? null,
       channel: entry.channel?.type ?? null,
       agent: entry.agent?.summary ?? entry.agent?.name ?? null,
       note: entry.channel?.summary ?? entry.channel?.subject ?? null,
@@ -80,7 +69,7 @@ const parsers = {
     return asArray(data).map((note) => ({
       id: note.id,
       content: note.content,
-      created_at: toLocal(note.created_at),
+      created_at: note.created_at ?? null,
       user: note.user?.summary ?? note.user?.name ?? null,
     }));
   },
@@ -103,4 +92,4 @@ const parsers = {
   },
 };
 
-module.exports = { parsers, parseJsonFromPdOutput, toLocal };
+module.exports = { parsers, parseJsonFromPdOutput };

@@ -60,9 +60,9 @@ Read `summary.json` first to understand the scope. Then read `incidents.json` an
 
 Produce a structured analysis and save it using Write to `.pagerduty-oncall-tmp/report.md`:
 
-1. **Incident Summary Table** — For each incident: ID, title, service, escalation policy, status, urgency, created/resolved timestamps, duration
+1. **Incident Summary Table** — For each incident: ID, title, service, escalation policy, status, urgency, created/resolved timestamps (user's local time, not UTC), duration
 2. **Cross-Team Correlation** — Identify incidents that overlap in time across different escalation policies. Flag potential cascading failures or shared root causes
-3. **Timeline** — Chronological view of all incidents across all teams, highlighting clusters of activity
+3. **Timeline** — Chronological view of all incidents across all teams in user's local time, highlighting clusters of activity
 4. **Key Findings** — Patterns, recurring services, repeated triggers, or escalation policy gaps
 5. **Recommendations** — Actionable suggestions based on the analysis
 

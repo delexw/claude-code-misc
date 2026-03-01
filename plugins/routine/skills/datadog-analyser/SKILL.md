@@ -73,6 +73,8 @@ All commands default to JSON output. Use flags like `--from`, `--to`, `--query`,
 
 ### 4. Report
 
+All timestamps in the report must use user's local time, not UTC.
+
 Write a structured analysis to `.datadog-analyser-tmp/report.md` using the Write tool:
 
 1. **Summary** — Overall health status and key findings
