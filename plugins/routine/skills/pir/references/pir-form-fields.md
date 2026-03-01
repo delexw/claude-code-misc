@@ -45,7 +45,7 @@
 ## Output Template
 
 ```markdown
-# PIR — [Incident Title from PagerDuty]
+# PIR — [Incident Title — synthesised from all sources]
 
 **Severity**: [SEV1/SEV2/SEV3 — auto-classified]
 
@@ -67,13 +67,14 @@
 
 ---
 
-### PagerDuty Incidents
+### Evidence Sources
 
-[Table of correlated PagerDuty incident IDs, titles, urgency, timestamps, duration]
+#### PagerDuty
+[Correlated incident IDs, titles, urgency, timestamps, duration, escalation policy]
 
-### Data Sources
+#### Datadog
+[Correlated monitor IDs, key metrics, error rates, SLO breaches, affected services]
 
-- **PagerDuty**: [incident IDs, escalation policy]
-- **Datadog**: [monitor IDs, key metrics]
-- **Cloudflare**: [zone, key findings]
+#### Cloudflare
+[Zone, traffic patterns, affected endpoints, JA4 fingerprints, key findings]
 ```
