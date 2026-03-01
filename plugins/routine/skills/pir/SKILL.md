@@ -49,31 +49,31 @@ Use the highest applicable severity when multiple criteria match.
 ### Step 1: Gather Date Range
 See [step1-gather-date-range.md](steps/step1-gather-date-range.md)
 
-### Step 2: Discover Incidents from PagerDuty *(Task subagent)*
-See [step2-discover-incidents.md](steps/step2-discover-incidents.md)
+### Step 2: Discover — PagerDuty, Datadog, Cloudflare
+
+Run all three in parallel using Task subagents:
+
+#### 2a. PagerDuty — Incidents *(Task subagent)*
+See [step2a-discover-incidents.md](steps/step2a-discover-incidents.md)
 — Runs `Skill("pagerduty-oncall")` via a Task subagent to isolate context.
 
-### Step 3: Enrich with Datadog and Cloudflare
-
-Run 3a and 3b in parallel using Task subagents:
-
-#### 3a. Datadog *(Task subagent)*
-See [step3a-enrich-datadog.md](steps/step3a-enrich-datadog.md)
+#### 2b. Datadog — Observability Data *(Task subagent)*
+See [step2b-discover-datadog.md](steps/step2b-discover-datadog.md)
 — Runs `Skill("datadog-analyser")` via a Task subagent.
 
-#### 3b. Cloudflare *(Task subagent)*
-See [step3b-enrich-cloudflare.md](steps/step3b-enrich-cloudflare.md)
+#### 2c. Cloudflare — Traffic Analysis *(Task subagent)*
+See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
 — Runs `Skill("cloudflare-traffic-investigator")` via a Task subagent. Passes domain and zone ID from `$ARGUMENTS[3]` if provided.
 
-### Step 4: Codebase Analysis *(Task subagent, conditional)*
-See [step4-codebase-analysis.md](steps/step4-codebase-analysis.md)
+### Step 3: Codebase Analysis *(Task subagent, conditional)*
+See [step3-codebase-analysis.md](steps/step3-codebase-analysis.md)
 — Only runs when `$ARGUMENTS[2]` (repos list) is provided. Investigates recent commits on `origin/main` to identify culprit code changes. Saves findings to `.codebase-analysis-tmp/report.md`.
 
-### Step 5: Synthesise PIR for Each Incident
-See [step5-synthesise-pir.md](steps/step5-synthesise-pir.md)
+### Step 4: Synthesise PIR for Each Incident
+See [step4-synthesise-pir.md](steps/step4-synthesise-pir.md)
 
-### Step 6: Save and Present Results
-See [step6-save-and-present.md](steps/step6-save-and-present.md)
+### Step 5: Save and Present Results
+See [step5-save-and-present.md](steps/step5-save-and-present.md)
 
 <tags>
    <mode>think</mode>

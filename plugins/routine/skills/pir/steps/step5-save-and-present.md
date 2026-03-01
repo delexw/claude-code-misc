@@ -1,4 +1,4 @@
-# Step 6: Save and Present Results
+# Step 5: Save and Present Results
 
 Save each PIR as a separate markdown file in `.pir-tmp/`, using the naming convention:
 
