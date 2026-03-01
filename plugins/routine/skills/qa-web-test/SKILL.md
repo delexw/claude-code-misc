@@ -2,7 +2,7 @@
 name: qa-web-test
 description: QA web testing skill using Chrome DevTools MCP tools for visual regression testing, responsive breakpoint validation, and CSS layout debugging. Use this skill whenever the user asks to "test a page", "check breakpoints", "verify responsive layout", "QA this page", "test CSS at different viewports", "check for layout bugs", "verify the fix", or wants to visually inspect a web page at specific viewport widths. Also triggers when the user provides a URL and asks to take screenshots, compare layouts, or inspect element dimensions. Works with any Chrome DevTools MCP-connected browser session on localhost or staging environments.
 argument-hint: URL [OUT_DIR] (e.g. "http://localhost:3000", "http://localhost:3000 ./qa-reports")
-allowed-tools: mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__emulate, mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__select_page, mcp__chrome-devtools__resize_page, mcp__chrome-devtools__click, mcp__chrome-devtools__fill, mcp__chrome-devtools__wait_for, Read, Glob, Grep, Bash, Write
+allowed-tools: mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__emulate, mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__select_page, mcp__chrome-devtools__resize_page, mcp__chrome-devtools__click, mcp__chrome-devtools__fill, mcp__chrome-devtools__wait_for, Read, Glob, Grep, Bash, Write, Edit
 model: sonnet
 context: fork
 ---

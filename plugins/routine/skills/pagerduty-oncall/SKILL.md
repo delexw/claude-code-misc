@@ -2,7 +2,7 @@
 name: pagerduty-oncall
 description: Investigate PagerDuty incidents for Envato on-call escalation policies. Use when asked about incidents, on-call status, incident analysis, or PagerDuty investigation.
 argument-hint: "YYYY-MM-DD YYYY-MM-DD"
-allowed-tools: Bash(node scripts/fetch-pd.js *), Read, Write
+allowed-tools: Bash(node scripts/fetch-pd.js *), Read, Write, Edit
 model: sonnet
 context: fork
 ---
