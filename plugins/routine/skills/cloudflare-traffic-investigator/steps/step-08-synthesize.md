@@ -1,4 +1,4 @@
-# Step 10: Synthesize Findings & Generate Report
+# Step 8: Synthesize Findings & Generate Report
 
 Combine all data from previous steps into a coherent narrative and incident report.
 
@@ -7,25 +7,20 @@ Combine all data from previous steps into a coherent narrative and incident repo
 | Source | Steps | Key data |
 |--------|-------|----------|
 | Traffic spike | 2-3 | Total volume, timing, duration |
-| APM errors | 4 | Service failures, error types, stack traces |
-| Culprit source | 5 | JA4 fingerprint and request count |
-| Affected paths | 6 | Which endpoints were hit |
-| Traffic legitimacy | 7 | Bot & WAF scores, security assessment |
-| Top users | 8 | Who made the most requests |
-| Code analysis | 9A | Service dependencies and failure points |
-| Service load | 9B | Requests/second to failing services |
+| Culprit source | 4 | JA4 fingerprint and request count |
+| Affected paths | 5 | Which endpoints were hit |
+| Traffic legitimacy | 6 | Bot & WAF scores, security assessment |
+| Top users | 7 | Who made the most requests |
 
 ## Determine root cause
 
 Match the evidence to a [failure pattern](../references/failure-patterns.md):
 
-- Low req/sec causes failure → Undersized Service (Pattern 4)
 - Specific users dominate → Single User Amplification (Pattern 3)
 - Single JA4 across millions of requests → backend misconfiguration
 - Error count exceeds initial traffic → Retry Storm (Pattern 2)
 - 429 → timeout → circuit breaker → Circuit Breaker Cascade (Pattern 1)
 - Multiple services failing sequentially → Cascading Failure (Pattern 5)
-- APM error timing should align with traffic spike timing
 
 ## Generate report
 

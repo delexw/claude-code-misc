@@ -44,7 +44,6 @@ Use this template when documenting traffic spike incidents. Fill in all sections
 ### Technical Details
 
 - **Culprit JA4 Fingerprint:** [fingerprint] ([X] requests, [Y%] of spike traffic)
-- **Code path:** [Controller#action -> Service/API call at file:line]
 - **Service capacity:** Failed at [N] req/sec
 - **Traffic pattern:** [Backend service / User traffic / Mixed]
 
@@ -62,22 +61,6 @@ Use this template when documenting traffic spike incidents. Fill in all sections
 
 **Interpretation:**
 [Brief explanation of what the security scores tell us about the traffic]
-
----
-
-### APM Errors
-
-- **Error type:** [e.g., TimeoutError, ConnectionError, HTTPError, CircuitBreakerError]
-- **Failed service:** [Service/API name]
-- **Status code:** [e.g., 429, 500, 503]
-- **Stack trace:**
-  ```
-  [Key lines from stack trace showing failure point]
-  [Include file paths and line numbers]
-  [Show service call that failed]
-  ```
-- **Circuit breaker:** [Opened/Closed at X time] (if applicable)
-- **Error rate:** [Y%] of requests during spike period
 
 ---
 
@@ -101,10 +84,7 @@ Use this template when documenting traffic spike incidents. Fill in all sections
 
 ### Data Sources
 
-- **APM:** [Link to APM dashboard/traces]
 - **Cloudflare Analytics:** Zone ID [zone_id], Time range [start - end]
-- **Code:** [List file paths examined during investigation]
-- **Codebase path:** [Path to backend repository used for analysis]
 
 ---
 
@@ -193,17 +173,11 @@ Create incident reports for:
 
 **Technical Details:**
 - Always include JA4 fingerprint if identified
-- Provide exact file paths and line numbers from code analysis
 - Calculate actual req/sec to failing service
 
 **Security Analysis:**
 - Reference [Security Scores Reference](security-scores.md) for interpretation
 - Explain what the scores mean in context
-
-**APM Errors:**
-- Copy actual stack traces (key lines only)
-- Include service names that failed
-- Note circuit breaker state if applicable
 
 **User Activity:**
 - List top 3-5 users from query analysis
@@ -236,7 +210,7 @@ Save incident reports to: `.cloudflare-traffic-investigator-tmp/report.md`
 
 - **Total traffic:** 4.4M requests (+57% above baseline 2.8M)
 - **Failing endpoint traffic:** 29,577 requests (~1% of total)
-- **Request rate to failing service:** ~300 req/sec (confirmed from APM)
+- **Request rate to failing service:** ~300 req/sec
 - **Error rate:** 19,220 errors (peak: 2,517 errors/minute at 4:39am)
 - **Top users:**
   - `f3cbe216-feb3-4007-9d78-d761f83b354b` - 640 requests (sampled)

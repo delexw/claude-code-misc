@@ -1,6 +1,6 @@
 ---
 name: cloudflare-traffic-investigator
-description: Investigate traffic anomalies, spikes, and service degradation on Cloudflare-protected domains. Uses Cloudflare MCP tools for GraphQL analytics, JA4 fingerprint analysis, bot/WAF security scoring, and incident reporting. Use this skill whenever traffic spikes, service overloads, 429 errors, circuit breaker events, Cloudflare analytics, or domain performance issues are mentioned — even if the user doesn't explicitly say "traffic spike". Also triggers for APM error investigation correlated with traffic patterns, or when asked to check Cloudflare data for any domain.
+description: Investigate traffic anomalies, spikes, and service degradation on Cloudflare-protected domains. Uses Cloudflare MCP tools for GraphQL analytics, JA4 fingerprint analysis, bot/WAF security scoring, and incident reporting. Use this skill whenever traffic spikes, service overloads, 429 errors, circuit breaker events, Cloudflare analytics, or domain performance issues are mentioned — even if the user doesn't explicitly say "traffic spike". Also triggers when asked to check Cloudflare data for any domain.
 allowed-tools: mcp__cloudflare-api__search, mcp__cloudflare-api__execute, Read, Bash, Write, Edit
 argument-hint: "[domain] [zone-id] [timerange]"
 model: sonnet
@@ -30,13 +30,11 @@ Follow these steps in order. Each step file contains detailed instructions and e
 1. **[Get parameters](steps/step-01-get-parameters.md)** — Collect time range and zone info
 2. **[Confirm spike](steps/step-02-confirm-spike.md)** — Query hourly traffic to verify the anomaly
 3. **[Minute-level detail](steps/step-03-minute-detail.md)** — Narrow to exact spike timing
-4. **[Request APM traces](steps/step-04-apm-traces.md)** — Ask user for APM errors (sorted by time desc)
-5. **[Identify culprit JA4](steps/step-05-identify-ja4.md)** — Find JA4 fingerprints with highest request counts
-6. **[Analyze traffic](steps/step-06-analyze-traffic.md)** — For top JA4s, identify paths, user IDs, ASNs
-7. **[Verify legitimacy](steps/step-07-verify-legitimacy.md)** — Check bot scores, WAF scores, User-Agent
-8. **[Extract top users](steps/step-08-extract-users.md)** — Find which users made the most requests
-9. **[Map to code & calculate load](steps/step-09-map-and-calculate.md)** — Connect endpoints to service dependencies, compute req/sec
-10. **[Synthesize & report](steps/step-10-synthesize.md)** — Combine findings into an incident report
+4. **[Identify culprit JA4](steps/step-04-identify-ja4.md)** — Find JA4 fingerprints with highest request counts
+5. **[Analyze traffic](steps/step-05-analyze-traffic.md)** — For top JA4s, identify paths, user IDs, ASNs
+6. **[Verify legitimacy](steps/step-06-verify-legitimacy.md)** — Check bot scores, WAF scores, User-Agent
+7. **[Extract top users](steps/step-07-extract-users.md)** — Find which users made the most requests
+8. **[Synthesize & report](steps/step-08-synthesize.md)** — Combine findings into an incident report
 
 ## Cloudflare API MCP
 
@@ -86,17 +84,13 @@ Quickly identify root causes using these patterns:
 
 ## Incident Report
 
-Document findings using the **[Incident Report Template](references/incident-report-template.md)** covering metrics, timeline, security analysis, APM errors, root cause, and recommendations.
+Document findings using the **[Incident Report Template](references/incident-report-template.md)** covering metrics, timeline, security analysis, root cause, and recommendations.
 
 ## Tips
 
 - Ask for time range first using `AskUserQuestion` if not provided
-- Request APM traces early — after confirming the spike, ask for APM errors (sorted by time desc)
-- Ask for codebase path when you need to analyze code (Step 9)
 - Identify JA4 dynamically — query Cloudflare, don't assume
 - Only ask the user about unknown/suspicious User-Agents — skip well-known bots and clearly internal services
-- Cross-reference APM errors with Cloudflare paths and code analysis
-- Focus on the endpoint calling the failing service, not just high-traffic endpoints
 - Calculate actual req/sec to understand service load
 - Document findings immediately using the incident template
 
@@ -106,13 +100,11 @@ Document findings using the **[Incident Report Template](references/incident-rep
 1. [Get parameters](steps/step-01-get-parameters.md)
 2. [Confirm spike](steps/step-02-confirm-spike.md)
 3. [Minute-level detail](steps/step-03-minute-detail.md)
-4. [Request APM traces](steps/step-04-apm-traces.md)
-5. [Identify culprit JA4](steps/step-05-identify-ja4.md)
-6. [Analyze traffic](steps/step-06-analyze-traffic.md)
-7. [Verify legitimacy](steps/step-07-verify-legitimacy.md)
-8. [Extract top users](steps/step-08-extract-users.md)
-9. [Map to code & calculate load](steps/step-09-map-and-calculate.md)
-10. [Synthesize & report](steps/step-10-synthesize.md)
+4. [Identify culprit JA4](steps/step-04-identify-ja4.md)
+5. [Analyze traffic](steps/step-05-analyze-traffic.md)
+6. [Verify legitimacy](steps/step-06-verify-legitimacy.md)
+7. [Extract top users](steps/step-07-extract-users.md)
+8. [Synthesize & report](steps/step-08-synthesize.md)
 
 ### References
 - [Cloudflare API MCP](references/cloudflare-api-mcp.md)

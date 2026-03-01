@@ -1,4 +1,4 @@
-# Step 7: Verify Traffic Legitimacy
+# Step 6: Verify Traffic Legitimacy
 
 Before analyzing users, determine whether the traffic is legitimate or an attack.
 
