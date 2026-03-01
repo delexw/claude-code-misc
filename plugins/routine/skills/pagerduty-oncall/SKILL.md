@@ -3,7 +3,7 @@ name: pagerduty-oncall
 description: Investigate PagerDuty incidents for Envato on-call escalation policies. Use when asked about incidents, on-call status, incident analysis, or PagerDuty investigation.
 argument-hint: "YYYY-MM-DD YYYY-MM-DD"
 allowed-tools: Bash(pd auth *), Bash(pd ep list *), Bash(pd incident list *), Bash(pd incident log *), Bash(pd incident notes *), Bash(pd incident analytics *), Bash(mkdir *), Bash(test *), Read, Write, Edit
-model: haiku
+model: sonnet
 context: fork
 ---
 
@@ -65,9 +65,7 @@ If authentication fails, use `AskUserQuestion` to inform the user and link to th
 
 ### 2. Prepare Output Directory
 
-```bash
-mkdir -p .pagerduty-oncall-tmp/logs .pagerduty-oncall-tmp/notes .pagerduty-oncall-tmp/analytics
-```
+Create the output directory `.pagerduty-oncall-tmp/` and subdirectories `logs/`, `notes/`, `analytics/` before saving any files.
 
 ### 3. Load Escalation Policy Configuration
 
