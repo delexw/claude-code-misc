@@ -1,4 +1,4 @@
-# Step 5: Save and Present Results
+# Step 6: Save and Present Results
 
 Save each PIR as a separate markdown file in `.pir-tmp/`, using the naming convention:
 
@@ -19,6 +19,7 @@ After writing all files, display a summary table to the user listing the files, 
 - PagerDuty: [✅ Success — N incidents found / ❌ Skipped — reason]
 - Datadog: [✅ Success / ❌ Skipped — reason]
 - Cloudflare: [✅ Success / ❌ Skipped — reason]
+- Codebase: [✅ Success — N repos analysed / ⏭️ Skipped — no repos provided / ❌ Failed — reason]
 ```
 
 Inform the user of the output directory: `.pir-tmp/`
