@@ -29,7 +29,7 @@
 ### When
 - **Help text**: Time for the incident. Be as specific as you can.
 - **Format**: Free text with time range
-- **Example**: "2025-02-20 03:15 - 04:00 AEDT (2025-02-19 16:15 - 17:00 UTC)"
+- **Example**: "2025-02-20 03:15 - 04:00 AEDT"
 
 ## Optional Fields
 

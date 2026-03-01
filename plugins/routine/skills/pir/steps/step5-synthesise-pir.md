@@ -25,8 +25,8 @@ For each PagerDuty incident, combine enrichment data and produce a PIR. Correlat
 
 **Incident date**: PagerDuty incident created date (`YYYY-MM-DD`).
 
-**When**: Specific time range with timezone.
-- Format: `"YYYY-MM-DD HH:MM - HH:MM TZ (HH:MM - HH:MM UTC)"`
+**When**: Specific time range in user's local time.
+- Format: `"YYYY-MM-DD HH:MM - HH:MM TZ"`
 - Boundaries from PagerDuty created/resolved, refined by Datadog error timeline
 
 **Remediation**: Mitigations applied from PagerDuty notes, Datadog monitor changes, Cloudflare WAF rules. If none found, output "To be determined".
