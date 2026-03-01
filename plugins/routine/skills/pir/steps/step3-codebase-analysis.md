@@ -1,4 +1,4 @@
-# Step 4: Codebase Analysis — Root Cause Investigation
+# Step 3: Codebase Analysis — Root Cause Investigation
 
 **Condition**: Only run this step if `$ARGUMENTS[2]` (repos list) is provided.
 
@@ -8,7 +8,7 @@ Use the Task tool and a prompt like:
 
 > Investigate recent commits that may have caused or contributed to the following incidents:
 >
-> **Incidents**: [list incident titles, services, and timestamps from Step 2]
+> **Incidents**: [list incident titles, services, and timestamps from Step 2a]
 >
 > **Repos to investigate**: $ARGUMENTS[2]
 >

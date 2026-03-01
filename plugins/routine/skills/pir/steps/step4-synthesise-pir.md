@@ -1,4 +1,4 @@
-# Step 5: Synthesise PIR for Each Incident
+# Step 4: Synthesise PIR for Each Incident
 
 For each PagerDuty incident, combine enrichment data and produce a PIR. Correlate Datadog/Cloudflare/codebase data to the incident by matching time windows and service names. If `.codebase-analysis-tmp/report.md` exists, read it and incorporate findings.
 

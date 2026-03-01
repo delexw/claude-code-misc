@@ -1,4 +1,4 @@
-# Step 3a: Enrich with Datadog — Observability Data
+# Step 2b: Discover from Datadog — Observability Data
 
 **Run via Task subagent** to isolate context:
 
