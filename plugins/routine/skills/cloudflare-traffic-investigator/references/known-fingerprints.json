@@ -1,0 +1,11 @@
+{
+  "description": "Known legitimate JA4 TLS fingerprints. During investigation, fingerprints matching entries here should be treated as legitimate and skip the unknown-automation verification flow.",
+  "fingerprints": [
+    {
+      "ja4": "t13d311200_e8f1e7e78f70_d339722ba4af",
+      "label": "Legitimate internal service",
+      "added": "2026-02-25",
+      "notes": "Confirmed legitimate by team"
+    }
+  ]
+}
