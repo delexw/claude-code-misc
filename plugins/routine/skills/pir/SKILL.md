@@ -12,8 +12,8 @@ allowed-tools: Read, Bash, Write, Edit
 Discover incidents from PagerDuty, enrich with Datadog and Cloudflare data, auto-determine severity, and produce completed PIR forms for each incident.
 
 ## Arguments
-- `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today.
-- `$ARGUMENTS[1]` — (optional) End date in `YYYY-MM-DD` format. Defaults to today.
+- `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today. In current agent's local timezone (detect via system clock), not UTC.
+- `$ARGUMENTS[1]` — (optional) End date in `YYYY-MM-DD` format. Defaults to today. In current agent's local timezone (detect via system clock), not UTC.
 - `$ARGUMENTS[2]` — (optional) Comma-separated local repo paths for codebase root cause analysis (e.g. `~/repos/frontend,~/repos/backend`).
 - `$ARGUMENTS[3]` — (optional) Cloudflare domain and zone ID in `domain:zone_id` format (e.g. `example.com:abc123def456`). Passed to the `cloudflare-traffic-investigator` skill. If not provided, the cloudflare skill will ask the user.
 
