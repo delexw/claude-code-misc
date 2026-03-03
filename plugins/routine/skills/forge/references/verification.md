@@ -4,7 +4,11 @@
 
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
-Loop until all issues are resolved:
+### Resolve Dev URL (once, before loop)
+
+If `$ARGUMENTS[1]` is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context). Otherwise check for a running dev server (`localhost:3000`, `localhost:5173`, `localhost:8080`). If no dev server found, QA web test will be skipped.
+
+### Loop until all issues are resolved:
 
 1. **Verify** — Launch a `Task` call to verify all changes, reading context files from `SKILL_DIR/` as needed to ensure changes are:
    - reasonable and well-justified
@@ -14,8 +18,14 @@ Loop until all issues are resolved:
      - If a runbook or guidance link was present → "Are my changes fully following the runbook?"
    - compliant with project conventions/standards
    - evidence-based (no guesswork)
-2. **If issues found** — fix or rollback anything that's wrong or off
-3. **Re-verify** — repeat from step 1 until no issues remain
+2. **QA Web Test** (conditional) — Run when a dev URL was resolved and:
+   - UI files were changed (`.tsx`, `.jsx`, `.vue`, `.css`, `.scss`, `.html`, templates, components)
+   - Backend changes affect data the UI renders (API responses, formatting, rendering logic)
+   - Bug fixes where the browser is the best way to visually confirm the fix
+
+   Invoke `Skill("qa-web-test", "{dev_url}")`.
+3. **If issues found** — fix or rollback anything that's wrong or off
+4. **Re-verify** — repeat from step 1 until no issues remain
 
 ## Error Handling
 
