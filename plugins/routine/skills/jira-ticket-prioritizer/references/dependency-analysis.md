@@ -1,0 +1,72 @@
+# Dependency Analysis Rules
+
+Rules for detecting and mapping dependencies between JIRA tickets.
+
+## Explicit Dependencies (from linkedIssues)
+
+The `linkedIssues` array from each ticket contains relationship types. Map these to directed graph edges:
+
+### Relationship Mapping
+
+| Relationship String | Edge Direction | Notes |
+|---------------------|---------------|-------|
+| `blocks` | from → to (blocker before blocked) | Hard dependency |
+| `is blocked by` | to → from (reverse) | Hard dependency |
+| `causes` | from → to | Hard dependency |
+| `is caused by` | to → from | Hard dependency |
+| `has to be done before` | from → to | Hard dependency |
+| `has to be done after` | to → from | Hard dependency |
+| `relates to` | No hard edge | Flag for semantic analysis |
+| `duplicates` / `is duplicated by` | Skip | Not a dependency |
+| `clones` / `is cloned by` | Skip | Not a dependency |
+
+### Edge Rules
+- Only create edges between tickets **in the input set**
+- If a linked ticket is **not** in the input set, record it as an external dependency
+- If both directions exist (A blocks B AND B blocks A), flag as a potential cycle
+
+## Semantic Dependencies (LLM Analysis)
+
+For tickets with `relates to` links or no explicit dependency links, perform semantic analysis.
+
+### Signals to Look For
+
+1. **Ticket key references** — Description or comments mentioning other ticket keys in the input set (e.g. "after PROJ-101 is done")
+2. **Shared components** — Tickets modifying the same module, file, or component (from `components`, `labels`, or description mentions)
+3. **Functional ordering** — Keywords indicating sequence:
+   - **Strong signals** (high confidence): "depends on", "requires", "blocked by", "after X is done", "prerequisite"
+   - **Medium signals** (medium confidence): "builds on", "extends", "uses output from", "needs X first"
+   - **Weak signals** (low confidence): "related to", "similar to", "see also", shared labels/components
+4. **Data/API dependencies** — One ticket creates a data model or API that another ticket consumes
+5. **Infrastructure dependencies** — One ticket sets up infrastructure (DB migration, config) that another ticket uses
+
+### Confidence Levels
+
+| Level | Criteria | Graph Treatment |
+|-------|----------|----------------|
+| high | Explicit textual reference to dependency ("requires PROJ-100") | Add as soft edge, include in topological sort |
+| medium | Shared component + ordering hint | Add as soft edge, include in topological sort |
+| low | Shared labels/components only, no ordering hint | Note in report, do NOT add to sort |
+
+### Evidence Recording
+
+For each semantic dependency, record:
+- `from`: the prerequisite ticket key
+- `to`: the dependent ticket key
+- `confidence`: high / medium / low
+- `evidence`: brief explanation (e.g. "PROJ-101 description references PROJ-100 auth module")
+
+## External Dependencies
+
+Tickets referenced in `linkedIssues` that are not in the input set:
+- Record the key, relationship, and which input ticket references it
+- Flag if the external ticket has status that could block work (e.g. "Open", "In Progress")
+- Do NOT fetch external tickets — just note them
+
+## Cycle Handling
+
+If Kahn's algorithm detects a cycle (remaining nodes with non-zero in-degree after sort completes):
+1. Report the cycle in the output
+2. Break the cycle by removing the edge with the weakest justification (soft edges first, then the most recently added hard edge)
+3. Re-run the sort
+4. Note the broken edge in warnings
