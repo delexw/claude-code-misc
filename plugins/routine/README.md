@@ -1,6 +1,6 @@
 # routine
 
-A Claude Code plugin that orchestrates JIRA ticket implementation end-to-end: fetches ticket details, discovers domain knowledge, scans linked resources and designs, optimizes the prompt, then executes the task.
+A Claude Code plugin with skills for implementation, incident response, QA testing, and development tooling.
 
 ## Installation
 
@@ -18,7 +18,7 @@ To update to the latest version:
 npx skills update
 ```
 
-Skills installed this way are available across all your projects without the `routine:` prefix (e.g. `/implement` instead of `/routine:implement`).
+Skills installed this way are available across all your projects without the `routine:` prefix (e.g. `/forge` instead of `/routine:forge`).
 
 ### Option 2: Plugin
 
@@ -59,82 +59,40 @@ claude --plugin-dir ./path/to/plugins/routine
 | `PROMPT_EVAL_API_KEY` | Prompt optimization via [meta-prompter](https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli) |
 | `PROMPT_EVAL_MODEL` | Model for prompt evaluation (default: `anthropic:claude-sonnet-4-5`). Format: `provider:model-id` |
 
-## Usage
-
-```
-/routine:implement <JIRA-URL> ["optional context"]
-```
-
-Example:
-```
-/routine:implement https://myco.atlassian.net/browse/PROJ-123
-```
-
 ## Skills
 
-| Skill | Command | Description |
-|---|---|---|
-| `implement` | `/routine:implement` | Orchestrator — runs all phases end-to-end |
-| `jira-ticket-viewer` | `/routine:jira-ticket-viewer` | Fetches and parses JIRA tickets via `--raw` JSON |
-| `confluence-page-viewer` | `/routine:confluence-page-viewer` | Reads Confluence pages |
-| `figma-reader` | `/routine:figma-reader` | Reads Figma designs via MCP |
-| `domain-discover` | `/routine:domain-discover` | Discovers codebase domain knowledge |
-| `meta-prompter` | `/routine:meta-prompter` | Evaluates and optimizes prompts before execution |
+### Implementation
 
-## Architecture
+| Skill | Description |
+|---|---|
+| `forge` | Orchestrates JIRA ticket implementation via dynamic skill generation. See [forge README](skills/forge/README.md). |
+| `jira-ticket-viewer` | Fetches and parses JIRA tickets via `--raw` JSON |
+| `jira-ticket-prioritizer` | Analyzes JIRA tickets to determine priority and dependency order |
+| `confluence-page-viewer` | Reads Confluence pages |
+| `figma-reader` | Reads Figma designs via MCP |
+| `domain-discover` | Discovers and documents codebase domain knowledge |
+| `meta-prompter` | Evaluates and optimizes prompts before execution |
 
-### Execution Flow
+### QA / Testing
 
-```
-P1  Pre-flight Validation
-│
-▼
-P2  JIRA Analysis (jira-ticket-viewer)
-│
-├──────────────────────┐
-▼                      ▼
-P3  Domain Discovery   P4  Resource Scanning
-    (concurrent per        ├── Links (concurrent)
-     domain)               │   ├── Confluence pages
-                           │   ├── Linked JIRA tickets
-                           │   └── GitHub / other URLs
-                           └── Figma designs (figma-reader)
-│                      │
-└──────────────────────┘
-│
-▼
-P5  Prompt Optimization (meta-prompter)
-│
-▼
-P6  Execute <FINAL_PROMPT>
-│
-▼
-P7  Change Verification
-```
+| Skill | Description |
+|---|---|
+| `qa-web-test` | Visual regression testing, responsive breakpoint validation, CSS layout debugging via Chrome DevTools MCP |
+| `page-inspector` | Captures page layout, styles, and structure as a pre-implementation baseline via Chrome DevTools MCP |
 
-### Hooks
+### Incident Response
 
-The `implement` skill uses hooks for automatic execution tracking:
+| Skill | Description |
+|---|---|
+| `pir` | Creates Post Incident Records by orchestrating pagerduty-oncall, datadog-analyser, and cloudflare-traffic-investigator |
+| `pagerduty-oncall` | Investigates PagerDuty incidents for on-call escalation policies |
+| `datadog-analyser` | Analyses Datadog observability data (metrics, logs, monitors, incidents, SLOs, APM, RUM, security signals) |
+| `cloudflare-traffic-investigator` | Investigates traffic anomalies on Cloudflare-protected domains. See [README](skills/cloudflare-traffic-investigator/README.md). |
 
-| Hook | Trigger | Action |
-|---|---|---|
-| `PreToolUse` (Skill) | Before each sub-skill call | Logs `start` entry to `execution-log.jsonl` |
-| `PostToolUse` (Skill) | After each sub-skill call | Logs `end` entry to `execution-log.jsonl` |
-| `Stop` (once) | When Claude finishes | Generates Mermaid Gantt chart from log |
-| `SessionEnd` | Session terminates | Cleans up `.implement-assets/` |
+### Development Tools
 
-### Output Persistence
-
-Sub-skills with `context: fork` run as subagents. Each persists its full output to `OUT_DIR/output.md` so the orchestrator reads the complete result (not the summarized subagent return).
-
-```
-.implement-assets/
-├── execution-log.jsonl        # auto-generated by hooks (root level)
-├── execution-flow.md          # Mermaid Gantt chart (root level)
-└── {ticket_id}/
-    ├── jira/                  # jira-ticket-viewer output
-    ├── domains/               # domain-discover output per domain
-    ├── linked-jira/           # linked ticket outputs
-    ├── confluence/            # confluence page outputs
-    └── figma/                 # figma design outputs
-```
+| Skill | Description |
+|---|---|
+| `oxlint` | Runs and configures oxlint (high-performance JS/TS linter) |
+| `adr-author` | Guides writing enforceable Architectural Decision Records |
+| `a2a-js-dev` | Builds A2A (Agent-to-Agent) protocol apps using @a2a-js/sdk |

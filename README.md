@@ -1,60 +1,50 @@
 # Claude Code Misc Configurations
 
-Collection of Claude Code Configurations
-
-## 1. Meta-Prompter MCP And Slash commands
+## 1. Meta-Prompter MCP
 
 ![eval-opt](workflow.jpg)
 
-### Meta-Prompter MCP
 **Location**: `.claude/mcp/meta-prompter/`
 
-A tiny meta‑prompt MCP server that grades prompts and returns JSON‑only analysis. Evaluates prompts across 8 dimensions (clarity, specificity, context, actionability, safety, testability, hallucination prevention, token efficiency) with weighted global scoring.
+A prompt evaluation tool available as both an MCP server and a standalone CLI. Grades prompts and returns JSON-only analysis across 8 dimensions (clarity, specificity, context, actionability, safety, testability, hallucination prevention, token efficiency) with weighted global scoring.
 
 **Key Features**:
 - Temperature-controlled evaluation (0 vs Claude Code's default 1)
-- Machine-readable JSON output for agentic workflows  
+- Machine-readable JSON output for agentic workflows
 - Built-in result viewer with `eval-viewer.html`
 - Support for multiple AI providers (Anthropic, OpenAI)
 
-See [meta-prompter README](.claude/mcp/meta-prompter/README.md) for detailed setup and usage instructions.
+See [meta-prompter README](.claude/mcp/meta-prompter/README.md) for setup and usage.
 
-### Commands
+## 2. Commands
 **Location**: `.claude/commands/`
 
-Custom slash commands for Claude Code:
-
-- **`/meta-prompter:eval`** - Quick prompt evaluation via **Meta-Prompter MCP**, returns JSON scores and analysis
-- **`/meta-prompter:prep-run`**
-  - Full workflow: evaluate → self-clarify or user-clarify based on chat context → execute with quality gates (global score ≥8)
 - **`/debug-partner`** - AI-assisted debugging partner for systematic troubleshooting
   - Evidence-based investigation with code-centric traces
   - Progressive clarification and hypothesis testing
   - Includes specific file names, function names, and line numbers
   - Collaborative approach with verification at each step
 
-## 2. Implement Plugin
+## 3. Routine Plugin
 **Location**: `plugins/routine/`
 
-A Claude Code plugin that orchestrates JIRA ticket implementation end-to-end. Fetches ticket details, discovers domain knowledge, scans linked resources and designs, optimizes the prompt, then executes the task.
+A Claude Code plugin with skills for implementation, incident response, QA testing, and development tooling.
 
-**Skills**: implement, jira-ticket-viewer, confluence-page-viewer, figma-reader, domain-discover, meta-prompter
+**Skills**:
+- **Implementation**: forge, jira-ticket-viewer, jira-ticket-prioritizer, confluence-page-viewer, figma-reader, domain-discover, meta-prompter
+- **QA / Testing**: qa-web-test, page-inspector
+- **Incident Response**: pir, pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator
+- **Development Tools**: oxlint, adr-author, a2a-js-dev
 
 See [plugin README](plugins/routine/README.md) for setup and usage.
 
-## 3. StatusLine
+## 4. StatusLine
 **Location**: `.claude/statusline/`
 
-Context monitoring script that displays real-time usage:
-- **`ctx_monitor.js`**
-  - Shows context window usage percentage with color coding (green/yellow/red)
-  - Tracks session ID and token consumption
-  - Displays model name and usage statistics
-
-**Features**:
-- Real-time context window monitoring (0-200k tokens)
-- Color-coded usage indicators  
-- Session tracking and identification
+Context monitoring script (`ctx_monitor.js`) that displays real-time usage:
+- Context window usage percentage (0-200k tokens) with color coding (green/yellow/red)
+- Session ID and token consumption tracking
+- Model name and usage statistics
 - Automatic synthetic message filtering
 
 ![statusline](statusline.png)
