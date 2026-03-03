@@ -39,8 +39,7 @@ Orchestrates end-to-end JIRA ticket processing. Phases 1–5 gather context and 
 4. Prompt Optimization (via `Skill("meta-prompter")`)
 5. Implementation Planning + generate `SKILL.md` for the dynamic skill
 6. Execute — invoke `Skill("{ticket_id}-impl")`
-6.5. QA Web Test (conditional: user-visible web changes)
-7. Verification
+7. Verification (includes QA web test)
 
 ## Skill Dependencies
 
