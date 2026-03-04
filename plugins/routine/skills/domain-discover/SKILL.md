@@ -1,7 +1,6 @@
 ---
 name: domain-discover
 description: Discover and document domain knowledge from a codebase into a structured knowledge file
-context: fork
 agent: general-purpose
 model: sonnet
 argument-hint: Domain name [OUT_DIR] (e.g. "payments", "auth ./out")
