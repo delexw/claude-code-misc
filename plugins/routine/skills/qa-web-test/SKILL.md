@@ -37,7 +37,8 @@ Follow these steps in order. Read each step file for detailed instructions.
 2. **[Determine breakpoints](steps/step-02-breakpoints.md)** — Choose viewport widths to test
 3. **[Emulate and capture](steps/step-03-emulate-and-capture.md)** — Set viewport, screenshot, inspect dimensions
 4. **[CSS inspection](steps/step-04-css-inspection.md)** — Inspect computed styles and container queries
-5. **[Report results](steps/step-05-report.md)** — Summarize findings with pass/fail table
+5. **[Visual design inspection](steps/step-04b-visual-inspection.md)** — Check typography, color, spacing, borders, and visibility
+6. **[Report results](steps/step-05-report.md)** — Summarize findings with pass/fail table
 
 ## Reference Files
 

@@ -18,6 +18,7 @@ The report file must include:
 4. **Pass/Fail per breakpoint** — whether layout looks correct at each width
 5. **Specific findings** — any overflow, misalignment, or unexpected behavior
 6. **Element dimensions** — if inspected, show width/height at each breakpoint
+7. **Visual design** — typography, color/contrast, spacing, and visibility findings per breakpoint
 
 ## Report template
 
@@ -46,7 +47,35 @@ Write the following markdown to `$ARGUMENTS[1]/qa-report-{YYYY-MM-DD}.md`:
 
 ## Findings
 
-[Detailed description of any issues found]
+[Detailed description of any layout issues found]
+
+## Visual Design
+
+### Typography
+| Element | Font | Size | Weight | Line Height | Issue |
+|---------|------|------|--------|-------------|-------|
+| h1      | Inter | 48px | 700 | 1.2 | Does not scale on mobile |
+| p       | Inter | 16px | 400 | 1.5 | OK |
+
+### Color & Contrast
+| Element | FG Color | BG Color | Contrast Ratio | WCAG AA | Issue |
+|---------|----------|----------|----------------|---------|-------|
+| .nav-link | #666 | #fff | 5.74:1 | PASS | — |
+| .banner p | #999 | #f5f5f5 | 2.85:1 | FAIL | Insufficient contrast |
+
+### Spacing
+| Element | Viewport | Padding | Margin | Gap | Issue |
+|---------|----------|---------|--------|-----|-------|
+| .container | 1200px | 0 48px | 0 auto | — | OK |
+| .container | 375px  | 0 48px | 0 auto | — | Padding too large for mobile |
+| .card-grid | 1200px | — | — | 32px | OK |
+| .card-grid | 375px  | — | — | 32px | Gap does not reduce on mobile |
+
+### Visibility
+| Element | Viewport | Display | Expected | Issue |
+|---------|----------|---------|----------|-------|
+| .mobile-nav | 375px | none | visible | Nav hidden on mobile |
+| .desktop-sidebar | 375px | block | none | Should be hidden on mobile |
 ```
 
 ## Save screenshots
