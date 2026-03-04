@@ -24,6 +24,6 @@ Combine the dev server URL with the relevant page path from the JIRA ticket to f
 
 ## Run Page Inspector
 
-Launch a `Task` call with prompt to invoke `Skill("page-inspector")` with `{url} SKILL_DIR/page-inspector`:
+Invoke `Skill("page-inspector")` with `{url} SKILL_DIR/page-inspector`:
 
-After completion, **read `SKILL_DIR/page-inspector/output.md`** — the execution subagent can lazy-load this as baseline reference during implementation.
+After completion, **read `SKILL_DIR/page-inspector/output.md`** — this serves as baseline reference during implementation.

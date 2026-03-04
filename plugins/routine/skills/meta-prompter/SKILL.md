@@ -4,6 +4,7 @@ description: Evaluate and optimize prompts. Iterates until quality gate passes, 
 argument-hint: <prompt to evaluate and optimize>
 allowed-tools: Read, Bash, Write, Edit
 model: opus
+context: fork
 ---
 
 # Meta-Prompter

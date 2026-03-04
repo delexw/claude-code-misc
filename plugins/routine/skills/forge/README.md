@@ -8,7 +8,7 @@ Forge takes a JIRA ticket URL and produces a working implementation through two 
 
 ### Stage 1: Context gathering (Phases 1-5)
 
-Each phase runs as a `Task` **subagent** with its own isolated context window, writing output to files inside a **dynamically created skill** at `~/.claude/skills/{ticket_id}/`:
+Each phase invokes skills with `context: fork` for isolated context, writing output to files inside a **dynamically created skill** at `~/.claude/skills/{ticket_id}/`:
 
 ```
 ~/.claude/skills/{ticket_id}/
@@ -35,7 +35,7 @@ In Claude headless mode (non-interactive), `implement` (v1) dumps the full `<tas
 
 The core insight: **the dynamic skill is a context container with on-demand access**.
 
-1. **Subagent isolation** — each gathering phase runs in its own context window, keeping the orchestrator lean
+1. **Context fork isolation** — each gathering phase runs in its own context via `context: fork`, keeping the orchestrator lean
 2. **Dynamic skill as disk-based context** — phases write output files into the skill directory instead of accumulating in-memory XML
 3. **Lazy loading at execution time** — when the execution subagent invokes `Skill("{ticket_id}-impl")`, it starts clean and only reads the files it needs for the current step, not everything at once
 

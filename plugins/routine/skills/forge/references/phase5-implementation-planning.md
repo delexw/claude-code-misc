@@ -26,6 +26,7 @@ Create `SKILL_DIR/SKILL.md` using the **Write** tool with the following template
 name: {ticket_id}-impl
 description: "Implementation context for {ticket_id}: {summary}"
 allowed-tools: Read, Bash, Write
+context: fork
 model: opus
 ---
 

@@ -51,25 +51,25 @@ See [step1-gather-date-range.md](steps/step1-gather-date-range.md)
 
 ### Step 2: Discover — PagerDuty, Datadog, Cloudflare, Rollbar
 
-Run all four in parallel using Task subagents:
+Run all four in parallel (each sub-skill uses `context: fork` for isolation):
 
-#### 2a. PagerDuty — Incidents *(Task subagent)*
+#### 2a. PagerDuty — Incidents
 See [step2a-discover-incidents.md](steps/step2a-discover-incidents.md)
-— Runs `Skill("pagerduty-oncall")` via a Task subagent to isolate context.
+— Invokes `Skill("pagerduty-oncall")`.
 
-#### 2b. Datadog — Observability Data *(Task subagent)*
+#### 2b. Datadog — Observability Data
 See [step2b-discover-datadog.md](steps/step2b-discover-datadog.md)
-— Runs `Skill("datadog-analyser")` via a Task subagent.
+— Invokes `Skill("datadog-analyser")`.
 
-#### 2c. Cloudflare — Traffic Analysis *(Task subagent)*
+#### 2c. Cloudflare — Traffic Analysis
 See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
-— Runs `Skill("cloudflare-traffic-investigator")` via a Task subagent. Passes domain and zone ID from `$ARGUMENTS[3]` if provided.
+— Invokes `Skill("cloudflare-traffic-investigator")`. Passes domain and zone ID from `$ARGUMENTS[3]` if provided.
 
-#### 2d. Rollbar — Error Tracking *(Task subagent)*
+#### 2d. Rollbar — Error Tracking
 See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
-— Runs `Skill("rollbar-reader")` via a Task subagent.
+— Invokes `Skill("rollbar-reader")`.
 
-### Step 3: Codebase Analysis *(Task subagent, conditional)*
+### Step 3: Codebase Analysis *(conditional)*
 See [step3-codebase-analysis.md](steps/step3-codebase-analysis.md)
 — Only runs when `$ARGUMENTS[2]` (repos list) is provided. Investigates recent commits on `origin/main` to identify culprit code changes. Saves findings to `.codebase-analysis-tmp/report.md`.
 

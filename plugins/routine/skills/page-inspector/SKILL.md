@@ -4,6 +4,7 @@ description: Capture current page layout, styles, and structure from a live web 
 argument-hint: URL [OUT_DIR] (e.g. "http://localhost:3000/page ./output")
 allowed-tools: mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__emulate, mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__select_page, mcp__chrome-devtools__resize_page, mcp__chrome-devtools__wait_for, Read, Write, Edit, Bash
 model: sonnet
+context: fork
 ---
 
 # Page Inspector — Capture Current Page Layout & Styles
