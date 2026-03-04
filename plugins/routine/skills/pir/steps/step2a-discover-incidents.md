@@ -1,12 +1,8 @@
 # Step 2a: Discover Incidents from PagerDuty
 
-One of three concurrent discovery sources (alongside Datadog and Cloudflare). All three sources carry equal weight for incident discovery.
+One of four concurrent discovery sources (alongside Datadog, Cloudflare, and Rollbar). All sources carry equal weight for incident discovery.
 
-**Run via Task subagent** to isolate context:
-
-Use the Task tool and a prompt like:
-
-> Use the Skill tool to invoke "pagerduty-oncall" with args "$ARGUMENTS[0] $ARGUMENTS[1]". Then read and return the report contents from .pagerduty-oncall-tmp/report.md
+Use the Skill tool to invoke "pagerduty-oncall" with args "$ARGUMENTS[0] $ARGUMENTS[1]". Then read and return the report contents from .pagerduty-oncall-tmp/report.md
 
 **Extract from report** (`.pagerduty-oncall-tmp/report.md`):
 - All incident IDs, titles, services, statuses

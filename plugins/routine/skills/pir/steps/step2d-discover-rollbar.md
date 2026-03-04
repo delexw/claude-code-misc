@@ -1,12 +1,8 @@
 # Step 2d: Discover from Rollbar — Error Tracking
 
-**Run via Task subagent** to isolate context.
-
 This step runs concurrently with PagerDuty, Datadog, and Cloudflare discovery. Use the date range from `$ARGUMENTS[0]` and `$ARGUMENTS[1]` to query Rollbar errors for the full date range.
 
-Use the Task tool and a prompt like:
-
-> Use the Skill tool to invoke "rollbar-reader" with args "active errors and top items" "STARTDATE ENDDATE" (where STARTDATE/ENDDATE are $ARGUMENTS[0]/$ARGUMENTS[1]). Then read and return the report contents from .rollbar-reader-tmp/report.md
+Use the Skill tool to invoke "rollbar-reader" with args "active errors and top items" "STARTDATE ENDDATE" (where STARTDATE/ENDDATE are $ARGUMENTS[0]/$ARGUMENTS[1]). Then read and return the report contents from .rollbar-reader-tmp/report.md
 
 **Extract from report** (`.rollbar-reader-tmp/report.md`):
 - Active error items and occurrence counts → **What**

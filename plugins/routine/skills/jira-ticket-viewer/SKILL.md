@@ -4,6 +4,7 @@ description: View Jira ticket details using the jira CLI (jira-cli). Use when gi
 model: sonnet
 argument-hint: TICKET-KEY [OUT_DIR]
 allowed-tools: Read, Bash, Write, Edit
+context: fork
 ---
 
 # Jira Ticket Viewer

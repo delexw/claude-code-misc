@@ -4,6 +4,7 @@ description: Investigate PagerDuty incidents for Envato on-call escalation polic
 argument-hint: "YYYY-MM-DD YYYY-MM-DD"
 allowed-tools: Bash(pd auth *), Bash(pd ep list *), Bash(pd incident list *), Bash(pd incident log *), Bash(pd incident notes *), Bash(pd incident analytics *), Bash(mkdir *), Bash(test *), Read, Write, Edit
 model: sonnet
+context: fork
 ---
 
 # PagerDuty On-Call Incident Investigator
