@@ -19,13 +19,14 @@ After writing all files, display a summary table to the user listing the files, 
 - PagerDuty: [✅ Success — N incidents found / ❌ Skipped — reason]
 - Datadog: [✅ Success / ❌ Skipped — reason]
 - Cloudflare: [✅ Success / ❌ Skipped — reason]
+- Rollbar: [✅ Success — N items found / ❌ Skipped — reason]
 - Codebase: [✅ Success — N repos analysed / ⏭️ Skipped — no repos provided / ❌ Failed — reason]
 ```
 
 After all PIR files are saved, clean up temporary reports from previous steps:
 
 ```bash
-rm -rf .pagerduty-oncall-tmp .datadog-analyser-tmp .cloudflare-traffic-investigator-tmp .codebase-analysis-tmp
+rm -rf .pagerduty-oncall-tmp .datadog-analyser-tmp .cloudflare-traffic-investigator-tmp .rollbar-reader-tmp .codebase-analysis-tmp
 ```
 
 Inform the user of the output directory: `.pir-tmp/`

@@ -14,6 +14,8 @@ Use the Task tool and a prompt like:
 >
 > **Cloudflare Traffic Anomalies**: [list traffic spikes, affected endpoints, and anomalous patterns from Step 2c]
 >
+> **Rollbar Errors**: [list active error items, stack traces, affected services, and error-deploy correlations from Step 2d]
+>
 > **Repos to investigate**: $ARGUMENTS[2]
 >
 > For each repo, run:
@@ -28,7 +30,7 @@ Use the Task tool and a prompt like:
 > - Changes to error handling, retry logic, or timeouts
 > - Database migration or schema changes
 > - Dependency version bumps
-> - Changes to the specific services or endpoints mentioned in the incidents, Datadog monitors, or Cloudflare traffic anomalies
+> - Changes to the specific services or endpoints mentioned in the incidents, Datadog monitors, Cloudflare traffic anomalies, or Rollbar error items
 >
 > Read relevant source code from origin/main to provide constructive cause analysis with specific file and code references.
 >
@@ -36,7 +38,7 @@ Use the Task tool and a prompt like:
 > - **Repo**: repo name
 > - **Suspicious commits**: hash, author, date, message
 > - **Code references**: file paths and relevant code snippets
-> - **Correlation**: how the change relates to the issue timeline and symptoms (reference whether it correlates with a PagerDuty incident, Datadog anomaly, Cloudflare traffic pattern, or multiple)
+> - **Correlation**: how the change relates to the issue timeline and symptoms (reference whether it correlates with a PagerDuty incident, Datadog anomaly, Cloudflare traffic pattern, Rollbar error, or multiple)
 > - **Confidence**: High / Medium / Low
 
 **Extract from report** (`.codebase-analysis-tmp/report.md`):
@@ -45,4 +47,4 @@ Use the Task tool and a prompt like:
 - Deploy timestamps that correlate with issue start → **When**
 - Specific file and code references → **Culprit** detail
 
-**On failure**: Note reason (e.g. "repos not accessible, git fetch failed"). Continue — the Culprit field will rely on Datadog/Cloudflare/PagerDuty data only.
+**On failure**: Note reason (e.g. "repos not accessible, git fetch failed"). Continue — the Culprit field will rely on Datadog/Cloudflare/Rollbar/PagerDuty data only.
