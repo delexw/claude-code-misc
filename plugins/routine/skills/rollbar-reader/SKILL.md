@@ -44,32 +44,45 @@ All intermediate JSON and the final report are saved to the output directory (de
 
 ### 1. Verify Installation & Configuration
 
-First check if the `rollbar` CLI is installed:
+Check if the `rollbar` CLI is installed:
 
 ```bash
 which rollbar
 ```
 
-If not found, consult [references/setup-guide.md](references/setup-guide.md) for installation instructions (`npm install -g @delexw/rollbar-cli`) and use `AskUserQuestion` to guide the user through setup.
+If not found, install it automatically: `npm install -g @delexw/rollbar-cli`. See [references/setup-guide.md](references/setup-guide.md) for full setup details.
 
-Once installed, verify configuration:
-
-```bash
-rollbar config show
-```
-
-If no projects are configured, guide the user through token setup using the instructions in [references/setup-guide.md](references/setup-guide.md):
-
-```bash
-rollbar config set-token <project-name> <access-token>
-rollbar config set-default <project-name>
-```
-
-**Important:** When checking configuration, verify at least 2 times before concluding it is not configured. **Never expose token values** — use existence checks only.
+If no projects are configured, guide the user through token setup using [references/setup-guide.md](references/setup-guide.md). **Never expose token values** — use existence checks only.
 
 Do NOT continue until both installation and configuration are verified.
 
-### 2. Prepare Output Directory
+### 2. Discover Configured Projects & Select Target
+
+**Always start by listing configured projects** to know which projects are available:
+
+```bash
+rollbar config list
+```
+
+This returns all configured project names. Use this to:
+- Show the user which projects are available to query
+- **Infer the correct `--project` flag** from the user's request context (e.g. if they mention "storefront errors", match to a project name like `elements-storefront`)
+- If only one project is configured, use it automatically
+- If multiple projects match the context, ask the user which one to query
+
+The `--project <name>` global flag selects which project to query. It must match a name from `rollbar config list`. Examples:
+
+```bash
+# Query items for a specific project
+rollbar --project elements-storefront items list --status active
+
+# Query occurrences for a specific project
+rollbar --project elements-backend occurrences list
+```
+
+If the user does not specify a project and the default project (from `rollbar config show`) is appropriate, you can omit `--project` to use the default.
+
+### 3. Prepare Output Directory
 
 Create the output directory and subdirectories:
 
@@ -79,19 +92,93 @@ mkdir -p <OUT_DIR>/occurrences <OUT_DIR>/reports
 
 Where `<OUT_DIR>` is `$ARGUMENTS[2]` or `.rollbar-reader-tmp/` if not provided.
 
-### 3. Discover Available Commands
+### 4. Investigate Using Items & Occurrences
 
-Run `rollbar agent` to get the full command reference with all available commands, usage patterns, and common workflows. This is the authoritative guide for all CLI capabilities:
+Based on `$ARGUMENTS[0]` and the time range from `$ARGUMENTS[1]`, query Rollbar data. Use `--format json` for all commands to get structured output. Run commands sequentially.
+
+#### `rollbar items` — Query Error Items (Readonly)
+
+**List items** with optional status and level filters:
 
 ```bash
-rollbar agent
+# List all active items (default project)
+rollbar items list --status active
+
+# List active critical items for a specific project
+rollbar --project my-app items list --status active --level critical
+
+# List active errors (not warnings/info)
+rollbar --project my-app items list --status active --level error
+
+# List resolved items
+rollbar --project my-app items list --status resolved
+
+# List muted items
+rollbar items list --status muted
+
+# Paginate through results
+rollbar --project my-app items list --status active --page 2
 ```
 
-Use `rollbar agent --compact` for a brief summary instead.
+Available `--status` values: `active`, `resolved`, `muted`, etc.
+Available `--level` values: `critical`, `error`, `warning`, `info`, `debug`.
 
-### 4. Investigate
+**Get a single item** by ID, UUID, or project counter:
 
-Based on `$ARGUMENTS[0]` and the time range from `$ARGUMENTS[1]`, use the command reference from Step 3 to determine which `rollbar` commands are most relevant. Use `--format json` for all commands to get structured output. Run commands sequentially.
+```bash
+# Get item by numeric ID
+rollbar items get --id 123456789
+
+# Get item by UUID
+rollbar items get --uuid "abcd1234-ef56-7890-abcd-ef1234567890"
+
+# Get item by project counter (the "#123" number shown in Rollbar UI)
+rollbar --project my-app items get --counter 123
+```
+
+#### `rollbar occurrences` — Query Occurrences (Readonly)
+
+**List all recent occurrences** across the project:
+
+```bash
+# List recent occurrences (default project)
+rollbar occurrences list
+
+# List occurrences for a specific project
+rollbar --project my-app occurrences list
+
+# Paginate
+rollbar --project my-app occurrences list --page 2
+```
+
+**List occurrences for a specific item** (requires the item ID from `items list` or `items get`):
+
+```bash
+# Get all occurrences for item ID 123456789
+rollbar --project my-app occurrences list-by-item 123456789
+
+# Paginate through occurrences
+rollbar --project my-app occurrences list-by-item 123456789 --page 2
+```
+
+**Get a single occurrence** by occurrence ID (for full detail including stack trace, request data, etc.):
+
+```bash
+# Get full occurrence detail
+rollbar occurrences get 987654321
+```
+
+This returns the complete occurrence payload — stack trace, request params, person data, server info, custom data, etc.
+
+#### Typical Investigation Workflow
+
+1. **List configured projects** → `rollbar config list`
+2. **List active errors** → `rollbar --project <name> items list --status active --level error`
+3. **Pick a high-impact item** → note the item ID from the list
+4. **Get item detail** → `rollbar --project <name> items get --id <item_id>`
+5. **List occurrences for that item** → `rollbar --project <name> occurrences list-by-item <item_id>`
+6. **Get full occurrence detail** → `rollbar occurrences get <occurrence_id>` (to see stack trace, request data)
+7. **Repeat** for other high-priority items
 
 **Time range handling:**
 - If `$ARGUMENTS[1]` is `last Nh` or `last Nd`, convert to appropriate `--hours` flags for report commands or date ranges for RQL queries
