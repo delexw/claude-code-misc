@@ -1,6 +1,6 @@
 ---
 name: pir
-description: Create Post Incident Records (PIRs) by discovering issues from PagerDuty, Datadog, and Cloudflare concurrently. Orchestrates pagerduty-oncall, datadog-analyser, and cloudflare-traffic-investigator skills, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
+description: Create Post Incident Records (PIRs) by discovering issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently. Orchestrates pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator, and rollbar-reader skills, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
 argument-hint: "[start-date] [end-date] [repos-list] [domain:zone-id]"
@@ -9,7 +9,7 @@ allowed-tools: Read, Bash, Write, Edit
 
 # Post Incident Record (PIR)
 
-Discover issues from PagerDuty, Datadog, and Cloudflare concurrently, auto-determine severity, and produce completed PIR forms for each issue.
+Discover issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently, auto-determine severity, and produce completed PIR forms for each issue.
 
 ## Arguments
 - `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today. In current agent's local timezone (detect via system clock), not UTC.
@@ -26,7 +26,7 @@ Each PIR maps to these fields — see [PIR Form Fields](references/pir-form-fiel
 | Impact Summary | Yes | Synthesised from all skills |
 | What | Yes | PagerDuty incident + Datadog + Cloudflare |
 | Who | Yes | Datadog (RUM/error tracking) + Cloudflare (user counts) |
-| Culprit | Yes | Cloudflare (JA4, traffic sources) + Datadog (error traces) + PagerDuty (trigger details) + Codebase analysis (culprit commits) |
+| Culprit | Yes | Cloudflare (JA4, traffic sources) + Datadog (error traces) + Rollbar (stack traces, error-deploy correlation) + PagerDuty (trigger details) + Codebase analysis (culprit commits) |
 | Incident date | Yes | Earliest detection across all sources (PagerDuty, Datadog, Cloudflare) |
 | When | Yes | PagerDuty created/resolved + Datadog timeline |
 | Remediation | Optional | PagerDuty notes + Datadog monitors |
@@ -49,9 +49,9 @@ Use the highest applicable severity when multiple criteria match.
 ### Step 1: Gather Date Range
 See [step1-gather-date-range.md](steps/step1-gather-date-range.md)
 
-### Step 2: Discover — PagerDuty, Datadog, Cloudflare
+### Step 2: Discover — PagerDuty, Datadog, Cloudflare, Rollbar
 
-Run all three in parallel using Task subagents:
+Run all four in parallel using Task subagents:
 
 #### 2a. PagerDuty — Incidents *(Task subagent)*
 See [step2a-discover-incidents.md](steps/step2a-discover-incidents.md)
@@ -64,6 +64,10 @@ See [step2b-discover-datadog.md](steps/step2b-discover-datadog.md)
 #### 2c. Cloudflare — Traffic Analysis *(Task subagent)*
 See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
 — Runs `Skill("cloudflare-traffic-investigator")` via a Task subagent. Passes domain and zone ID from `$ARGUMENTS[3]` if provided.
+
+#### 2d. Rollbar — Error Tracking *(Task subagent)*
+See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
+— Runs `Skill("rollbar-reader")` via a Task subagent.
 
 ### Step 3: Codebase Analysis *(Task subagent, conditional)*
 See [step3-codebase-analysis.md](steps/step3-codebase-analysis.md)
