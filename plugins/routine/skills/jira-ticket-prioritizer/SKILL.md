@@ -61,8 +61,8 @@ Analyze a set of JIRA tickets to determine optimal execution order based on depe
 
 ### Step 6 — Generate Output
 - Write `.jira-ticket-prioritizer-tmp/detailed-report.json` — full details including scores, justifications, dependency graph, excluded tickets, and warnings (see [references/output-format.md](references/output-format.md) for schema)
-- Write `.jira-ticket-prioritizer-tmp/output.json` — ticket keys grouped by dependency layer (array of arrays), sorted by priority score within each layer
-- **Present only `output.json`** (the simple sorted array) to the user. The detailed report is saved for reference but not displayed.
+- Write `.jira-ticket-prioritizer-tmp/output.json` — a JSON object `{ "layers": [...] }` where `layers` contains ticket keys grouped by dependency layer (array of arrays), sorted by priority score within each layer
+- **Present only `output.json`** (the simple layers object) to the user. The detailed report is saved for reference but not displayed.
 
 ## Reference Files
 

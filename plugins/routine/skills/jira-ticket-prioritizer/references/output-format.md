@@ -7,21 +7,23 @@ The prioritizer produces two JSON files in `.jira-ticket-prioritizer-tmp/`.
 Ticket keys grouped by dependency layer, sorted by priority score within each layer:
 
 ```json
-[
-  ["PROJ-100", "PROJ-104"],
-  ["PROJ-101", "PROJ-102"],
-  ["PROJ-103"]
-]
+{
+  "layers": [
+    ["PROJ-100", "PROJ-104"],
+    ["PROJ-101", "PROJ-102"],
+    ["PROJ-103"]
+  ]
+}
 ```
 
-- **Index 0** = Layer 0 (no blockers — work on these first)
-- **Index 1** = Layer 1 (depends on layer 0 being done)
-- **Index 2** = Layer 2 (depends on layer 1 being done)
+- **layers[0]** = Layer 0 (no blockers — work on these first)
+- **layers[1]** = Layer 1 (depends on layer 0 being done)
+- **layers[2]** = Layer 2 (depends on layer 1 being done)
 - ...and so on
 
 ### Ordering Rules
 
-1. Outer array is ordered by **dependency layer** (0, 1, 2, ...)
+1. `layers` array is ordered by **dependency layer** (0, 1, 2, ...)
 2. Within each layer, tickets are ordered by **descending priority score**
 3. Tickets with status Done/Closed/Resolved are **excluded**
 
