@@ -3,7 +3,6 @@ name: meta-prompter
 description: Evaluate and optimize prompts. Iterates until quality gate passes, then returns the optimized prompt for the caller to execute.
 argument-hint: <prompt to evaluate and optimize>
 allowed-tools: Read, Bash, Write, Edit
-context: fork
 model: opus
 ---
 

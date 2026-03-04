@@ -4,7 +4,6 @@ description: QA web testing skill using Chrome DevTools MCP tools for visual reg
 argument-hint: URL [OUT_DIR] (e.g. "http://localhost:3000", "http://localhost:3000 ./qa-reports")
 allowed-tools: mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__emulate, mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__select_page, mcp__chrome-devtools__resize_page, mcp__chrome-devtools__click, mcp__chrome-devtools__fill, mcp__chrome-devtools__wait_for, Read, Glob, Grep, Bash, Write, Edit
 model: sonnet
-context: fork
 ---
 
 # QA Web Testing with Chrome DevTools MCP

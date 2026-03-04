@@ -4,7 +4,6 @@ description: Investigate traffic anomalies, spikes, and service degradation on C
 allowed-tools: mcp__cloudflare-api__search, mcp__cloudflare-api__execute, Read, Bash, Write, Edit
 argument-hint: "[domain] [zone-id] [timerange]"
 model: sonnet
-context: fork
 ---
 
 # Investigating Traffic on Cloudflare-Protected Domains
