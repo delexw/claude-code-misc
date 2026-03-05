@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Filters incidents by escalation policy IDs from ep-list.json and extracts relevant fields.
+// Filters incidents by service IDs derived from ep-list.json and extracts relevant fields.
 // Usage: cat raw-incidents.json | node filter-incidents.js <ep-list.json-path>
-// If ep-list.json contains all EPs (no filtering was applied), all incidents pass through.
+// Collects all service IDs from the EPs' services arrays and matches against incident service.id.
+// If no services found in ep-list.json, all incidents pass through.
 // Outputs filtered JSON array to stdout.
 
 const fs = require("fs");
@@ -13,7 +14,9 @@ if (!epListPath) {
 }
 
 const epList = JSON.parse(fs.readFileSync(epListPath, "utf8"));
-const epIds = new Set(epList.map((ep) => ep.id));
+const serviceIds = new Set(
+  epList.flatMap((ep) => (ep.services || []).map((s) => s.id))
+);
 
 const chunks = [];
 process.stdin.setEncoding("utf8");
@@ -21,10 +24,10 @@ process.stdin.on("data", (chunk) => chunks.push(chunk));
 process.stdin.on("end", () => {
   const incidents = JSON.parse(chunks.join(""));
 
-  const filtered = epIds.size > 0
+  const filtered = serviceIds.size > 0
     ? incidents.filter((inc) => {
-        const epId = inc.escalation_policy?.id || inc.escalation_policy?.self?.match(/\/([^/]+)$/)?.[1];
-        return epIds.has(epId);
+        const svcId = inc.service?.id || inc.service?.self?.match(/\/([^/]+)$/)?.[1];
+        return serviceIds.has(svcId);
       })
     : incidents;
 
