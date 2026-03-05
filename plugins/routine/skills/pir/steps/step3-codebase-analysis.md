@@ -1,6 +1,6 @@
 # Step 3: Codebase Analysis — Root Cause Investigation
 
-**Condition**: Only run this step if `$ARGUMENTS[2]` (repos list) is provided.
+**Condition**: Only run this step if `$ARGUMENTS[1]` (repos list) is provided.
 
 Investigate recent commits that may have caused or contributed to the issues discovered in Step 2:
 
@@ -12,7 +12,7 @@ Investigate recent commits that may have caused or contributed to the issues dis
 
 **Rollbar Errors**: [list active error items, stack traces, affected services, and error-deploy correlations from Step 2d]
 
-**Repos to investigate**: $ARGUMENTS[2]
+**Repos to investigate**: $ARGUMENTS[1]
 
 For each repo, run:
 - `git fetch origin main` to ensure origin/main is up to date

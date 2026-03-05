@@ -1,3 +1,5 @@
-# Step 1: Gather Date Range
+# Step 1: Prepare
 
-Only ask the user for the **date range** if not provided in `$ARGUMENTS`. Do NOT ask about services, incident IDs, or severity — these are all derived from data.
+If `$ARGUMENTS[0]` is empty or missing, use `AskUserQuestion` to ask what to investigate (e.g. "incidents last 24h", "errors yesterday"). Do NOT ask about services, incident IDs, or severity — these are all derived from data.
+
+Otherwise proceed directly to Step 2.
