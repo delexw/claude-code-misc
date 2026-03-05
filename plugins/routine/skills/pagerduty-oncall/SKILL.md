@@ -2,7 +2,7 @@
 name: pagerduty-oncall
 description: Investigate PagerDuty incidents for Envato on-call escalation policies. Use when asked about incidents, on-call status, incident analysis, or PagerDuty investigation.
 argument-hint: "YYYY-MM-DD YYYY-MM-DD"
-allowed-tools: Bash(pd auth *), Bash(pd ep list *), Bash(pd incident list *), Bash(pd incident log *), Bash(pd incident notes *), Bash(pd incident analytics *), Bash(mkdir *), Bash(test *), Read, Write, Edit
+allowed-tools: Bash(pd auth *), Bash(pd ep list *), Bash(pd incident list *), Bash(pd incident log *), Bash(pd incident notes *), Bash(pd incident analytics *), Bash(node *), Bash(mkdir *), Bash(test *), Bash(chmod *), Read, Write, Edit
 model: sonnet
 context: fork
 ---
@@ -26,6 +26,21 @@ The list of escalation policies to investigate is resolved in order:
 - `pd` CLI installed (https://github.com/martindstone/pagerduty-cli)
 - Environment variable `PAGERDUTY_API_TOKEN` set with a valid PagerDuty REST API token. **Important:** When checking this variable, verify at least 2 times before concluding it is not set. Environment variables can appear unset due to shell context differences. **Never expose the value** — use existence checks only (e.g. `test -n "$PAGERDUTY_API_TOKEN"`).
 
+## Scripts
+
+All parsing and filtering is handled by scripts in `${CLAUDE_SKILL_DIR}/scripts/`:
+
+| Script | Purpose |
+|--------|---------|
+| `extract-json.js` | Extracts JSON from pd CLI output that may contain non-JSON text |
+| `filter-eps.js` | Filters EPs by target names, extracts relevant fields |
+| `filter-incidents.js` | Filters incidents by EP IDs from `ep-list.json`, extracts fields |
+| `parse-log.js` | Extracts relevant fields from incident log entries |
+| `parse-notes.js` | Extracts relevant fields from incident notes |
+| `parse-analytics.js` | Extracts relevant fields from incident analytics |
+
+All scripts read from stdin and write to stdout. Pipe pd CLI output through `extract-json.js` first, then through the appropriate filter/parse script.
+
 ## Output Directory
 
 All intermediate JSON and the final report are saved to:
@@ -39,13 +54,6 @@ All intermediate JSON and the final report are saved to:
 ├── analytics/<INCIDENT_ID>.json # Analytics per incident
 └── report.md                 # Final analysis report
 ```
-
-## CLI Output Handling
-
-The `pd` CLI may include non-JSON text (status messages, warnings) before or after the JSON payload. When processing output:
-- Look for the JSON array `[...]` or object `{...}` in the output
-- Ignore any surrounding text
-- If the output contains "no ... found" or similar empty-result messages, treat it as an empty array `[]`
 
 ## Execution
 
@@ -76,65 +84,44 @@ If the array is empty, check for the `PD_ESCALATION_POLICIES` env var:
 test -n "$PD_ESCALATION_POLICIES" && echo "$PD_ESCALATION_POLICIES" || echo "EMPTY"
 ```
 
-Remember the list of target EP names (case-insensitive) for filtering in Step 4. If both sources are empty, skip filtering (include all EPs).
+Build the list of target EP names for the next step. If both sources are empty, no names will be passed (all EPs included).
 
-### 4. List Escalation Policies
+### 4. List and Filter Escalation Policies
 
-Fetch all escalation policies:
+Fetch, extract JSON, filter by target names, and save in one pipeline:
 ```bash
-pd ep list --json
+pd ep list --json | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-eps.js "EP Name 1" "EP Name 2" > .pagerduty-oncall-tmp/ep-list.json
 ```
 
-From the JSON output, extract only these fields per EP:
-- `id`, `name`, `num_loops`, `services` (array of `{id, name}`)
+Pass each target EP name as a separate argument to `filter-eps.js`. If no target names, omit the arguments (all EPs pass through).
 
-Filter to only target EP names (case-insensitive match) if configured. Save the filtered and extracted list using Write to `.pagerduty-oncall-tmp/ep-list.json`.
+### 5. Fetch and Filter Incidents
 
-Keep the set of target EP IDs in memory for incident filtering.
-
-### 5. Fetch Incidents
-
-List all incidents in the date range with all statuses:
+Fetch incidents, extract JSON, filter by EP IDs from the saved `ep-list.json`, and save:
 ```bash
-pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved --since=$ARGUMENTS[0] --until=$ARGUMENTS[1]
+pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved --since=$ARGUMENTS[0] --until=$ARGUMENTS[1] | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-incidents.js .pagerduty-oncall-tmp/ep-list.json > .pagerduty-oncall-tmp/incidents.json
 ```
 
-From the JSON output, extract only these fields per incident:
-- `id`, `incident_number`, `title`, `status`, `urgency`
-- `created_at`, `resolved_at`
-- `service` → `{id, name}`
-- `escalation_policy` → `{id, name}`
-- `assigned_to` (array of user names)
-- `alert_counts`
-
-Filter to only incidents whose `escalation_policy.id` is in the target EP IDs from Step 4. Save using Write to `.pagerduty-oncall-tmp/incidents.json`.
-
-If no matching incidents are found, write a report noting zero incidents and stop.
+Read `.pagerduty-oncall-tmp/incidents.json` to check the result. If the array is empty, write a report noting zero incidents and stop.
 
 ### 6. Gather Incident Details
 
-For each incident, fetch details **sequentially** (to avoid PagerDuty API rate limits). On failure for any individual command, save `[]` for that file and continue with the next.
+For each incident in `.pagerduty-oncall-tmp/incidents.json`, fetch details **sequentially** (to avoid PagerDuty API rate limits). On failure for any individual command, save `[]` for that file and continue with the next.
 
 **Log entries:**
 ```bash
-pd incident log -i <INCIDENT_ID> --json
+pd incident log -i <INCIDENT_ID> --json | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/parse-log.js > .pagerduty-oncall-tmp/logs/<INCIDENT_ID>.json
 ```
-Extract per entry: `type`, `created_at`, `channel`, `agent`, `note`
-Save to `.pagerduty-oncall-tmp/logs/<INCIDENT_ID>.json`
 
 **Notes:**
 ```bash
-pd incident notes -i <INCIDENT_ID> --output=json
+pd incident notes -i <INCIDENT_ID> --output=json | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/parse-notes.js > .pagerduty-oncall-tmp/notes/<INCIDENT_ID>.json
 ```
-Extract per note: `id`, `content`, `created_at`, `user`
-Save to `.pagerduty-oncall-tmp/notes/<INCIDENT_ID>.json`
 
 **Analytics:**
 ```bash
-pd incident analytics -i <INCIDENT_ID> --json
+pd incident analytics -i <INCIDENT_ID> --json | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/parse-analytics.js > .pagerduty-oncall-tmp/analytics/<INCIDENT_ID>.json
 ```
-Extract: `mean_seconds_to_resolve`, `mean_seconds_to_first_ack`, `mean_seconds_to_engage`, `mean_seconds_to_mobilize`, `escalation_count`, `timeout_escalation_count`, `num_interruptions`
-Save to `.pagerduty-oncall-tmp/analytics/<INCIDENT_ID>.json`
 
 ### 7. Analyse and Report
 
