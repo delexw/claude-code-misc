@@ -3,7 +3,7 @@ name: pir
 description: Create Post Incident Records (PIRs) by discovering issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently. Orchestrates pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator, and rollbar-reader skills, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
-argument-hint: "[start-date] [end-date] [repos-list] [domain:zone-id]"
+argument-hint: "what to investigate (e.g. 'incidents last 24h', 'errors yesterday', 'outage last 1h') [repos-list] [domain:zone-id]"
 allowed-tools: Read, Bash, Write, Edit
 ---
 
@@ -12,10 +12,9 @@ allowed-tools: Read, Bash, Write, Edit
 Discover issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently, auto-determine severity, and produce completed PIR forms for each issue.
 
 ## Arguments
-- `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today. In current agent's local timezone (detect via system clock), not UTC.
-- `$ARGUMENTS[1]` — (optional) End date in `YYYY-MM-DD` format. Defaults to today. In current agent's local timezone (detect via system clock), not UTC.
-- `$ARGUMENTS[2]` — (optional) Comma-separated local repo paths for codebase root cause analysis (e.g. `~/repos/frontend,~/repos/backend`).
-- `$ARGUMENTS[3]` — (optional) Cloudflare domain and zone ID in `domain:zone_id` format (e.g. `example.com:abc123def456`). Passed to the `cloudflare-traffic-investigator` skill. If not provided, the cloudflare skill will ask the user.
+- `$ARGUMENTS[0]` — What to investigate (e.g. `"incidents last 24h"`, `"errors yesterday"`, `"outage last 1h"`, `"incidents 2026-03-01 to 2026-03-05"`). Passed directly to each sub-skill. Defaults to `"incidents today"`.
+- `$ARGUMENTS[1]` — (optional) Comma-separated local repo paths for codebase root cause analysis (e.g. `~/repos/frontend,~/repos/backend`).
+- `$ARGUMENTS[2]` — (optional) Cloudflare domain and zone ID in `domain:zone_id` format (e.g. `example.com:abc123def456`). Passed to the `cloudflare-traffic-investigator` skill. If not provided, the cloudflare skill will ask the user.
 
 ## PIR Form Fields
 
@@ -46,8 +45,9 @@ Use the highest applicable severity when multiple criteria match.
 
 ## Execution
 
-### Step 1: Gather Date Range
+### Step 1: Prepare
 See [step1-gather-date-range.md](steps/step1-gather-date-range.md)
+— If `$ARGUMENTS[0]` is empty, ask the user what to investigate. Otherwise proceed directly.
 
 ### Step 2: Discover — PagerDuty, Datadog, Cloudflare, Rollbar
 
@@ -63,7 +63,7 @@ See [step2b-discover-datadog.md](steps/step2b-discover-datadog.md)
 
 #### 2c. Cloudflare — Traffic Analysis
 See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
-— Invokes `Skill("cloudflare-traffic-investigator")`. Passes domain and zone ID from `$ARGUMENTS[3]` if provided.
+— Invokes `Skill("cloudflare-traffic-investigator")`. Passes domain and zone ID from `$ARGUMENTS[2]` if provided.
 
 #### 2d. Rollbar — Error Tracking
 See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
@@ -71,7 +71,7 @@ See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
 
 ### Step 3: Codebase Analysis *(conditional)*
 See [step3-codebase-analysis.md](steps/step3-codebase-analysis.md)
-— Only runs when `$ARGUMENTS[2]` (repos list) is provided. Investigates recent commits on `origin/main` to identify culprit code changes. Saves findings to `.codebase-analysis-tmp/report.md`.
+— Only runs when `$ARGUMENTS[1]` (repos list) is provided. Investigates recent commits on `origin/main` to identify culprit code changes. Saves findings to `.codebase-analysis-tmp/report.md`.
 
 ### Step 4: Synthesise PIR for Each Issue
 See [step4-synthesise-pir.md](steps/step4-synthesise-pir.md)

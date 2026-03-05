@@ -1,7 +1,7 @@
 ---
 name: pagerduty-oncall
 description: Investigate PagerDuty incidents for Envato on-call escalation policies. Use when asked about incidents, on-call status, incident analysis, or PagerDuty investigation.
-argument-hint: "YYYY-MM-DD YYYY-MM-DD"
+argument-hint: "what to investigate (e.g. 'incidents last 24h', 'on-call yesterday', 'incidents today')"
 allowed-tools: Bash(pd auth *), Bash(pd ep list *), Bash(pd incident list *), Bash(pd incident log *), Bash(pd incident notes *), Bash(pd incident analytics *), Bash(node *), Bash(mkdir *), Bash(test *), Bash(chmod *), Read, Write, Edit
 model: sonnet
 context: fork
@@ -12,8 +12,7 @@ context: fork
 Authenticate, list escalation policies, fetch all incidents and their details, then analyse relevance across Envato on-call teams.
 
 ## Arguments
-- `$ARGUMENTS[0]` — (optional) Start date in `YYYY-MM-DD` format. Defaults to today's date. In current agent's local timezone (detect via system clock), not UTC.
-- `$ARGUMENTS[1]` — (optional) End date in `YYYY-MM-DD` format. Defaults to today's date. In current agent's local timezone (detect via system clock), not UTC.
+- `$ARGUMENTS[0]` — What to investigate (e.g. `"incidents last 24h"`, `"on-call yesterday"`, `"incidents today"`, `"incidents 2026-03-01 to 2026-03-05"`). Defaults to `"incidents today"`. Interpret the time range from this sentence to derive `--since` and `--until` dates (YYYY-MM-DD) in current agent's local timezone (detect via system clock), not UTC.
 
 ## Target Escalation Policies
 
@@ -97,9 +96,9 @@ Pass each target EP name as a separate argument to `filter-eps.js`. If no target
 
 ### 5. Fetch and Filter Incidents
 
-Fetch incidents, extract JSON, filter by EP IDs from the saved `ep-list.json`, and save:
+Derive `SINCE_DATE` and `UNTIL_DATE` (YYYY-MM-DD) from `$ARGUMENTS[0]` in the agent's local timezone. Then fetch, extract JSON, filter by EP IDs, and save:
 ```bash
-pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved --since=$ARGUMENTS[0] --until=$ARGUMENTS[1] | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-incidents.js .pagerduty-oncall-tmp/ep-list.json > .pagerduty-oncall-tmp/incidents.json
+pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved --since=SINCE_DATE --until=UNTIL_DATE | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-incidents.js .pagerduty-oncall-tmp/ep-list.json > .pagerduty-oncall-tmp/incidents.json
 ```
 
 Read `.pagerduty-oncall-tmp/incidents.json` to check the result. If the array is empty, write a report noting zero incidents and stop.

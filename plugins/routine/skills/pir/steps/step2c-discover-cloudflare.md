@@ -1,14 +1,12 @@
 # Step 2c: Discover from Cloudflare — Traffic Analysis
 
-This step runs concurrently with PagerDuty, Datadog, and Rollbar discovery. Use the date range from `$ARGUMENTS[0]` and `$ARGUMENTS[1]` to query Cloudflare traffic for the full date range.
+This step runs concurrently with PagerDuty, Datadog, and Rollbar discovery.
 
-**If `$ARGUMENTS[3]` is provided** (format: `domain:zone_id`):
-> Use the Skill tool to invoke "cloudflare-traffic-investigator" with args "DOMAIN ZONE_ID TIMERANGE" (split domain/zone from $ARGUMENTS[3] on `:`, TIMERANGE covers $ARGUMENTS[0] to $ARGUMENTS[1]). Then read and return the report contents from .cloudflare-traffic-investigator-tmp/report.md
+**If `$ARGUMENTS[2]` is provided** (format: `domain:zone_id`):
+> Use the Skill tool to invoke "cloudflare-traffic-investigator" with args "DOMAIN ZONE_ID $ARGUMENTS[0]" (split domain/zone from $ARGUMENTS[2] on `:`). Then read and return the report contents from .cloudflare-traffic-investigator-tmp/report.md
 
-**If `$ARGUMENTS[3]` is not provided**:
-> Use the Skill tool to invoke "cloudflare-traffic-investigator" with args "" "" "TIMERANGE" (pass empty strings for domain/zone so the skill asks the user, TIMERANGE covers $ARGUMENTS[0] to $ARGUMENTS[1]). Then read and return the report contents from .cloudflare-traffic-investigator-tmp/report.md
-
-Note: The time range covers the full date range from arguments since this step runs in parallel with PagerDuty discovery and PagerDuty incident timestamps are not yet available. When `$ARGUMENTS[3]` is omitted, the skill will still ask the user for domain and zone ID via `AskUserQuestion`.
+**If `$ARGUMENTS[2]` is not provided**:
+> Use the Skill tool to invoke "cloudflare-traffic-investigator" with args "" "" "$ARGUMENTS[0]" (pass empty strings for domain/zone so the skill asks the user). Then read and return the report contents from .cloudflare-traffic-investigator-tmp/report.md
 
 **Extract from report** (`.cloudflare-traffic-investigator-tmp/report.md`):
 - Traffic volume and spike details → **What**

@@ -1,7 +1,7 @@
 ---
 name: rollbar-reader
 description: Investigate and analyse Rollbar errors, items, occurrences, deploys, and project health using the rollbar CLI. Use when asked to investigate Rollbar errors, search error items, check deploy status, run RQL queries, get occurrence details, or analyse any Rollbar data.
-argument-hint: "what to investigate (e.g. 'active errors last 24h', 'top items production', 'item 12345') [OUT_DIR]"
+argument-hint: "what to investigate (e.g. 'active errors last 24h', 'top items production', 'item 12345') [out-dir]"
 allowed-tools: Bash(rollbar config *), Bash(rollbar items *), Bash(rollbar occurrences *), Bash(rollbar metrics *), Bash(rollbar deploys *), Bash(rollbar environments *), Bash(rollbar rql *), Bash(rollbar reports *), Bash(rollbar projects *), Bash(rollbar tokens *), Bash(rollbar teams *), Bash(rollbar users *), Bash(rollbar team-users *), Bash(rollbar team-projects *), Bash(rollbar user-projects *), Bash(rollbar people *), Bash(rollbar notifications *), Bash(rollbar replays *), Bash(rollbar service-links *), Bash(rollbar versions *), Bash(rollbar agent *), Bash(rollbar --help *), Bash(mkdir *), Bash(test *), Read, Write, Edit
 model: sonnet
 context: fork
@@ -13,9 +13,8 @@ Investigate and analyse Rollbar error tracking data using the `rollbar` CLI (htt
 
 ## Arguments
 
-- `$ARGUMENTS[0]` — What to investigate (e.g. `"active errors last 24h"`, `"top items production"`, `"item 12345"`, `"deploys this week"`). Use current agent's local timezone (detect via system clock) for any time-based queries, not UTC.
-- `$ARGUMENTS[1]` — (optional) Time range in format `YYYY-MM-DD YYYY-MM-DD` (start end) or `last Nh` (e.g. `last 24h`, `last 7d`). In current agent's local timezone (detect via system clock), not UTC. Defaults to last 24 hours.
-- `$ARGUMENTS[2]` — (optional) Base directory for all temp assets. Defaults to `.rollbar-reader-tmp/`.
+- `$ARGUMENTS[0]` — What to investigate (e.g. `"active errors last 24h"`, `"top items production"`, `"item 12345"`, `"deploys this week"`). Include the time range in the sentence (e.g. `"last 24h"`, `"yesterday"`, `"2026-03-01 to 2026-03-05"`). Use current agent's local timezone (detect via system clock) for any time-based queries, not UTC. Defaults to last 24 hours if no time range is mentioned.
+- `$ARGUMENTS[1]` — (optional) Base directory for all temp assets. Defaults to `.rollbar-reader-tmp/`.
 
 ## System Requirements
 
@@ -90,11 +89,11 @@ Create the output directory and subdirectories:
 mkdir -p <OUT_DIR>/occurrences <OUT_DIR>/reports
 ```
 
-Where `<OUT_DIR>` is `$ARGUMENTS[2]` or `.rollbar-reader-tmp/` if not provided.
+Where `<OUT_DIR>` is `$ARGUMENTS[1]` or `.rollbar-reader-tmp/` if not provided.
 
 ### 4. Investigate Using Items & Occurrences
 
-Based on `$ARGUMENTS[0]` and the time range from `$ARGUMENTS[1]`, query Rollbar data. Use `--format json` for all commands to get structured output. Run commands sequentially.
+Based on `$ARGUMENTS[0]` (which includes the time range), query Rollbar data. Use `--format json` for all commands to get structured output. Run commands sequentially.
 
 #### `rollbar items` — Query Error Items (Readonly)
 
@@ -181,9 +180,9 @@ This returns the complete occurrence payload — stack trace, request params, pe
 7. **Repeat** for other high-priority items
 
 **Time range handling:**
-- If `$ARGUMENTS[1]` is `last Nh` or `last Nd`, convert to appropriate `--hours` flags for report commands or date ranges for RQL queries
-- If `$ARGUMENTS[1]` is `YYYY-MM-DD YYYY-MM-DD`, use as start/end for RQL queries or filter results by timestamp
-- Default: last 24 hours
+- Extract time range from `$ARGUMENTS[0]` (e.g. `"last 24h"`, `"yesterday"`, `"2026-03-01 to 2026-03-05"`)
+- Convert to appropriate `--hours` flags for report commands or date ranges for RQL queries
+- Default: last 24 hours if no time range is mentioned in `$ARGUMENTS[0]`
 
 Save intermediate results as JSON to the output directory for reference.
 
