@@ -33,7 +33,7 @@ All parsing and filtering is handled by scripts in `${CLAUDE_SKILL_DIR}/scripts/
 |--------|---------|
 | `extract-json.js` | Extracts JSON from pd CLI output that may contain non-JSON text |
 | `filter-eps.js` | Filters EPs by target names, extracts relevant fields |
-| `filter-incidents.js` | Filters incidents by EP IDs from `ep-list.json`, extracts fields |
+| `filter-incidents.js` | Filters incidents by service IDs from `ep-list.json`, extracts fields |
 | `parse-log.js` | Extracts relevant fields from incident log entries |
 | `parse-notes.js` | Extracts relevant fields from incident notes |
 | `parse-analytics.js` | Extracts relevant fields from incident analytics |
@@ -96,7 +96,7 @@ Pass each target EP name as a separate argument to `filter-eps.js`. If no target
 
 ### 5. Fetch and Filter Incidents
 
-Derive `SINCE_DATE` and `UNTIL_DATE` (YYYY-MM-DD) from `$ARGUMENTS[0]` in the agent's local timezone. Then fetch, extract JSON, filter by EP IDs, and save:
+Derive `SINCE_DATE` and `UNTIL_DATE` (YYYY-MM-DD) from `$ARGUMENTS[0]` in the agent's local timezone. Then fetch, extract JSON, filter by service IDs from `ep-list.json`, and save:
 ```bash
 pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved --since=SINCE_DATE --until=UNTIL_DATE | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-incidents.js .pagerduty-oncall-tmp/ep-list.json > .pagerduty-oncall-tmp/incidents.json
 ```
