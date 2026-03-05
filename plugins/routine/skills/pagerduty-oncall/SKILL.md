@@ -12,7 +12,7 @@ context: fork
 Authenticate, list escalation policies, fetch all incidents and their details, then analyse relevance across Envato on-call teams.
 
 ## Arguments
-- `$ARGUMENTS[0]` — What to investigate (e.g. `"incidents last 24h"`, `"on-call yesterday"`, `"incidents today"`, `"incidents 2026-03-01 to 2026-03-05"`). Defaults to `"incidents today"`. Interpret the time range from this sentence to derive `--since` and `--until` dates (YYYY-MM-DD) in current agent's local timezone (detect via system clock), not UTC.
+- `$ARGUMENTS[0]` — What to investigate (e.g. `"incidents last 24h"`, `"on-call yesterday"`, `"incidents today"`, `"incidents 2026-03-01 to 2026-03-05"`). Defaults to `"incidents today"`. Interpret the time range to derive `--since` and `--until` dates (YYYY-MM-DD) in the agent's local timezone (detect via system clock), not UTC. See the date derivation table in Step 5.
 
 ## Target Escalation Policies
 
@@ -89,37 +89,47 @@ Build the list of target EP names for the next step. If both sources are empty, 
 
 Fetch, extract JSON, filter by target names, and save in one pipeline:
 ```bash
-pd ep list --json | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-eps.js "EP Name 1" "EP Name 2" > .pagerduty-oncall-tmp/ep-list.json
+pd ep list --json 2>&1 | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-eps.js "EP Name 1" "EP Name 2" > .pagerduty-oncall-tmp/ep-list.json
 ```
 
 Pass each target EP name as a separate argument to `filter-eps.js`. If no target names, omit the arguments (all EPs pass through).
 
 ### 5. Fetch and Filter Incidents
 
-Derive `SINCE_DATE` and `UNTIL_DATE` (YYYY-MM-DD) from `$ARGUMENTS[0]` in the agent's local timezone. Then fetch, extract JSON, filter by service IDs from `ep-list.json`, and save:
+Derive `SINCE_DATE` and `UNTIL_DATE` (YYYY-MM-DD) from `$ARGUMENTS[0]` in the agent's local timezone. **Important:** `--until` is **exclusive** in the `pd` CLI — it does NOT include that day. Use this table (assuming today is 2026-03-06):
+
+| Input | SINCE_DATE | UNTIL_DATE | Why |
+|-------|-----------|-----------|-----|
+| "last 24h" | 2026-03-05 | 2026-03-07 | 24h back from now, until must be tomorrow to include today |
+| "today" | 2026-03-06 | 2026-03-07 | until=tomorrow to include today |
+| "yesterday" | 2026-03-05 | 2026-03-06 | until=today to include yesterday |
+| "last 3 days" | 2026-03-03 | 2026-03-07 | 3 days back, until=tomorrow |
+| "2026-03-01 to 2026-03-05" | 2026-03-01 | 2026-03-06 | until=day after end date |
+
+Then fetch, extract JSON, filter by service IDs from `ep-list.json`, and save:
 ```bash
-pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved --since=SINCE_DATE --until=UNTIL_DATE | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-incidents.js .pagerduty-oncall-tmp/ep-list.json > .pagerduty-oncall-tmp/incidents.json
+pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved --since=SINCE_DATE --until=UNTIL_DATE 2>&1 | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-incidents.js .pagerduty-oncall-tmp/ep-list.json > .pagerduty-oncall-tmp/incidents.json
 ```
 
 Read `.pagerduty-oncall-tmp/incidents.json` to check the result. If the array is empty, write a report noting zero incidents and stop.
 
 ### 6. Gather Incident Details
 
-For each incident in `.pagerduty-oncall-tmp/incidents.json`, fetch details **sequentially** (to avoid PagerDuty API rate limits). On failure for any individual command, save `[]` for that file and continue with the next.
+For each incident in `.pagerduty-oncall-tmp/incidents.json`, fetch details **sequentially** (to avoid PagerDuty API rate limits). Use the `id` field (e.g. `Q1V3O5Q3JX39LJ`), NOT `incident_number` — the `pd` CLI only accepts internal IDs.
 
 **Log entries:**
 ```bash
-pd incident log -i <INCIDENT_ID> --json | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/parse-log.js > .pagerduty-oncall-tmp/logs/<INCIDENT_ID>.json
+pd incident log -i <INCIDENT_ID> --json 2>&1 | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/parse-log.js > .pagerduty-oncall-tmp/logs/<INCIDENT_ID>.json
 ```
 
 **Notes:**
 ```bash
-pd incident notes -i <INCIDENT_ID> --output=json | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/parse-notes.js > .pagerduty-oncall-tmp/notes/<INCIDENT_ID>.json
+pd incident notes -i <INCIDENT_ID> --output=json 2>&1 | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/parse-notes.js > .pagerduty-oncall-tmp/notes/<INCIDENT_ID>.json
 ```
 
 **Analytics:**
 ```bash
-pd incident analytics -i <INCIDENT_ID> --json | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/parse-analytics.js > .pagerduty-oncall-tmp/analytics/<INCIDENT_ID>.json
+pd incident analytics -i <INCIDENT_ID> --json 2>&1 | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/parse-analytics.js > .pagerduty-oncall-tmp/analytics/<INCIDENT_ID>.json
 ```
 
 ### 7. Analyse and Report
