@@ -69,15 +69,13 @@ See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
 See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
 — Invokes `Skill("rollbar-reader")`.
 
-### Step 3: Codebase Analysis *(conditional)*
-See [step3-codebase-analysis.md](steps/step3-codebase-analysis.md)
-— Only runs when `$ARGUMENTS[1]` (repos list) is provided. Investigates recent commits on `origin/main` to identify culprit code changes. Saves findings to `.codebase-analysis-tmp/report.md`.
+### Step 3: Build Dynamic Skill
+See [step3-build-skill.md](steps/step3-build-skill.md)
+— Creates a dynamic skill at `~/.claude/skills/pir-{slug}/` that contains all instructions for codebase analysis (conditional), PIR synthesis, and saving results. Discovery output files from Step 2 are referenced as lazy-loaded context.
 
-### Step 4: Synthesise PIR for Each Issue
-See [step4-synthesise-pir.md](steps/step4-synthesise-pir.md)
-
-### Step 5: Save and Present Results
-See [step5-save-and-present.md](steps/step5-save-and-present.md)
+### Step 4: Run Dynamic Skill
+See [step4-run-skill.md](steps/step4-run-skill.md)
+— Invokes the dynamic skill. After completion, deletes the dynamic skill directory.
 
 <tags>
    <mode>think</mode>
