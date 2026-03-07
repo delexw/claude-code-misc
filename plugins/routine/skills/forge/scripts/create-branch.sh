@@ -12,7 +12,8 @@
 #   3. Create a new branch off origin/main
 #   4. Add a git worktree at <repo-root>/../<repo-name>-worktrees/<branch-name>
 #   5. Provision the worktree (env files, dependencies)
-#   6. Print the worktree path to stdout (for the caller to capture)
+#   6. Enable entire (if CLI is installed)
+#   7. Print the worktree path to stdout (for the caller to capture)
 
 BRANCH="${1:-}"
 REPO_DIR="${2:-.}"
@@ -87,6 +88,16 @@ fi
     (cd "$WORKTREE_PATH" && bash scripts/uptodate.sh) || {
       echo "WARNING: uptodate.sh failed — continuing anyway" >&2
     }
+  fi
+
+  # Enable entire in the worktree if the CLI is installed
+  if command -v entire > /dev/null 2>&1; then
+    echo "Enabling entire in worktree..." >&2
+    (cd "$WORKTREE_PATH" && entire enable -f --local --agent claude-code) || {
+      echo "WARNING: entire enable failed — continuing anyway" >&2
+    }
+  else
+    echo "entire CLI not found — skipping entire enable" >&2
   fi
 
   echo "Worktree ready: $WORKTREE_PATH" >&2
