@@ -4,10 +4,10 @@ Create a dynamic skill that will perform codebase analysis (conditional), synthe
 
 ## 3a: Create Skill Directory
 
-Generate a short slug from the investigation query (e.g. `incidents-last-24h`, `errors-2026-03-01`).
+Generate a short slug from the investigation query (e.g. `incidents-last-24h`, `errors-2026-03-01`), then append a short random string (4-6 alphanumeric chars) to ensure uniqueness (e.g. `incidents-last-24h-a3f2`).
 
 ```
-SKILL_DIR=~/.claude/skills/pir-{slug}
+SKILL_DIR=~/.claude/skills/pir-{slug}-report-{rand}
 ```
 
 Create the directory:
@@ -53,7 +53,7 @@ Write a `discovery-sources.md` file to `$SKILL_DIR/` summarising which discovery
 
 Create `$SKILL_DIR/SKILL.md` using the **Write** tool. The content must include:
 
-1. **Frontmatter** with `name: pir-{slug}-report`, `allowed-tools: Read, Bash, Write`, `context: fork`, `model: opus`
+1. **Frontmatter** with `name: pir-{slug}-report-{rand}`, `allowed-tools: Read, Bash, Write`, `context: fork`, `model: opus`
 2. **Arguments section** passing through `$ARGUMENTS[1]` (repos list) and the investigation query
 3. **Discovery report paths** — instruct the agent to read each report file from CWD-relative tmp folders
 4. **Codebase analysis instructions** — conditional on repos list being provided. Include the full instructions from the old step 3 (git log/show on origin/main, correlate with issue timestamps, save to `.codebase-analysis-tmp/report.md`)
@@ -65,7 +65,7 @@ Use the following template structure:
 
 ```markdown
 ---
-name: pir-{slug}-report
+name: pir-{slug}-report-{rand}
 description: "PIR report generation for: {investigation_query}"
 allowed-tools: Read, Bash, Write
 context: fork
