@@ -1,0 +1,71 @@
+---
+name: create-pr
+description: Create a GitHub pull request from the current branch. Analyzes code changes, generates a descriptive PR title and body using the project's PR template, and runs `gh pr create`. Use when the user says "create PR", "open a PR", "make a pull request", "submit PR", "PR this", "send for review", or wants to open a pull request for their current branch. Also triggers when the user has finished committing and wants to get their changes reviewed.
+allowed-tools: Read, Bash, Glob, Grep
+---
+
+# Create GitHub Pull Request
+
+Analyze code changes on the current branch and create a well-structured pull request using `gh`.
+
+## Workflow
+
+### 1. Verify prerequisites
+
+Check that you're in a git repo, on a feature branch (not main/master), and that `gh` is authenticated:
+
+```bash
+git rev-parse --is-inside-work-tree
+git branch --show-current
+gh auth status
+```
+
+If any check fails, report the specific error and stop.
+
+### 2. Gather change context
+
+```bash
+git log --oneline main..HEAD   # or master..HEAD
+git diff main..HEAD --stat
+git diff main..HEAD
+```
+
+Identify the base branch automatically — try `main`, then `master`, then the default branch from `gh repo view --json defaultBranchRef`.
+
+### 3. Categorize changes
+
+Group the diff into:
+- **Features**: new functionality
+- **Fixes**: bug corrections with issue references
+- **Refactoring**: code improvements without behavior changes
+- **Dependencies**: package updates with version numbers
+
+Note modified files, functions/classes affected, and import changes.
+
+### 4. Generate PR content
+
+Look for `.github/PULL_REQUEST_TEMPLATE.md` in the project root. If found, use it as the PR body template and fill in every section with actual content from the diff analysis. If no template exists, write a clear description covering what changed and why.
+
+**PR title format**: `[TICKET-ID] brief description` (max 80 chars). Use a conventional prefix — `feat:`, `fix:`, `refactor:`, `chore:` — based on the dominant change type. If a ticket ID is available from branch name or commit messages, include it.
+
+### 5. Create the PR
+
+```bash
+gh pr create --title "<title>" --body "<body>" --draft
+```
+
+Then open it in the browser:
+```bash
+gh pr view --web
+```
+
+### 6. Report result
+
+Show the PR URL and a brief summary of what was included.
+
+## Error handling
+
+- **No git repo**: "Not in a git repository. Run from a project root."
+- **No changes**: "No commits found ahead of the base branch."
+- **gh not installed/authed**: "Install GitHub CLI and run `gh auth login`."
+- **Push rejected**: push the branch first, then retry PR creation.
