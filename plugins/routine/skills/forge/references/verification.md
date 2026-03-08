@@ -10,22 +10,17 @@ If `$ARGUMENTS[1]` is provided, use it to infer the dev environment setup (it ma
 
 ### Loop until all issues are resolved:
 
-1. **Verify** — Launch a `Task` call to verify all changes, reading context files from `SKILL_DIR/` as needed to ensure changes are:
-   - reasonable and well-justified
-   - within the scope of the JIRA ticket:
-     - If a PR link was provided as an example → "Are my changes aligned with what the example PR guides?"
-     - If a Figma design or UI image was present → "Are the UI changes compliant with design specs?"
-     - If a runbook or guidance link was present → "Are my changes fully following the runbook?"
-   - compliant with project conventions/standards
-   - evidence-based (no guesswork)
-2. **QA Web Test** (conditional) — Run when a dev URL was resolved and:
+1. **Code Review** — Invoke `Skill("codex-review", "review the uncommitted changes")` to review all changed files.
+   - **If critical or important issues found** — fix them and re-run the code review (loop back to step 1).
+   - **If only minor or no issues** — proceed to step 2.
+
+2. **QA Web Test** (conditional) — Run only when code review passes (no P1/P2) AND a dev URL was resolved AND:
    - UI files were changed (`.tsx`, `.jsx`, `.vue`, `.css`, `.scss`, `.html`, templates, components)
    - Backend changes affect data the UI renders (API responses, formatting, rendering logic)
    - Bug fixes where the browser is the best way to visually confirm the fix
 
    Invoke `Skill("qa-web-test", "{dev_url}")`.
-3. **If issues found** — fix or rollback anything that's wrong or off
-4. **Re-verify** — repeat from step 1 until no issues remain
+   - **If QA issues found** — fix them and loop back to step 1 (code review again after fixes).
 
 ## Error Handling
 
@@ -33,7 +28,9 @@ If `$ARGUMENTS[1]` is provided, use it to infer the dev environment setup (it ma
 
 ## Output
 
-After verification, clean up the dynamic skill directory — only delete the exact `~/.claude/skills/{ticket_id}` directory, nothing else:
+Do NOT delete `.codex-review-output.md` — it serves as an audit trail of the code review.
+
+Clean up the dynamic skill directory — only delete the exact `~/.claude/skills/{ticket_id}` directory, nothing else:
 
 ```bash
 rm -rf ~/.claude/skills/{ticket_id}

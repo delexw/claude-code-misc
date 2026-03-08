@@ -39,13 +39,17 @@ If the command fails due to environment issues (missing API key, network error, 
 2. Try running with `--config model="gpt-5.2"` as a fallback model
 3. If still failing, report the error and skip the review
 
-### 4. Handle the review output
+### 4. Save the review output
+
+Save the full codex review output to `.codex-review-output.md` in the repository root.
+
+### 5. Handle the review output
 
 - **No issues found**: Report that the review passed clean and proceed.
 - **Minor suggestions**: Summarize them for the user. These are informational — the user can decide whether to act on them.
 - **Critical issues** (bugs, security vulnerabilities, logic errors): Summarize the critical findings clearly. Ask the user whether they want to fix these before proceeding. If yes, make the fixes but do NOT commit — present the changes for human review first.
 
-### 5. Environment troubleshooting
+### 6. Environment troubleshooting
 
 The codex CLI depends on:
 - Node.js runtime
