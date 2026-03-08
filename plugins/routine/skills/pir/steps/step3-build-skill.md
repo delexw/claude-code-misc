@@ -84,7 +84,7 @@ name: pir-{slug}-report-{rand}
 description: "PIR report generation for: {investigation_query}"
 allowed-tools: Read, Bash, Write
 context: fork
-model: sonnet
+model: opus
 ---
 
 # PIR Report: {investigation_query}
