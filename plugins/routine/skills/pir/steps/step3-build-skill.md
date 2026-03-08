@@ -25,6 +25,21 @@ cp "${CLAUDE_SKILL_DIR}/.claude/skills/pir/references/pir-form-fields.md" "$SKIL
 
 If `${CLAUDE_SKILL_DIR}` is not available, fall back to `$HOME/.claude/skills/pir/references/pir-form-fields.md`.
 
+Also copy all successful discovery reports into a `references/` subfolder so the dynamic skill can access them via `${CLAUDE_SKILL_DIR}`:
+
+```bash
+mkdir -p "$SKILL_DIR/references"
+```
+
+For each discovery source that succeeded, copy its report:
+```bash
+# Only copy reports that exist (i.e. the discovery source succeeded)
+[ -f .pagerduty-oncall-tmp/report.md ] && cp .pagerduty-oncall-tmp/report.md "$SKILL_DIR/references/pagerduty-report.md"
+[ -f .datadog-analyser-tmp/report.md ] && cp .datadog-analyser-tmp/report.md "$SKILL_DIR/references/datadog-report.md"
+[ -f .cloudflare-traffic-investigator-tmp/report.md ] && cp .cloudflare-traffic-investigator-tmp/report.md "$SKILL_DIR/references/cloudflare-report.md"
+[ -f .rollbar-reader-tmp/report.md ] && cp .rollbar-reader-tmp/report.md "$SKILL_DIR/references/rollbar-report.md"
+```
+
 ## 3c: Save Discovery Summary
 
 Write a `discovery-sources.md` file to `$SKILL_DIR/` summarising which discovery sources succeeded and their output file paths:
@@ -34,19 +49,19 @@ Write a `discovery-sources.md` file to `$SKILL_DIR/` summarising which discovery
 
 ## PagerDuty
 - Status: [Success / Skipped / Failed — reason]
-- Report: .pagerduty-oncall-tmp/report.md
+- Report: references/pagerduty-report.md
 
 ## Datadog
 - Status: [Success / Skipped / Failed — reason]
-- Report: .datadog-analyser-tmp/report.md
+- Report: references/datadog-report.md
 
 ## Cloudflare
 - Status: [Success / Skipped / Failed — reason]
-- Report: .cloudflare-traffic-investigator-tmp/report.md
+- Report: references/cloudflare-report.md
 
 ## Rollbar
 - Status: [Success / Skipped / Failed — reason]
-- Report: .rollbar-reader-tmp/report.md
+- Report: references/rollbar-report.md
 ```
 
 ## 3d: Generate SKILL.md
@@ -55,7 +70,7 @@ Create `$SKILL_DIR/SKILL.md` using the **Write** tool. The content must include:
 
 1. **Frontmatter** with `name: pir-{slug}-report-{rand}`, `allowed-tools: Read, Bash, Write`, `context: fork`, `model: opus`
 2. **Arguments section** passing through `$ARGUMENTS[1]` (repos list) and the investigation query
-3. **Discovery report paths** — instruct the agent to read each report file from CWD-relative tmp folders
+3. **Discovery report paths** — instruct the agent to read each report file from `${CLAUDE_SKILL_DIR}/references/`
 4. **Codebase analysis instructions** — conditional on repos list being provided. Include the full instructions from the old step 3 (git log/show on origin/main, correlate with issue timestamps, save to `.codebase-analysis-tmp/report.md`)
 5. **Severity auto-classification table** — copied from the main SKILL.md
 6. **PIR synthesis instructions** — how to correlate findings across sources, deduplicate issues, and fill each PIR field (What, Who, Culprit, When, etc.)
@@ -76,18 +91,18 @@ model: sonnet
 
 ## Discovery Reports
 
-Read these reports from the current working directory. Each contains findings from a discovery source:
+Read these reports from the skill directory (`${CLAUDE_SKILL_DIR}`). Each contains findings from a discovery source:
 
-- **PagerDuty**: `.pagerduty-oncall-tmp/report.md` [if status was Success]
-- **Datadog**: `.datadog-analyser-tmp/report.md` [if status was Success]
-- **Cloudflare**: `.cloudflare-traffic-investigator-tmp/report.md` [if status was Success]
-- **Rollbar**: `.rollbar-reader-tmp/report.md` [if status was Success]
+- **PagerDuty**: `${CLAUDE_SKILL_DIR}/references/pagerduty-report.md` [if status was Success]
+- **Datadog**: `${CLAUDE_SKILL_DIR}/references/datadog-report.md` [if status was Success]
+- **Cloudflare**: `${CLAUDE_SKILL_DIR}/references/cloudflare-report.md` [if status was Success]
+- **Rollbar**: `${CLAUDE_SKILL_DIR}/references/rollbar-report.md` [if status was Success]
 
-Read ALL available reports before proceeding.
+Read ALL available reports before proceeding. Check `${CLAUDE_SKILL_DIR}/discovery-sources.md` to see which sources succeeded.
 
 ## PIR Form Reference
 
-Read `$SKILL_DIR/pir-form-fields.md` for the output template and field definitions.
+Read `${CLAUDE_SKILL_DIR}/pir-form-fields.md` for the output template and field definitions.
 
 ## Phase 1: Codebase Analysis (conditional)
 
