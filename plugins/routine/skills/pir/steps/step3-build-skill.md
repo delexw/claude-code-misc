@@ -114,6 +114,12 @@ Repos to investigate: {repos_list}
 
 IMPORTANT: Do NOT checkout main. Use `git log origin/main` and `git show origin/main:<file>` only.
 
+IMPORTANT: Codebase analysis must produce a **definitive** conclusion — either:
+- **"Culprit found: [description] — [evidence]"** when you find the root cause by investigating the codebase on main. OR
+- **"No culprit identified from codebase analysis"** when you cannot confirm a causal link.
+
+NEVER use hedging language like "may have introduced", "could be related", "possibly caused", or "might be the cause". If you are not confident enough to state it as fact, classify it as "No culprit identified".
+
 ## Phase 2: Synthesise PIR for Each Issue
 
 [Include full synthesis instructions: correlate across sources, deduplicate, fill all PIR fields]

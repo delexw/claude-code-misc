@@ -23,7 +23,7 @@
 
 ### Culprit
 - **Help text**: Root cause or source of the incident. What triggered it.
-- **Format**: Multi-line text
+- **Format**: Multi-line text. Must be a **definitive statement** — either a confirmed root cause or "Root cause not identified". Never use hedging language ("may have", "could be", "possibly", "might").
 - **Example**: "Aggressive bot crawler (JA4 fingerprint: t13d1516h2_8daaf6152771_02713d6af862) sending ~4,000 req/s to /search endpoints, overwhelming the RSS feed service and triggering cascading failures."
 
 ### When
