@@ -27,7 +27,13 @@ Connects to a running Chrome browser session via Chrome DevTools MCP, navigates 
 
 - List available pages via `list_pages`
 - Navigate to `$ARGUMENTS[0]` or select it if already open
-- Wait for the page to fully load
+- **Clear the page cache and hard-refresh** before inspecting:
+  ```js
+  // Run via evaluate_script to clear page cache and hard-refresh
+  caches.keys().then(names => names.forEach(name => caches.delete(name)));
+  location.reload(true);
+  ```
+- Wait for the page to fully reload
 
 ### 2. Capture Desktop Screenshot
 

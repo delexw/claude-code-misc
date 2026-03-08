@@ -29,6 +29,18 @@ screenshots, and inspects CSS properties to catch responsive layout bugs.
 2. Target page accessible (dev server running, or staging/production URL)
 3. If the page requires authentication, attempt to find credentials from environment variables. If none are found or authentication fails, skip the test
 
+## Before You Start
+
+After connecting to the browser and navigating to the target URL, **always hard-refresh the page and clear the cache** before any testing:
+
+```js
+// Run via evaluate_script to clear page cache and hard-refresh
+caches.keys().then(names => names.forEach(name => caches.delete(name)));
+location.reload(true);
+```
+
+Then wait for the page to fully reload before proceeding.
+
 ## Workflow
 
 Follow these steps in order. Read each step file for detailed instructions.
