@@ -4,11 +4,18 @@ Create a dynamic skill that will perform codebase analysis (conditional), synthe
 
 ## 3a: Create Skill Directory
 
-Generate a short slug from the investigation query (e.g. `incidents-last-24h`, `errors-2026-03-01`), then append a short random string (4-6 alphanumeric chars) to ensure uniqueness (e.g. `incidents-last-24h-a3f2`).
+Generate a short slug from the investigation query (e.g. `incidents-last-24h`, `errors-2026-03-01`), then generate a random suffix to ensure uniqueness.
 
+You MUST run these exact commands to generate the random suffix — do NOT hardcode or reuse a previous value:
+
+```bash
+SLUG="<your-slug-here>"  # e.g. "incidents-last-24h"
+RAND=$(LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom | head -c 6)
+SKILL_DIR=~/.claude/skills/pir-${SLUG}-report-${RAND}
+echo "SKILL_DIR=$SKILL_DIR"
 ```
-SKILL_DIR=~/.claude/skills/pir-{slug}-report-{rand}
-```
+
+Verify the output shows a unique directory name before proceeding.
 
 Create the directory:
 ```bash
