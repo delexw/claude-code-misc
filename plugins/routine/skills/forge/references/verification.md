@@ -10,7 +10,7 @@ If `$ARGUMENTS[1]` is provided, use it to infer the dev environment setup (it ma
 
 ### Loop until all issues are resolved:
 
-1. **Code Review** — Invoke `Skill("codex-review", "review the uncommitted changes")` to review all changed files.
+1. **Code Review** — Invoke `Skill("codex-review", "review the uncommitted changes against main branch")` to review all changed files.
    - **If critical or important issues found** — fix them and re-run the code review (loop back to step 1).
    - **If only minor or no issues** — proceed to step 2.
 
