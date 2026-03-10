@@ -68,8 +68,3 @@ Execute all steps A through E:
   1. Run `mkdir -p $ARGUMENTS[1]` via Bash
   2. Use the **Write** tool to save <OPTIMIZED_PROMPT> to `$ARGUMENTS[1]/output.md`
 - Return <OPTIMIZED_PROMPT> to the caller for execution
-
-<tags>
-   <mode>think hard</mode>
-   <custom>yes</custom>
-</tags>

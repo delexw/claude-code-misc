@@ -38,8 +38,3 @@ Analyze the provided codebase and create or update a `{DOMAIN}.md` file containi
 
 Follow [references/rules.md](references/rules.md) for content requirements, guidelines, and safety rules.
 Use [references/output-format.md](references/output-format.md) for the output template and validation criteria.
-
-<tags>
-   <mode>standard</mode>
-   <custom>yes</custom>
-</tags>

@@ -30,8 +30,3 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
 5. **Read design**: Use the Figma MCP tools to read the design from the Figma link resolved in step 4
    - Format the output per [references/output-format.md](references/output-format.md)
    - **Save output**: Run `mkdir -p $ARGUMENTS[1]` via Bash, then save the full formatted output to `$ARGUMENTS[1]/output.md` using the Write tool
-
-<tags>
-   <mode>think</mode>
-   <custom>yes</custom>
-</tags>

@@ -32,8 +32,3 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
    - Run `node ./scripts/download-attachment.js --out $ARGUMENTS[1] < $ARGUMENTS[1]/raw.json` via Bash
    - Include downloaded attachment file paths in the output
 7. Return the parsed JSON output (see [references/output-format.md](references/output-format.md) for schema reference), including attachment download paths if any
-
-<tags>
-   <mode>think</mode>
-   <custom>yes</custom>
-</tags>

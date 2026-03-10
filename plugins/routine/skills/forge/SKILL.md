@@ -56,8 +56,3 @@ The following skills are invoked during orchestration:
 ## Execution
 
 Follow [references/phases.md](references/phases.md) for step-by-step phase instructions.
-
-<tags>
-   <mode>think</mode>
-   <custom>yes</custom>
-</tags>

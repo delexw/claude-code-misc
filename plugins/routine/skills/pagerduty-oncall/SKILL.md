@@ -143,8 +143,3 @@ Read all saved JSON files from `.pagerduty-oncall-tmp/` using the Read tool. Pro
 5. **Recommendations** — Actionable suggestions based on the analysis
 
 After writing the report, inform the user of the report location: `.pagerduty-oncall-tmp/report.md`
-
-<tags>
-   <mode>think</mode>
-   <custom>yes</custom>
-</tags>

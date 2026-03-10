@@ -28,8 +28,3 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
 3. Run `npx confluence-cli read $ARGUMENTS[0]` via Bash
 4. Format the output per [references/output-format.md](references/output-format.md)
 5. **Save output**: Run `mkdir -p $ARGUMENTS[1]` via Bash, then save the full formatted output to `$ARGUMENTS[1]/output.md` using the Write tool. This ensures the complete output is persisted for the orchestrator to read.
-
-<tags>
-   <mode>think</mode>
-   <custom>yes</custom>
-</tags>

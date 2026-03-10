@@ -76,8 +76,3 @@ See [step3-build-skill.md](steps/step3-build-skill.md)
 ### Step 4: Run Dynamic Skill
 See [step4-run-skill.md](steps/step4-run-skill.md)
 — Invokes the dynamic skill. After completion, deletes the dynamic skill directory.
-
-<tags>
-   <mode>think</mode>
-   <custom>yes</custom>
-</tags>

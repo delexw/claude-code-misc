@@ -71,8 +71,3 @@ Analyze a set of JIRA tickets to determine optimal execution order based on depe
 | [references/priority-weights.md](references/priority-weights.md) | Step 5 — scoring rules and factor weights |
 | [references/output-format.md](references/output-format.md) | Step 6 — report template and JSON schema |
 | [references/dependency-analysis.md](references/dependency-analysis.md) | Steps 3-4 — dependency detection rules |
-
-<tags>
-   <mode>think</mode>
-   <custom>yes</custom>
-</tags>

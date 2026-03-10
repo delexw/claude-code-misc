@@ -83,8 +83,3 @@ Write a structured analysis to `.datadog-analyser-tmp/report.md` using the Write
 4. **Recommendations** — Suggested follow-up actions
 
 Inform the user of the report location: `.datadog-analyser-tmp/report.md`
-
-<tags>
-  <mode>think</mode>
-  <custom>yes</custom>
-</tags>

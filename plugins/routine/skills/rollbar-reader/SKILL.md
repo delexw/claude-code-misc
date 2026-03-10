@@ -215,8 +215,3 @@ Inform the user of the report location: `<OUT_DIR>/report.md`
 | Name | When to Read |
 |------|-------------|
 | [references/setup-guide.md](references/setup-guide.md) | Installation and configuration guide |
-
-<tags>
-  <mode>think</mode>
-  <custom>yes</custom>
-</tags>
