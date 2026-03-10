@@ -6,12 +6,12 @@ Use the `nlm-skill` to create a NotebookLM notebook from the discovery reports, 
 
 Run `/skills` to check if `nlm-skill` is installed. If it is NOT listed, **stop and inform the user**: "The `nlm-skill` is required for PIR report generation but is not installed. Please install it first."
 
-## 3b: Conditional Codebase Analysis
+## 3b: Codebase Analysis
 
-If `$ARGUMENTS[1]` (repos list) was provided, perform codebase analysis before generating:
+Perform codebase analysis in all current working directories (any additional directories added via `--add-dir`):
 
-For each repo in the comma-separated list:
-1. `cd` into the repo directory
+For each working directory:
+1. `cd` into the directory
 2. Run `git fetch origin` to get latest refs
 3. Run `git log origin/main --oneline --since="<incident_start>" --until="<incident_end>"` to find relevant commits
 4. For suspicious commits, run `git show origin/main:<file>` to examine changes

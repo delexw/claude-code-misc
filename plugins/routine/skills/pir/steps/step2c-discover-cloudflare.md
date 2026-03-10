@@ -2,10 +2,10 @@
 
 This step runs concurrently with PagerDuty, Datadog, and Rollbar discovery.
 
-**If `$ARGUMENTS[2]` is provided** (format: `domain:zone_id`):
-> Use the Skill tool to invoke "cloudflare-traffic-investigator" with args "DOMAIN ZONE_ID $ARGUMENTS[0]" (split domain/zone from $ARGUMENTS[2] on `:`). Then read and return the report contents from .cloudflare-traffic-investigator-tmp/report.md
+**If `$ARGUMENTS[1]` is provided** (format: `domain:zone_id`):
+> Use the Skill tool to invoke "cloudflare-traffic-investigator" with args "DOMAIN ZONE_ID $ARGUMENTS[0]" (split domain/zone from $ARGUMENTS[1] on `:`). Then read and return the report contents from .cloudflare-traffic-investigator-tmp/report.md
 
-**If `$ARGUMENTS[2]` is not provided**:
+**If `$ARGUMENTS[1]` is not provided**:
 > Use the Skill tool to invoke "cloudflare-traffic-investigator" with args "" "" "$ARGUMENTS[0]" (pass empty strings for domain/zone so the skill asks the user). Then read and return the report contents from .cloudflare-traffic-investigator-tmp/report.md
 
 **Extract from report** (`.cloudflare-traffic-investigator-tmp/report.md`):

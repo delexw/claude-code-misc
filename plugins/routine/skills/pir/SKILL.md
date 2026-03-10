@@ -3,7 +3,7 @@ name: pir
 description: Create Post Incident Records (PIRs) by discovering issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently. Orchestrates pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator, and rollbar-reader skills, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
-argument-hint: "what to investigate (e.g. 'incidents last 24h', 'errors yesterday', 'outage last 1h') [repos-list] [domain:zone-id]"
+argument-hint: "what to investigate (e.g. 'incidents last 24h', 'errors yesterday', 'outage last 1h') [domain:zone-id]"
 allowed-tools: Read, Bash, Write, Edit
 ---
 
@@ -13,8 +13,7 @@ Discover issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently, a
 
 ## Arguments
 - `$ARGUMENTS[0]` — What to investigate (e.g. `"incidents last 24h"`, `"errors yesterday"`, `"outage last 1h"`, `"incidents 2026-03-01 to 2026-03-05"`). Passed directly to each sub-skill. Defaults to `"incidents today"`.
-- `$ARGUMENTS[1]` — (optional) Comma-separated local repo paths for codebase root cause analysis (e.g. `~/repos/frontend,~/repos/backend`).
-- `$ARGUMENTS[2]` — (optional) Cloudflare domain and zone ID in `domain:zone_id` format (e.g. `example.com:abc123def456`). Passed to the `cloudflare-traffic-investigator` skill. If not provided, the cloudflare skill will ask the user.
+- `$ARGUMENTS[1]` — (optional) Cloudflare domain and zone ID in `domain:zone_id` format (e.g. `example.com:abc123def456`). Passed to the `cloudflare-traffic-investigator` skill. If not provided, the cloudflare skill will ask the user.
 
 ## PIR Form Fields
 
@@ -63,7 +62,7 @@ See [step2b-discover-datadog.md](steps/step2b-discover-datadog.md)
 
 #### 2c. Cloudflare — Traffic Analysis
 See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
-— Invokes `Skill("cloudflare-traffic-investigator")`. Passes domain and zone ID from `$ARGUMENTS[2]` if provided.
+— Invokes `Skill("cloudflare-traffic-investigator")`. Passes domain and zone ID from `$ARGUMENTS[1]` if provided.
 
 #### 2d. Rollbar — Error Tracking
 See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
@@ -71,7 +70,7 @@ See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
 
 ### Step 3: Generate PIR via NotebookLM
 See [step3-generate-nlm.md](steps/step3-generate-nlm.md)
-— Checks that `nlm-skill` is installed. Creates a NotebookLM notebook, uploads all discovery reports as sources, performs conditional codebase analysis (if repos provided), then generates a report (with timeline/diagrams), an infographic, and a slide deck via NotebookLM.
+— Checks that `nlm-skill` is installed. Creates a NotebookLM notebook, uploads all discovery reports as sources, performs codebase analysis in all working directories, then generates a report (with timeline/diagrams), an infographic, and a slide deck via NotebookLM.
 
 ### Step 4: Present Results and Clean Up
 See [step4-present-results.md](steps/step4-present-results.md)
