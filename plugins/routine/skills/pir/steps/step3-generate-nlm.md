@@ -1,6 +1,6 @@
 # Step 3: Generate PIR via NotebookLM
 
-Use the `nlm-skill` to create a NotebookLM notebook from the discovery reports, then generate a report, infographic, and flashcards.
+Use the `nlm-skill` to create a NotebookLM notebook from the discovery reports, then generate a report, infographic, and slide deck.
 
 ## 3a: Check nlm-skill Availability
 
@@ -64,5 +64,5 @@ Invoke `Skill("nlm-skill")` with the following instructions:
 
 5. **Generate a report** using the "Create Your Own" format with a custom prompt requesting a structured PIR with incident timeline, severity classification, and evidence sources
 6. **Generate an infographic** (landscape, detailed, professional style)
-7. **Generate flashcards** to capture key incident facts (root cause, timeline, affected services, remediation steps) for team learning and review
+7. **Generate a slide deck** summarizing the incident (timeline, root cause, affected services, severity, remediation steps) for team review and presentation
 8. **Return the notebook ID** so Step 4 can reference it

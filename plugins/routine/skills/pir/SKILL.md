@@ -71,7 +71,7 @@ See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
 
 ### Step 3: Generate PIR via NotebookLM
 See [step3-generate-nlm.md](steps/step3-generate-nlm.md)
-— Checks that `nlm-skill` is installed. Creates a NotebookLM notebook, uploads all discovery reports as sources, performs conditional codebase analysis (if repos provided), then generates a report (with timeline/diagrams), an infographic, and flashcards via NotebookLM.
+— Checks that `nlm-skill` is installed. Creates a NotebookLM notebook, uploads all discovery reports as sources, performs conditional codebase analysis (if repos provided), then generates a report (with timeline/diagrams), an infographic, and a slide deck via NotebookLM.
 
 ### Step 4: Present Results and Clean Up
 See [step4-present-results.md](steps/step4-present-results.md)
