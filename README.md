@@ -33,7 +33,7 @@ A Claude Code plugin with skills for implementation, incident response, QA testi
 **Skills**:
 - **Implementation**: forge (spec-driven — agent explores codebase, generates spec, executes in clean context with user's installed skills), jira-ticket-viewer, jira-ticket-prioritizer, confluence-page-viewer, figma-reader, domain-discover, meta-prompter
 - **QA / Testing**: qa-web-test, page-inspector
-- **Incident Response**: pir (orchestrates discovery + NotebookLM report/infographic via nlm-skill), pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator, rollbar-reader
+- **Incident Response**: pir (orchestrates discovery + NotebookLM report/infographic/flashcards via nlm-skill), pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator, rollbar-reader
 - **Development Tools**: oxlint, adr-author, a2a-js-dev
 
 See [plugin README](plugins/routine/README.md) for setup and usage.
