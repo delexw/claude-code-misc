@@ -65,7 +65,7 @@ claude --plugin-dir ./path/to/plugins/routine
 
 | Skill | Description |
 |---|---|
-| `forge` | Orchestrates JIRA ticket implementation via dynamic skill generation. See [forge README](skills/forge/README.md). |
+| `forge` | Spec-driven JIRA ticket implementation — the agent explores the codebase to generate the spec itself, then executes in a clean context using the user's installed skills. See [forge README](skills/forge/README.md). |
 | `jira-ticket-viewer` | Fetches and parses JIRA tickets via `--raw` JSON |
 | `jira-ticket-prioritizer` | Analyzes JIRA tickets to determine priority and dependency order |
 | `confluence-page-viewer` | Reads Confluence pages |

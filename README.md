@@ -31,7 +31,7 @@ See [meta-prompter README](.claude/mcp/meta-prompter/README.md) for setup and us
 A Claude Code plugin with skills for implementation, incident response, QA testing, and development tooling.
 
 **Skills**:
-- **Implementation**: forge, jira-ticket-viewer, jira-ticket-prioritizer, confluence-page-viewer, figma-reader, domain-discover, meta-prompter
+- **Implementation**: forge (spec-driven — agent explores codebase, generates spec, executes in clean context with user's installed skills), jira-ticket-viewer, jira-ticket-prioritizer, confluence-page-viewer, figma-reader, domain-discover, meta-prompter
 - **QA / Testing**: qa-web-test, page-inspector
 - **Incident Response**: pir, pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator
 - **Development Tools**: oxlint, adr-author, a2a-js-dev
