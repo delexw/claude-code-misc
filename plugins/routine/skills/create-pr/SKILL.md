@@ -22,7 +22,20 @@ gh auth status
 
 If any check fails, report the specific error and stop.
 
-### 2. Gather change context
+### 2. Check for existing PRs
+
+Before creating a new PR, check if one already exists for this branch:
+
+```bash
+gh pr list --head "$(git branch --show-current)" --state all --json number,title,state,url
+```
+
+- **If an open PR exists**: report the existing PR URL and stop — do not create a duplicate.
+- **If a merged PR exists**: proceed to create a new PR (the user has new changes to submit).
+- **If a closed (not merged) PR exists**: proceed to create a new PR.
+- **If no PR exists**: proceed normally.
+
+### 3. Gather change context
 
 ```bash
 git log --oneline main..HEAD   # or master..HEAD
@@ -32,7 +45,7 @@ git diff main..HEAD
 
 Identify the base branch automatically — try `main`, then `master`, then the default branch from `gh repo view --json defaultBranchRef`.
 
-### 3. Categorize changes
+### 4. Categorize changes
 
 Group the diff into:
 - **Features**: new functionality
@@ -42,13 +55,13 @@ Group the diff into:
 
 Note modified files, functions/classes affected, and import changes.
 
-### 4. Generate PR content
+### 5. Generate PR content
 
 Look for `.github/PULL_REQUEST_TEMPLATE.md` in the project root. If found, use it as the PR body template and fill in every section with actual content from the diff analysis. If no template exists, write a clear description covering what changed and why.
 
 **PR title format**: `[TICKET-ID]: brief description` (max 80 chars). The ticket ID **must** be the very first element in the title. Extract the ticket ID from the branch name or commit messages. Example: `[EC-1111]: Fix item license search query`. Do NOT place conventional prefixes (`feat:`, `fix:`, etc.) before the ticket ID.
 
-### 5. Create the PR
+### 6. Create the PR
 
 ```bash
 gh pr create --title "<title>" --body "<body>" --draft
@@ -59,7 +72,7 @@ Then open it in the browser:
 gh pr view --web
 ```
 
-### 6. Report result
+### 7. Report result
 
 Show the PR URL and a brief summary of what was included.
 
