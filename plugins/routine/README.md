@@ -84,10 +84,11 @@ claude --plugin-dir ./path/to/plugins/routine
 
 | Skill | Description |
 |---|---|
-| `pir` | Creates Post Incident Records by orchestrating pagerduty-oncall, datadog-analyser, and cloudflare-traffic-investigator |
+| `pir` | Creates Post Incident Records by orchestrating pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator, and rollbar-reader concurrently, then synthesises findings via NotebookLM (report + infographic) using `nlm-skill` |
 | `pagerduty-oncall` | Investigates PagerDuty incidents for on-call escalation policies |
 | `datadog-analyser` | Analyses Datadog observability data (metrics, logs, monitors, incidents, SLOs, APM, RUM, security signals) |
 | `cloudflare-traffic-investigator` | Investigates traffic anomalies on Cloudflare-protected domains. See [README](skills/cloudflare-traffic-investigator/README.md). |
+| `rollbar-reader` | Investigates Rollbar errors, items, occurrences, deploys, and project health |
 
 ### Development Tools
 

@@ -69,10 +69,10 @@ See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
 See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
 — Invokes `Skill("rollbar-reader")`.
 
-### Step 3: Build Dynamic Skill
-See [step3-build-skill.md](steps/step3-build-skill.md)
-— Creates a dynamic skill at `~/.claude/skills/pir-{slug}/` that contains all instructions for codebase analysis (conditional), PIR synthesis, and saving results. Discovery output files from Step 2 are referenced as lazy-loaded context.
+### Step 3: Generate PIR via NotebookLM
+See [step3-generate-nlm.md](steps/step3-generate-nlm.md)
+— Checks that `nlm-skill` is installed. Creates a NotebookLM notebook, uploads all discovery reports as sources, performs conditional codebase analysis (if repos provided), then generates a report (with timeline/diagrams) and an infographic via NotebookLM.
 
-### Step 4: Run Dynamic Skill
-See [step4-run-skill.md](steps/step4-run-skill.md)
-— Invokes the dynamic skill. After completion, deletes the dynamic skill directory.
+### Step 4: Present Results and Clean Up
+See [step4-present-results.md](steps/step4-present-results.md)
+— Displays PIR summary, provides notebook link for interactive exploration, cleans up temporary discovery folders. Preserves the NotebookLM notebook for further queries.
