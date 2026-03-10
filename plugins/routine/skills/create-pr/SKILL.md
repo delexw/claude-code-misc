@@ -46,7 +46,7 @@ Note modified files, functions/classes affected, and import changes.
 
 Look for `.github/PULL_REQUEST_TEMPLATE.md` in the project root. If found, use it as the PR body template and fill in every section with actual content from the diff analysis. If no template exists, write a clear description covering what changed and why.
 
-**PR title format**: `[TICKET-ID] brief description` (max 80 chars). Use a conventional prefix — `feat:`, `fix:`, `refactor:`, `chore:` — based on the dominant change type. If a ticket ID is available from branch name or commit messages, include it.
+**PR title format**: `[TICKET-ID]: brief description` (max 80 chars). The ticket ID **must** be the very first element in the title. Extract the ticket ID from the branch name or commit messages. Example: `[EC-1111]: Fix item license search query`. Do NOT place conventional prefixes (`feat:`, `fix:`, etc.) before the ticket ID.
 
 ### 5. Create the PR
 
