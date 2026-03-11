@@ -4,7 +4,7 @@ A Claude Code skill for investigating traffic anomalies on Cloudflare-protected 
 
 ## Overview
 
-This skill automates the investigation process when unusual traffic patterns cause service degradation. It uses Cloudflare MCP tools to analyze traffic via GraphQL analytics, identify root causes through JA4 fingerprint analysis and security scoring, and generate structured incident reports.
+This skill automates the investigation process when unusual traffic patterns cause service degradation. It uses the `cloudflare-mcp-cli` CLI tool to analyze traffic via GraphQL analytics, identify root causes through JA4 fingerprint analysis and security scoring, and generate structured incident reports.
 
 ## What This Skill Does
 
@@ -41,7 +41,7 @@ cloudflare-traffic-investigator/
 │   ├── step-07-extract-users.md
 │   └── step-08-synthesize.md             # Final report generation
 └── references/                           # Detailed reference material (loaded when needed)
-    ├── cloudflare-api-mcp.md             # Cloudflare API MCP usage patterns
+    ├── cloudflare-api-cli.md             # Cloudflare API CLI usage patterns
     ├── known-fingerprints.json           # Pre-verified legitimate JA4 fingerprints
     ├── security-scores.md                # Bot & WAF score interpretation
     ├── failure-patterns.md               # Common failure patterns & resolutions
@@ -52,8 +52,8 @@ cloudflare-traffic-investigator/
 
 ## Prerequisites
 
-- Cloudflare API token with Analytics Read permission
-- Claude Code with `cloudflare-api` MCP server configured
+- `cloudflare-mcp-cli` CLI installed (`npm install -g cloudflare-mcp-cli`)
+- Cloudflare API token configured via `cloudflare-mcp-cli config set-token <token>`
 
 ## Zone Configuration
 
@@ -63,7 +63,7 @@ Pass domain and zone ID as arguments when invoking the skill, or the skill will 
 
 - **Core workflow**: Edit `SKILL.md`
 - **Individual steps**: Edit files in `steps/`
-- **Cloudflare API usage**: Edit `references/cloudflare-api-mcp.md`
+- **Cloudflare API usage**: Edit `references/cloudflare-api-cli.md`
 - **Security scoring**: Edit `references/security-scores.md`
 - **Failure patterns**: Edit `references/failure-patterns.md`
 - **Incident template**: Edit `references/incident-report-template.md`

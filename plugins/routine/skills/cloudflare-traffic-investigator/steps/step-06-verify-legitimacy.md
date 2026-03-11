@@ -2,7 +2,7 @@
 
 Before analyzing users, determine whether the traffic is legitimate or an attack.
 
-Use `mcp__cloudflare-api__execute` with a GraphQL query for `firewallEventsAdaptiveGroups` filtered by the culprit JA4, requesting security dimensions.
+Use `cloudflare-mcp-cli execute` (via Bash) with a GraphQL query for `firewallEventsAdaptiveGroups` filtered by the culprit JA4, requesting security dimensions.
 
 ## Security dimensions to query
 

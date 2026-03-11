@@ -2,7 +2,7 @@
 
 Once the spike hour is confirmed, drill down to minute-level granularity to find the exact start time and peak.
 
-Use `mcp__cloudflare-api__execute` with a GraphQL query:
+Use `cloudflare-mcp-cli execute` (via Bash) with a GraphQL query:
 - Dataset: `httpRequests1mGroups`
 - Narrow to the 60-minute spike window
 - Identify exact start time and peak minute

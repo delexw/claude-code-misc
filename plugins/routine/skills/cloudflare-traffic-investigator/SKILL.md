@@ -1,7 +1,7 @@
 ---
 name: cloudflare-traffic-investigator
-description: Investigate traffic anomalies, spikes, and service degradation on Cloudflare-protected domains. Uses Cloudflare MCP tools for GraphQL analytics, JA4 fingerprint analysis, bot/WAF security scoring, and incident reporting. Use this skill whenever traffic spikes, service overloads, 429 errors, circuit breaker events, Cloudflare analytics, or domain performance issues are mentioned — even if the user doesn't explicitly say "traffic spike". Also triggers when asked to check Cloudflare data for any domain.
-allowed-tools: mcp__cloudflare-api__search, mcp__cloudflare-api__execute, Read, Bash, Write, Edit
+description: Investigate traffic anomalies, spikes, and service degradation on Cloudflare-protected domains. Uses cloudflare-mcp-cli for GraphQL analytics, JA4 fingerprint analysis, bot/WAF security scoring, and incident reporting. Use this skill whenever traffic spikes, service overloads, 429 errors, circuit breaker events, Cloudflare analytics, or domain performance issues are mentioned — even if the user doesn't explicitly say "traffic spike". Also triggers when asked to check Cloudflare data for any domain.
+allowed-tools: Bash(cloudflare-mcp-cli *), Bash(which cloudflare-mcp-cli*), Bash(npm install *cloudflare-mcp-cli*), Bash(date *), Bash(mkdir *), Read, Write, Edit
 argument-hint: "[domain] [zone-id] [timerange]"
 model: sonnet
 context: fork
@@ -36,13 +36,13 @@ Follow these steps in order. Each step file contains detailed instructions and e
 7. **[Extract top users](steps/step-07-extract-users.md)** — Find which users made the most requests
 8. **[Synthesize & report](steps/step-08-synthesize.md)** — Combine findings into an incident report
 
-## Cloudflare API MCP
+## Cloudflare API CLI
 
-All Cloudflare interactions use two tools:
-- `mcp__cloudflare-api__search` — Discover API endpoints by searching the OpenAPI spec
-- `mcp__cloudflare-api__execute` — Execute API calls via `cloudflare.request()` (GraphQL analytics via POST to `/graphql`, Radar via REST, zone operations via `/zones`)
+All Cloudflare interactions use the `cloudflare-mcp-cli` CLI tool (via `cloudflare-mcp-cli`):
+- `cloudflare-mcp-cli search '<async fn>'` — Discover API endpoints by searching the OpenAPI spec
+- `cloudflare-mcp-cli execute '<async fn>'` — Execute API calls via `cloudflare.request()` (GraphQL analytics via POST to `/graphql`, Radar via REST, zone operations via `/zones`)
 
-See **[Cloudflare API MCP Reference](references/cloudflare-api-mcp.md)** for query patterns and examples.
+See **[Cloudflare API CLI Reference](references/cloudflare-api-cli.md)** for query patterns and examples.
 
 ## JA4 TLS Fingerprints
 
@@ -103,7 +103,7 @@ Document findings using the **[Incident Report Template](references/incident-rep
 8. [Synthesize & report](steps/step-08-synthesize.md)
 
 ### References
-- [Cloudflare API MCP](references/cloudflare-api-mcp.md)
+- [Cloudflare API CLI](references/cloudflare-api-cli.md)
 - [Known Fingerprints](references/known-fingerprints.json)
 - [Security Scores](references/security-scores.md)
 - [Failure Patterns](references/failure-patterns.md)

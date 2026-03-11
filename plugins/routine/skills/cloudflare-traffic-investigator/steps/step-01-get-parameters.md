@@ -1,5 +1,25 @@
 # Step 1: Get Investigation Parameters
 
+## Verify Installation & Configuration
+
+Check if the `cloudflare-mcp-cli` CLI is installed:
+
+```bash
+which cloudflare-mcp-cli
+```
+
+If not found, install it automatically: `npm install -g cloudflare-mcp-cli`.
+
+Verify the token is configured and connected:
+
+```bash
+cloudflare-mcp-cli config verify-token
+```
+
+If verification fails, ask the user to configure a token via `cloudflare-mcp-cli config set-token <token>`.
+
+Do NOT continue until both installation and token verification pass.
+
 ## Detect local time
 
 Before collecting any parameters, detect and record the current local time and timezone via system clock:

@@ -1,6 +1,6 @@
 # Step 2: Confirm Traffic Spike
 
-Use `mcp__cloudflare-api__execute` to POST a GraphQL query to `/graphql` for hourly traffic.
+Use `cloudflare-mcp-cli execute` (via Bash) to POST a GraphQL query to `/graphql` for hourly traffic.
 
 Query 48 hours of data centered around the user's time window to establish a baseline for comparison. Look for sudden increases in request volume or error rates.
 

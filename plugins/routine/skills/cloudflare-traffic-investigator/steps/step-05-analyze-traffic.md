@@ -2,7 +2,7 @@
 
 Now that the culprit JA4 is identified, understand what it was doing.
 
-Use `mcp__cloudflare-api__execute` with a GraphQL query for `firewallEventsAdaptiveGroups` filtered by the culprit JA4:
+Use `cloudflare-mcp-cli execute` (via Bash) with a GraphQL query for `firewallEventsAdaptiveGroups` filtered by the culprit JA4:
 - **Path distribution** — Which endpoints did this JA4 hit?
 - **Query strings** — Extract user identifiers from query parameters
 - **User agents** — Identify the service/application

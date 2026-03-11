@@ -2,7 +2,7 @@
 
 This is the pivotal step — dynamically discover which JA4 TLS fingerprint(s) drove the spike.
 
-Use `mcp__cloudflare-api__execute` with a GraphQL query to `/graphql` for `firewallEventsAdaptiveGroups` grouped by JA4:
+Use `cloudflare-mcp-cli execute` (via Bash) with a GraphQL query to `/graphql` for `firewallEventsAdaptiveGroups` grouped by JA4:
 - Dimension: `clientJA4`
 - Time filter: the spike window (UTC)
 - Order by: `count_DESC`
