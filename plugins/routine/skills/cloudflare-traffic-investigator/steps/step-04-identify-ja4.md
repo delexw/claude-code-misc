@@ -37,7 +37,7 @@ async () => {
 
 ## Analyze results
 
-1. **Check known fingerprints first** — Read [Known Fingerprints](../references/known-fingerprints.json) and cross-reference. Pre-verified JA4s can skip the legitimacy check in Step 7.
+1. **Check known fingerprints first** — Check the `CLOUDFLARE_JA4` environment variable. Pre-verified JA4s can skip the legitimacy check in Step 6.
 2. **Identify anomalous counts** — A single JA4 with millions of requests is likely the culprit.
 3. **Note the fingerprint format** — `t13d...` = TLS 1.3, common for backend services.
 4. **Compare against baseline** if you have prior data.

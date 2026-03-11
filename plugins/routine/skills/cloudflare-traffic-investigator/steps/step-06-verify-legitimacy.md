@@ -27,7 +27,7 @@ Only ask the user about unknown User-Agents. Well-known bots and clearly interna
 
 ## Quick assessment decision tree
 
-- **Known JA4 fingerprint** (in [known-fingerprints.json](../references/known-fingerprints.json)) → Legitimate, skip remaining checks
+- **Known JA4 fingerprint** (matches `CLOUDFLARE_JA4` env var) → Legitimate, skip remaining checks
 - **Internal service**: Bot Score 1-10, WAF 65-100, Action "skip", User-Agent clearly internal → Legitimate
 - **Public bot**: Bot Score 1-30, "Verified Bot", well-known User-Agent → Legitimate
 - **User traffic**: Bot Score 30-99, WAF 65-100, Action "skip" → Legitimate

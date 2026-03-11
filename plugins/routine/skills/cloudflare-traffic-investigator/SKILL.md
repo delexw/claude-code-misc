@@ -49,7 +49,7 @@ See **[Cloudflare API CLI Reference](references/cloudflare-api-cli.md)** for que
 - Format: `REDACTED_JA4_FINGERPRINT`
 - A single fingerprint across millions of requests indicates backend service configuration, not individual users
 - Useful for identifying automated/service-to-service traffic
-- Cross-reference with [Known Fingerprints](references/known-fingerprints.json) before flagging as unknown
+- Cross-reference with the `CLOUDFLARE_JA4` environment variable before flagging as unknown
 
 ## Cloudflare Sampled Data
 
@@ -104,7 +104,6 @@ Document findings using the **[Incident Report Template](references/incident-rep
 
 ### References
 - [Cloudflare API CLI](references/cloudflare-api-cli.md)
-- [Known Fingerprints](references/known-fingerprints.json)
 - [Security Scores](references/security-scores.md)
 - [Failure Patterns](references/failure-patterns.md)
 - [Incident Report Template](references/incident-report-template.md)

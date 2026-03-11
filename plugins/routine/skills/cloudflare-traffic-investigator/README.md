@@ -42,7 +42,6 @@ cloudflare-traffic-investigator/
 │   └── step-08-synthesize.md             # Final report generation
 └── references/                           # Detailed reference material (loaded when needed)
     ├── cloudflare-api-cli.md             # Cloudflare API CLI usage patterns
-    ├── known-fingerprints.json           # Pre-verified legitimate JA4 fingerprints
     ├── security-scores.md                # Bot & WAF score interpretation
     ├── failure-patterns.md               # Common failure patterns & resolutions
     └── incident-report-template.md       # Complete incident report template
@@ -67,4 +66,3 @@ Pass domain and zone ID as arguments when invoking the skill, or the skill will 
 - **Security scoring**: Edit `references/security-scores.md`
 - **Failure patterns**: Edit `references/failure-patterns.md`
 - **Incident template**: Edit `references/incident-report-template.md`
-- **Known fingerprints**: Edit `references/known-fingerprints.json`
