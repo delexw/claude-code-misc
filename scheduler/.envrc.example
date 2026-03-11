@@ -1,0 +1,17 @@
+# PIR Analyzer
+export PIR_REPOS="path/to/repo1,path/to/repo2"
+export PIR_DOMAIN="example.com"
+export PIR_ZONE_ID="your-cloudflare-zone-id"
+
+# Get Shit Done
+export JIRA_SERVER="https://your-org.atlassian.net"
+export JIRA_ASSIGNEE="you@example.com"
+export JIRA_SPRINT_PREFIX="TEAM -"
+export GSD_REPOS="path/to/repo1,path/to/repo2"
+export GSD_CWD="$HOME/projects"
+
+# Checkpoint Learner
+export CHECKPOINT_REPOS="path/to/repo1,path/to/repo2"
+
+# Memory Synthesizer
+export MEMORY_REPOS="path/to/repo1,path/to/repo2"
