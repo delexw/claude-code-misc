@@ -90,9 +90,10 @@ for (const config of targetAgents) {
 console.log("\nStep 3: Installing scripts to ~/.claude/scheduler/...\n");
 mkdirSync(INSTALL_DIR, { recursive: true });
 
-// Copy all .mjs files from dist (includes chunks)
 for (const file of readdirSync(DIST_DIR)) {
   if (!file.endsWith(".mjs")) continue;
+  if (!testOnly && file === "test-env.mjs") continue;
+  if (testOnly && file !== "test-env.mjs") continue;
   const src = join(DIST_DIR, file);
   const dest = join(INSTALL_DIR, file);
   copyFileSync(src, dest);
