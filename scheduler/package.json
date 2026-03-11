@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "build": "tsup",
-    "install-agents": "tsx build.ts",
-    "uninstall-agents": "tsx build.ts --uninstall",
+    "install": "tsx build.ts",
+    "uninstall": "tsx build.ts --uninstall",
     "test-env": "tsx build.ts --test",
     "uninstall-test": "tsx build.ts --uninstall-test"
   },
