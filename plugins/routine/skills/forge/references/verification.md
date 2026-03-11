@@ -22,6 +22,14 @@ If `$ARGUMENTS[1]` is provided, use it to infer the dev environment setup (it ma
    Invoke `Skill("qa-web-test", "{dev_url}")`.
    - **If QA issues found** — fix them and loop back to step 1 (code review again after fixes).
 
+3. **Confidence Check** — After both code review and QA pass with no issues, verify again:
+   - Re-read ALL requirements — JIRA ticket, Figma designs, domain discovery notes, and implementation plan. Are ALL acceptance criteria actually met?
+   - Review the diff one more time — any edge cases missed, logic errors, regressions, security vulnerabilities, performance issues, improper abstractions, duplicate code, or failure to reuse existing shared code?
+   - Any issues dismissed as minor that are actually important?
+   - Are you lacking specific technical knowledge relevant to this task (e.g., framework APIs, library behavior, platform constraints)? If so, look it up before concluding.
+   - **If any issue found** — fix it and loop back to step 1.
+   - **Only exit the loop when sure** there are no remaining issues.
+
 ## Error Handling
 
 - If any phase failed, report which phase and why
