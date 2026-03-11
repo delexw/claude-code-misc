@@ -140,17 +140,17 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 */**/.env*
+!*/**/.env*.example
 */**/evaluation*.jsonl
 
 # Implement workflow temp assets
 .implement-assets/
 .claude/**/*
 
-# Scheduler runtime data
-scheduler/dist/
-scheduler/node_modules/
-scheduler/logs/
-scheduler/state/
-scheduler/.pir-tmp/
-scheduler/.envrc
-!scheduler/.envrc.example
+# Agents runtime data
+agents/dist/
+agents/node_modules/
+agents/logs/
+agents/state/
+agents/.pir-tmp/
+agents/.envrc
