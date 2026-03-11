@@ -15,3 +15,7 @@ export CHECKPOINT_REPOS="path/to/repo1,path/to/repo2"
 
 # Memory Synthesizer
 export MEMORY_REPOS="path/to/repo1,path/to/repo2"
+
+# Notifications (ntfy.sh topic for iPhone push notifications)
+# Store in Keychain: security add-generic-password -s "scheduler-agent-ntfy-topic" -a "$USER" -w "your-topic"
+export NTFY_TOPIC=$(security find-generic-password -s "scheduler-agent-ntfy-topic" -w 2>/dev/null)

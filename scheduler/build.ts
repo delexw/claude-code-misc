@@ -32,6 +32,7 @@ const uid = execSync("id -u").toString().trim();
 const args = process.argv.slice(2);
 const uninstall = args.includes("--uninstall");
 const testOnly = args.includes("--test");
+const uninstallTest = args.includes("--uninstall-test");
 
 function run(cmd: string, label: string): void {
   console.log(`  ${label}`);
@@ -44,12 +45,16 @@ function run(cmd: string, label: string): void {
 
 // ─── Uninstall ──────────────────────────────────────────────────────────────
 
-if (uninstall) {
-  console.log("Uninstalling all scheduler agents...\n");
-  for (const config of agents) {
+if (uninstall || uninstallTest) {
+  const toRemove = uninstallTest
+    ? agents.filter((a) => a.name === "test-env")
+    : agents;
+  console.log(`Uninstalling ${uninstallTest ? "test-env" : "all"} scheduler agents...\n`);
+  for (const config of toRemove) {
     const label = plistLabel(config);
     const plistPath = join(LAUNCH_AGENTS_DIR, `${label}.plist`);
     run(`launchctl bootout gui/${uid} ${plistPath}`, `Unloading ${config.name}`);
+    run(`launchctl bootout gui/${uid}/${config.label}`, `Unloading ${config.name} (by label)`);
     if (existsSync(plistPath)) {
       unlinkSync(plistPath);
       console.log(`  Removed ${plistPath}`);

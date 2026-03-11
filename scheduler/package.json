@@ -7,7 +7,8 @@
     "build": "tsup",
     "install-agents": "tsx build.ts",
     "uninstall-agents": "tsx build.ts --uninstall",
-    "test-env": "tsx build.ts --test"
+    "test-env": "tsx build.ts --test",
+    "uninstall-test": "tsx build.ts --uninstall-test"
   },
   "devDependencies": {
     "@types/node": "^25.4.0",
