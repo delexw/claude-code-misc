@@ -146,8 +146,8 @@ ${filePathMapping}
     { cwd: SCRIPT_DIR, taskName: "memory-synthesizer", timeoutMs: 30 * 60 * 1000 },
   );
 
-  const { costUsd, result: claudeResult } = parseClaudeOutput(claudeOutput);
-  log(`Claude CLI exited with code: ${exitCode} (cost: ${formatCost(costUsd)})`);
+  const { costUsd, result: claudeResult, sessionId } = parseClaudeOutput(claudeOutput);
+  log(`Claude CLI exited with code: ${exitCode} (session: ${sessionId}, cost: ${formatCost(costUsd)})`);
   if (claudeResult) log(`--- Response ---\n${claudeResult}`);
 
   try {
@@ -157,7 +157,7 @@ ${filePathMapping}
     log(`WARN: Failed to clean up skill directory: ${(err as Error).message}`);
   }
 
-  log(`=== Memory Synthesizer finished (cost=${formatCost(costUsd)}) ===`);
+  log(`=== Memory Synthesizer finished (session: ${sessionId}, cost=${formatCost(costUsd)}) ===`);
   cleanupOldLogs(LOG_DIR, ["memory-synthesizer-"], 30);
 }
 

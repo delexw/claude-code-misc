@@ -49,11 +49,11 @@ async function main() {
     { cwd: SCRIPT_DIR, taskName: "pir-analyzer", timeoutMs: 60 * 60 * 1000 },
   );
 
-  const { costUsd, result } = parseClaudeOutput(claudeOutput);
-  log(`Claude CLI exited with code: ${exitCode} (cost: ${formatCost(costUsd)})`);
+  const { costUsd, result, sessionId } = parseClaudeOutput(claudeOutput);
+  log(`Claude CLI exited with code: ${exitCode} (session: ${sessionId}, cost: ${formatCost(costUsd)})`);
   log("--- Response ---");
   log(result);
-  log(`=== PIR Analyzer finished (cost: ${formatCost(costUsd)}) ===`);
+  log(`=== PIR Analyzer finished (session: ${sessionId}, cost: ${formatCost(costUsd)}) ===`);
 
   cleanupOldLogs(LOG_DIR, ["pir-analyzer-"], 30);
 }

@@ -57,8 +57,8 @@ async function main() {
     { cwd: SCRIPT_DIR, taskName: "test-env", timeoutMs: 60_000 },
   );
 
-  const { costUsd, result } = parseClaudeOutput(stdout);
-  log(`Claude CLI exit=${code} cost=${formatCost(costUsd)}`);
+  const { costUsd, result, sessionId } = parseClaudeOutput(stdout);
+  log(`Claude CLI exit=${code} session=${sessionId} cost=${formatCost(costUsd)}`);
   log(`Response: ${result}`);
   log("");
   log("If you received an ntfy notification, the SessionEnd hook works.");

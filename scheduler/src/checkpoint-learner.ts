@@ -238,8 +238,8 @@ Ensure the memory directory exists: mkdir -p ${memoryDir}
       { cwd: SCRIPT_DIR, taskName: "checkpoint-learner", timeoutMs: 30 * 60 * 1000 },
     );
 
-    const { costUsd, result: claudeResult } = parseClaudeOutput(claudeOutput);
-    log(`Claude CLI exited with code: ${exitCode} (cost: ${formatCost(costUsd)})`);
+    const { costUsd, result: claudeResult, sessionId } = parseClaudeOutput(claudeOutput);
+    log(`Claude CLI exited with code: ${exitCode} (session: ${sessionId}, cost: ${formatCost(costUsd)})`);
     if (claudeResult) log(`--- Response ---\n${claudeResult}`);
 
     totalCost += costUsd ?? 0;
