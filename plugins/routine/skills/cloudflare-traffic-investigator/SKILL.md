@@ -46,7 +46,7 @@ See **[Cloudflare API CLI Reference](references/cloudflare-api-cli.md)** for que
 
 ## JA4 TLS Fingerprints
 
-- Format: `REDACTED_JA4_FINGERPRINT`
+- Format: `t13dNNNNNN_XXXXXXXXXXXX_YYYYYYYYYYYY`
 - A single fingerprint across millions of requests indicates backend service configuration, not individual users
 - Useful for identifying automated/service-to-service traffic
 - Cross-reference with the `CLOUDFLARE_JA4` environment variable before flagging as unknown
