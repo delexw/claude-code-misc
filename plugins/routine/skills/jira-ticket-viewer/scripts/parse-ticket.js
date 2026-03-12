@@ -175,6 +175,15 @@ function extractStandardFields(data) {
     };
   }
 
+  if (f.subtasks && f.subtasks.length > 0) {
+    result.subtasks = f.subtasks.map((st) => ({
+      key: st.key,
+      summary: st.fields?.summary || null,
+      status: st.fields?.status?.name || null,
+      type: st.fields?.issuetype?.name || null,
+    }));
+  }
+
   const sprints = f.customfield_10020;
   if (sprints && sprints.length > 0) {
     const sprint = sprints[sprints.length - 1];

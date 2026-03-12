@@ -42,6 +42,9 @@
   "attachments": [
     { "filename": "screen.png", "mimeType": "image/png", "size": "1.5 MB" }
   ],
+  "subtasks": [
+    { "key": "PROJ-124", "summary": "Child task summary", "status": "To Do", "type": "Sub-task" }
+  ],
   "linkedIssues": [
     { "relationship": "blocks", "key": "PROJ-456", "summary": "Linked issue summary", "status": "Open" }
   ],
@@ -64,6 +67,7 @@
 - `created`, `updated` — ISO date strings truncated to date portion
 - `dueDate` — due date string or null
 - `labels`, `components` — arrays of strings (empty array if none)
+- `subtasks` — array of `{ key, summary, status, type }` objects, or absent if no children
 
 ### Description
 - ADF (Atlassian Document Format) `fields.description` converted to markdown text
