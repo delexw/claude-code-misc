@@ -32,6 +32,8 @@ If the user doesn't specify, check `git diff --cached --stat` first. If there ar
 codex review "<prompt>"
 ```
 
+**IMPORTANT:** Use a **10-minute timeout** (600000ms) for the Bash command — codex streams from the OpenAI API and large diffs can take several minutes to complete. The default 2-minute timeout will cause the stream to disconnect mid-review.
+
 The prompt should describe what to focus on. If the user provided `$ARGUMENTS`, use that as the prompt. Otherwise use a sensible default like `"review the changes for bugs, style issues, and potential improvements"`.
 
 If the command fails due to environment issues (missing API key, network error, etc.), try these in order:
