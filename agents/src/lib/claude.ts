@@ -62,26 +62,3 @@ export function spawnClaude(
   });
 }
 
-interface ParsedClaudeResult {
-  costUsd: number | null;
-  result: string;
-  sessionId: string;
-}
-
-export function parseClaudeOutput(output: string): ParsedClaudeResult {
-  try {
-    const parsed = JSON.parse(output);
-    const last = parsed[parsed.length - 1];
-    return {
-      costUsd: last?.total_cost_usd ?? null,
-      result: last?.result ?? output,
-      sessionId: parsed[0]?.session_id ?? "unknown",
-    };
-  } catch {
-    return { costUsd: null, result: output, sessionId: "unknown" };
-  }
-}
-
-export function formatCost(costUsd: number | null): string {
-  return costUsd != null ? `$${costUsd.toFixed(4)}` : "n/a";
-}

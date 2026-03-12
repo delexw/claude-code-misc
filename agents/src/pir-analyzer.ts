@@ -8,7 +8,7 @@ import { basename, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLogger, makeTimestamp, cleanupOldLogs } from "./lib/logger.js";
 import { exec } from "./lib/exec.js";
-import { spawnClaude, parseClaudeOutput, formatCost } from "./lib/claude.js";
+import { spawnClaude } from "./lib/claude.js";
 import { parseRepos } from "./lib/repos.js";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
@@ -42,18 +42,16 @@ async function main() {
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
     [
       "--permission-mode", "acceptEdits",
-      "--output-format", "json",
       "--add-dir", ...REPOS,
       "-p", prompt,
     ],
-    { cwd: SCRIPT_DIR, taskName: "pir-analyzer", timeoutMs: 60 * 60 * 1000 },
+    { cwd: SCRIPT_DIR, taskName: "pir-analyzer", timeoutMs: 24 * 60 * 60 * 1000 },
   );
 
-  const { costUsd, result, sessionId } = parseClaudeOutput(claudeOutput);
-  log(`Claude CLI exited with code: ${exitCode} (session: ${sessionId}, cost: ${formatCost(costUsd)})`);
+  log(`Claude CLI exited with code: ${exitCode}`);
   log("--- Response ---");
-  log(result);
-  log(`=== PIR Analyzer finished (session: ${sessionId}, cost: ${formatCost(costUsd)}) ===`);
+  log(claudeOutput);
+  log("=== PIR Analyzer finished ===");
 
   cleanupOldLogs(LOG_DIR, ["pir-analyzer-"], 30);
 }

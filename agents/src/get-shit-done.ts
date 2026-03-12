@@ -14,7 +14,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLogger, makeTimestamp, cleanupOldLogs } from "./lib/logger.js";
 import { exec } from "./lib/exec.js";
-import { spawnClaude, parseClaudeOutput, formatCost } from "./lib/claude.js";
+import { spawnClaude } from "./lib/claude.js";
 import { parseRepos, discoverRepos } from "./lib/repos.js";
 import { acquireLock } from "./lib/lock.js";
 
@@ -87,7 +87,7 @@ function markProcessed(ticketKey: string): void {
 async function processTicket(
   ticketKey: string,
   repos: string[],
-): Promise<{ status: string; cost: number }> {
+): Promise<{ status: string }> {
   const ticketUrl = `${JIRA_SERVER}/browse/${ticketKey}`;
   const repoList = repos.join("\n");
   const taskLog = join(LOG_DIR, `task-${ticketKey}-${TIMESTAMP}.log`);
@@ -112,27 +112,25 @@ Track progress with a TODO list. Run each step as a Task subagent:
       "--model", "sonnet",
       "--permission-mode", "acceptEdits",
       "--add-dir", ...repos,
-      "--output-format", "json",
       "-p", prompt,
     ],
-    { cwd: CLAUDE_CWD, taskName: `get-shit-done: ${ticketKey}`, timeoutMs: 2 * 60 * 60 * 1000 },
+    { cwd: CLAUDE_CWD, taskName: `get-shit-done: ${ticketKey}`, timeoutMs: 24 * 60 * 60 * 1000 },
   );
 
+  writeFileSync(taskLog, stdout);
+
   if (code === 0) {
-    const { costUsd, sessionId } = parseClaudeOutput(stdout);
-    const costStr = formatCost(costUsd);
-    writeFileSync(taskLog, sessionId + "\n");
-    log(`SUCCESS: ${ticketKey} (session: ${sessionId}, cost: ${costStr})`);
+    log(`SUCCESS: ${ticketKey}`);
 
     const { ok: moved } = await exec(JIRA_CLI, ["issue", "move", ticketKey, "In Progress"]);
     if (!moved) log(`WARN: Could not move ${ticketKey} to In Progress`);
 
     markProcessed(ticketKey);
-    return { status: "success", cost: costUsd ?? 0 };
+    return { status: "success" };
   }
 
   log(`FAILED: ${ticketKey} (exit code: ${code}). See: ${taskLog}`);
-  return { status: "failed", cost: 0 };
+  return { status: "failed" };
 }
 
 // ─── Prioritize tickets ─────────────────────────────────────────────────────
@@ -149,7 +147,7 @@ Return json ONLY without code fence`;
 
   const { code, stdout } = await spawnClaude(
     ["--model", "sonnet", "--permission-mode", "acceptEdits", "-p", prompt],
-    { cwd: SCRIPT_DIR, taskName: `get-shit-done: prioritizing ${tickets.length} tickets`, timeoutMs: 30 * 60 * 1000, stderrToLog: logFile },
+    { cwd: SCRIPT_DIR, taskName: `get-shit-done: prioritizing ${tickets.length} tickets`, timeoutMs: 5 * 60 * 60 * 1000, stderrToLog: logFile },
   );
 
   if (code === 0) {
@@ -184,8 +182,6 @@ async function main() {
   let skipped = 0;
   let succeeded = 0;
   let failed = 0;
-  let totalCost = 0;
-
   const pending: string[] = [];
   for (const ticket of tickets) {
     if (processed.has(ticket)) {
@@ -229,7 +225,6 @@ async function main() {
       for (const r of results) {
         if (r.status === "fulfilled" && r.value.status === "success") {
           succeeded++;
-          totalCost += r.value.cost;
         } else {
           failed++;
         }
@@ -237,7 +232,7 @@ async function main() {
     }
   }
 
-  log(`=== Summary: processed=${succeeded} skipped=${skipped} failed=${failed} cost=$${totalCost.toFixed(4)} ===`);
+  log(`=== Summary: processed=${succeeded} skipped=${skipped} failed=${failed} ===`);
   cleanupOldLogs(LOG_DIR, ["get-shit-done-", "task-"], 7);
 }
 

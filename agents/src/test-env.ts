@@ -6,7 +6,7 @@
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLogger, makeTimestamp } from "./lib/logger.js";
-import { spawnClaude, parseClaudeOutput, formatCost } from "./lib/claude.js";
+import { spawnClaude } from "./lib/claude.js";
 
 const HOME = process.env.HOME!;
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -57,9 +57,8 @@ async function main() {
     { cwd: SCRIPT_DIR, taskName: "test-env", timeoutMs: 60_000 },
   );
 
-  const { costUsd, result, sessionId } = parseClaudeOutput(stdout);
-  log(`Claude CLI exit=${code} session=${sessionId} cost=${formatCost(costUsd)}`);
-  log(`Response: ${result}`);
+  log(`Claude CLI exit=${code}`);
+  log(`Response: ${stdout}`);
   log("");
   log("If you received an ntfy notification, the SessionEnd hook works.");
   log("=== Test complete ===");

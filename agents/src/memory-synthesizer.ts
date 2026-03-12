@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { createLogger, makeTimestamp, cleanupOldLogs } from "./lib/logger.js";
-import { spawnClaude, parseClaudeOutput, formatCost } from "./lib/claude.js";
+import { spawnClaude } from "./lib/claude.js";
 import { parseRepos, repoToSlug } from "./lib/repos.js";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
@@ -142,13 +142,12 @@ ${filePathMapping}
   log(`Invoking Claude CLI via skill /${skillName}...`);
 
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
-    ["--permission-mode", "acceptEdits", "--output-format", "json", "-p", `/${skillName}`],
-    { cwd: SCRIPT_DIR, taskName: "memory-synthesizer", timeoutMs: 30 * 60 * 1000 },
+    ["--permission-mode", "acceptEdits", "-p", `/${skillName}`],
+    { cwd: SCRIPT_DIR, taskName: "memory-synthesizer", timeoutMs: 5 * 60 * 60 * 1000 },
   );
 
-  const { costUsd, result: claudeResult, sessionId } = parseClaudeOutput(claudeOutput);
-  log(`Claude CLI exited with code: ${exitCode} (session: ${sessionId}, cost: ${formatCost(costUsd)})`);
-  if (claudeResult) log(`--- Response ---\n${claudeResult}`);
+  log(`Claude CLI exited with code: ${exitCode}`);
+  if (claudeOutput) log(`--- Response ---\n${claudeOutput}`);
 
   try {
     rmSync(skillDir, { recursive: true, force: true });
@@ -157,7 +156,7 @@ ${filePathMapping}
     log(`WARN: Failed to clean up skill directory: ${(err as Error).message}`);
   }
 
-  log(`=== Memory Synthesizer finished (session: ${sessionId}, cost=${formatCost(costUsd)}) ===`);
+  log("=== Memory Synthesizer finished ===");
   cleanupOldLogs(LOG_DIR, ["memory-synthesizer-"], 30);
 }
 
