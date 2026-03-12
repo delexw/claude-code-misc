@@ -2,6 +2,15 @@
 
 Rules for detecting and mapping dependencies between JIRA tickets.
 
+## Parent/Container Ticket Evaluation
+
+When a ticket's `parent.key` matches another ticket in the input set, evaluate whether the parent is a pure container or has its own implementable work:
+
+- **Pure container** — the parent's description is empty, a placeholder, or only summarizes child work. Exclude it from the output layers and note it in the detailed report.
+- **Has own work** — the parent has a concrete description with implementable tasks distinct from its children. Keep it in the graph.
+
+This is a judgment call during semantic analysis (Step 4), not an automatic exclusion.
+
 ## Explicit Dependencies (from linkedIssues)
 
 The `linkedIssues` array from each ticket contains relationship types. Map these to directed graph edges:

@@ -43,12 +43,8 @@ Analyze a set of JIRA tickets to determine optimal execution order based on depe
 - Review graph output for cycles or warnings
 - See [references/dependency-analysis.md](references/dependency-analysis.md) for relationship mapping rules
 
-### Step 4 — Semantic Dependency Analysis
-- For tickets flagged with `"relates to"` links or no explicit links in the graph output, analyze their `description`, `summary`, and `commentSummary` for implicit dependencies
-- Look for:
-  - References to other ticket keys in the input set
-  - Shared component or module mentions
-  - Functional ordering hints ("builds on", "requires", "after", "depends on")
+### Step 4 — Semantic Dependency Analysis & Parent Ticket Evaluation
+- Evaluate parent/container tickets and semantic dependencies per [references/dependency-analysis.md](references/dependency-analysis.md)
 - Add soft edges with confidence levels (high/medium/low) to the graph
 - Re-run topological sort if new edges were added:
   - Update `all-tickets.json` with additional `softEdges` and re-run `build-dependency-graph.js`
