@@ -115,7 +115,7 @@ Track progress with a TODO list. Run each step as a Task subagent:
       "--output-format", "json",
       "-p", prompt,
     ],
-    { cwd: CLAUDE_CWD, taskName: "get-shit-done", timeoutMs: 2 * 60 * 60 * 1000 },
+    { cwd: CLAUDE_CWD, taskName: `get-shit-done: ${ticketKey}`, timeoutMs: 2 * 60 * 60 * 1000 },
   );
 
   if (code === 0) {
@@ -149,7 +149,7 @@ Return json ONLY without code fence`;
 
   const { code, stdout } = await spawnClaude(
     ["--model", "sonnet", "--permission-mode", "acceptEdits", "-p", prompt],
-    { cwd: SCRIPT_DIR, taskName: "get-shit-done", timeoutMs: 30 * 60 * 1000, stderrToLog: logFile },
+    { cwd: SCRIPT_DIR, taskName: `get-shit-done: prioritizing ${tickets.length} tickets`, timeoutMs: 30 * 60 * 1000, stderrToLog: logFile },
   );
 
   if (code === 0) {
