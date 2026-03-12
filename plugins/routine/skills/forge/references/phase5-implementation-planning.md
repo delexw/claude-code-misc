@@ -5,7 +5,8 @@
 ## 5a: Generate Implementation Plan
 
 - Read `SKILL_DIR/meta-prompter/output.md` for the optimized prompt
-- Launch a `Task` call with the optimized prompt and context from key output files, instructing it to generate a structured implementation plan:
+- Read `SKILL_DIR/jira/output.json` and check for `subtasks`. If subtasks exist, identify which are **not started** (`To Do`, `Backlog`, or similar status) — these subtasks are **out of scope** for this implementation. Their context is available in supporting-context for understanding boundaries, but their work must NOT be planned or implemented here.
+- Launch a `Task` call with the optimized prompt and context from key output files, instructing it to generate a structured implementation plan. If out-of-scope subtasks were identified, explicitly include them in the task prompt as an **out-of-scope boundary** so the plan excludes their work:
   - **Identify task type:** code, debug, content/docs, or safety
   - **Detect required phases:** look for sequencing constraints in the ticket (e.g., DB migrations → application changes → backfill, feature flags → rollout → cleanup). Each constraint must be its own numbered phase in the plan.
   - **For each phase, document:**

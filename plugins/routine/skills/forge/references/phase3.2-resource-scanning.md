@@ -3,17 +3,11 @@
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 ## Link Scanning
-- Read `SKILL_DIR/jira/output.json` to get the `links` object, `linkedIssues`, and `subtasks`
+- Read `SKILL_DIR/jira/output.json` to get the `links` object and identify categorized URLs
 - Additionally scan the description text for any URLs not captured in `links`
-
-### Subtask filtering
-- If `subtasks` is present and non-empty, check each subtask's `status`:
-  - **Skip** subtasks with status `To Do`, `Backlog`, or similar not-started statuses — do NOT fetch their context or include them in supporting context. These represent future work that should not influence the parent ticket's implementation.
-  - **Include** subtasks with in-progress or done statuses (e.g., `In Progress`, `In Review`, `Done`) — fetch their context as linked JIRA tickets, since they contain relevant implementation decisions.
-
 - Visit each link — **invoke all link visits in a single message** for parallelism:
    - Confluence pages (`links.confluence`): invoke `Skill("confluence-page-viewer")` with `{url} {SKILL_DIR}/supporting-context/confluence/{index}`, then **read `SKILL_DIR/supporting-context/confluence/{index}/output.md`**
-   - Jira tickets (from `linkedIssues` and non-skipped `subtasks`): invoke `Skill("jira-ticket-viewer")` with `{linked_key} {SKILL_DIR}/supporting-context/linked-jira/{linked_key}`, then **read `SKILL_DIR/supporting-context/linked-jira/{linked_key}/output.json`**
+   - Jira tickets: invoke `Skill("jira-ticket-viewer")` with `{linked_key} {SKILL_DIR}/supporting-context/linked-jira/{linked_key}`, then **read `SKILL_DIR/supporting-context/linked-jira/{linked_key}/output.json`**
    - GitHub links (`links.github`): use `gh pr view` for PRs, `gh api` for files — write output to `SKILL_DIR/supporting-context/other/github-{index}.md`
    - Other links (`links.other`): use `WebFetch` — write output to `SKILL_DIR/supporting-context/other/{index}.md`
 - MUST read the content from the link to understand what is required to do
