@@ -1,13 +1,5 @@
 # Figma Reader Rules
 
-## Codebase Check
-
-Before running the skill, determine if the current codebase is a frontend project.
-
-1. Look for frontend indicators: `package.json` with frontend dependencies (React, Vue, Angular, Svelte, etc.), frontend config files (`next.config.*`, `vite.config.*`, `tailwind.config.*`, `tsconfig.json` with JSX), or `src/` directories with `.tsx`/`.jsx`/`.vue`/`.svelte` files
-2. **If frontend project** → proceed to Pre-flight Check
-3. **If NOT a frontend project** → skip the entire skill, return: `Skipped — current codebase is not a frontend project.`
-
 ## Pre-flight Check
 
 1. Use `ToolSearch` with query `"figma"` to detect if Figma MCP tools are available
