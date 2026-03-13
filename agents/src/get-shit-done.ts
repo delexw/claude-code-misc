@@ -48,7 +48,10 @@ const TIMESTAMP = makeTimestamp();
 
 mkdirSync(STATE_DIR, { recursive: true });
 
-const { log, logFile } = createLogger(LOG_DIR, join(LOG_DIR, `get-shit-done-${TIMESTAMP}.log`));
+const { log, logFile } = createLogger(
+  LOG_DIR,
+  join(LOG_DIR, `get-shit-done-${TIMESTAMP}.log`),
+);
 
 const jira = new JiraClient(
   process.env.JIRA_CLI || "/opt/homebrew/bin/jira",
@@ -65,9 +68,20 @@ const baseRepos = parseRepos("GSD_REPOS");
 
 async function runClaudeTask(
   prompt: string,
-  opts: { repos?: string[]; taskName: string; timeoutMs?: number; cwd?: string },
+  opts: {
+    repos?: string[];
+    taskName: string;
+    timeoutMs?: number;
+    cwd?: string;
+    model?: string;
+  },
 ): Promise<{ code: number; stdout: string }> {
-  const args = ["--model", "sonnet", "--permission-mode", "acceptEdits"];
+  const args = [
+    "--model",
+    opts.model || "sonnet",
+    "--permission-mode",
+    "acceptEdits",
+  ];
   if (opts.repos) args.push("--add-dir", ...opts.repos);
   args.push("-p", prompt);
 
@@ -99,7 +113,8 @@ function extractWorktreePath(stdout: string): string {
 
 // ─── Prompt builders ─────────────────────────────────────────────────────────
 
-const AUTONOMY_PREFIX = "Autonomy mode: never use AskUserQuestion tool — explore answers yourself.";
+const AUTONOMY_PREFIX =
+  "Autonomy mode: never use AskUserQuestion tool — explore answers yourself.";
 
 function buildForgePrompt(ticketUrl: string, repos: string[]): string {
   const repoList = repos.join("\n");
@@ -114,7 +129,9 @@ function buildGroupPrompt(
   repos: string[],
   hasFrontend: boolean,
 ): string {
-  const worktreePaths = forges.map((r) => `${r.ticketKey}:${r.worktreePath}`).join("\n");
+  const worktreePaths = forges
+    .map((r) => `${r.ticketKey}:${r.worktreePath}`)
+    .join("\n");
   const repoList = repos.join("\n");
 
   const devEnvSteps = hasFrontend
@@ -133,7 +150,10 @@ function buildGroupPrompt(
 
   const prStepBase = hasFrontend ? 7 : 5;
   const prSteps = forges
-    .map((r, i) => `${prStepBase + i}. In worktree ${r.worktreePath}: Skill("/git-commit") then Skill("/create-pr 'create a Draft PR and keep description concise'")`)
+    .map(
+      (r, i) =>
+        `${prStepBase + i}. In worktree ${r.worktreePath}: Skill("/git-commit") then Skill("/create-pr 'create a Draft PR and keep description concise'")`,
+    )
     .join("\n");
 
   return `${AUTONOMY_PREFIX}
@@ -154,7 +174,10 @@ ${prSteps}`;
 
 // ─── Forge a single ticket ───────────────────────────────────────────────────
 
-async function forgeTicket(ticketKey: string, repos: string[]): Promise<ForgeResult> {
+async function forgeTicket(
+  ticketKey: string,
+  repos: string[],
+): Promise<ForgeResult> {
   const ticketUrl = jira.ticketUrl(ticketKey);
   log(`FORGING: ${ticketKey} -> ${ticketUrl}`);
 
@@ -171,19 +194,32 @@ async function forgeTicket(ticketKey: string, repos: string[]): Promise<ForgeRes
   }
 
   log(`FORGED: ${ticketKey}`);
-  return { ticketKey, status: "success", worktreePath: extractWorktreePath(stdout) };
+  return {
+    ticketKey,
+    status: "success",
+    worktreePath: extractWorktreePath(stdout),
+  };
 }
 
 // ─── Forge, merge, verify, and PR a group of tickets ─────────────────────────
 
-async function forgeGroup(group: string[], repos: string[]): Promise<ForgeResult[]> {
+async function forgeGroup(
+  group: string[],
+  repos: string[],
+): Promise<ForgeResult[]> {
   log(`FORGING GROUP: ${group.join(", ")}`);
-  const results = await Promise.allSettled(group.map((t) => forgeTicket(t, repos)));
+  const results = await Promise.allSettled(
+    group.map((t) => forgeTicket(t, repos)),
+  );
 
   return results.map((r, i) =>
     r.status === "fulfilled"
       ? r.value
-      : { ticketKey: group[i], status: "failed" as ForgeStatus, worktreePath: "" },
+      : {
+          ticketKey: group[i],
+          status: "failed" as ForgeStatus,
+          worktreePath: "",
+        },
   );
 }
 
@@ -193,8 +229,12 @@ async function mergeAndVerify(
   repos: string[],
   hasFrontend: boolean,
 ): Promise<GroupResult> {
-  const successful = forges.filter((r) => r.status === "success" && r.worktreePath);
-  const failedKeys = forges.filter((r) => r.status !== "success").map((r) => r.ticketKey);
+  const successful = forges.filter(
+    (r) => r.status === "success" && r.worktreePath,
+  );
+  const failedKeys = forges
+    .filter((r) => r.status !== "success")
+    .map((r) => r.ticketKey);
 
   if (successful.length === 0) {
     log(`GROUP FAILED: no successful forges for ${group.join(", ")}`);
@@ -202,7 +242,9 @@ async function mergeAndVerify(
   }
 
   const primaryTicket = group[0];
-  log(`MERGING & VERIFYING GROUP: ${primaryTicket} (${successful.length} ticket(s))`);
+  log(
+    `MERGING & VERIFYING GROUP: ${primaryTicket} (${successful.length} ticket(s))`,
+  );
 
   const { code, stdout } = await runClaudeTask(
     buildGroupPrompt(primaryTicket, successful, repos, hasFrontend),
@@ -213,7 +255,10 @@ async function mergeAndVerify(
 
   if (code !== 0) {
     log(`GROUP MERGE/VERIFY FAILED: ${primaryTicket} (exit code: ${code})`);
-    return { succeeded: [], failed: [...failedKeys, ...successful.map((r) => r.ticketKey)] };
+    return {
+      succeeded: [],
+      failed: [...failedKeys, ...successful.map((r) => r.ticketKey)],
+    };
   }
 
   for (const r of successful) {
@@ -229,22 +274,35 @@ async function mergeAndVerify(
   };
 }
 
-async function processGroup(group: string[], repos: string[], hasFrontend: boolean): Promise<GroupResult> {
+async function processGroup(
+  group: string[],
+  repos: string[],
+  hasFrontend: boolean,
+): Promise<GroupResult> {
   const forgeResults = await forgeGroup(group, repos);
   return mergeAndVerify(forgeResults, group, repos, hasFrontend);
 }
 
 // ─── Prioritize tickets ──────────────────────────────────────────────────────
 
-async function prioritizeTickets(allTickets: string[]): Promise<PrioritizeResult> {
+async function prioritizeTickets(
+  allTickets: string[],
+): Promise<PrioritizeResult> {
   if (allTickets.length <= 1) return fallbackResult(allTickets);
 
-  log(`PRIORITIZING: ${allTickets.length} ticket(s) via jira-ticket-prioritizer skill`);
+  log(
+    `PRIORITIZING: ${allTickets.length} ticket(s) via jira-ticket-prioritizer skill`,
+  );
 
   const ticketList = allTickets.join(",");
   const { code, stdout } = await runClaudeTask(
     `${AUTONOMY_PREFIX}\nInvoke Skill("/jira-ticket-prioritizer ${ticketList}").\nReturn json ONLY without code fence`,
-    { taskName: `get-shit-done: prioritizing ${allTickets.length} tickets`, cwd: SCRIPT_DIR, timeoutMs: 5 * 60 * 60 * 1000 },
+    {
+      taskName: `get-shit-done: prioritizing ${allTickets.length} tickets`,
+      cwd: SCRIPT_DIR,
+      timeoutMs: 5 * 60 * 60 * 1000,
+      model: "opus",
+    },
   );
 
   if (code === 0) {
@@ -266,10 +324,14 @@ async function prioritizeTickets(allTickets: string[]): Promise<PrioritizeResult
 }
 
 function logPrioritizeResult(result: PrioritizeResult): void {
-  const layerSummary = result.layers.map((l, i) => `L${i}:[${l.group.join(",")}]`).join(" ");
+  const layerSummary = result.layers
+    .map((l, i) => `L${i}:[${l.group.join(",")}]`)
+    .join(" ");
   log(`PRIORITIZED: ${result.layers.length} layer(s) — ${layerSummary}`);
-  if (result.skipped.length > 0) log(`SKIPPED: ${result.skipped.map((s) => s.key).join(", ")}`);
-  if (result.excluded.length > 0) log(`EXCLUDED: ${result.excluded.map((e) => e.key).join(", ")}`);
+  if (result.skipped.length > 0)
+    log(`SKIPPED: ${result.skipped.map((s) => s.key).join(", ")}`);
+  if (result.excluded.length > 0)
+    log(`EXCLUDED: ${result.excluded.map((e) => e.key).join(", ")}`);
 }
 
 // ─── Process layers sequentially (dependency order) ──────────────────────────
@@ -286,10 +348,17 @@ async function processLayers(
 
   for (let i = 0; i < layers.length; i++) {
     const layer = layers[i];
-    const group = filterGroup(layer.group, unprocessedSet, skippedKeys, excludedKeys);
+    const group = filterGroup(
+      layer.group,
+      unprocessedSet,
+      skippedKeys,
+      excludedKeys,
+    );
     if (group.length === 0) continue;
 
-    log(`Layer ${i}: [${group.join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}`);
+    log(
+      `Layer ${i}: [${group.join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}`,
+    );
 
     const result = await processGroup(group, repos, layer.hasFrontend);
     succeeded += result.succeeded.length;
@@ -349,7 +418,9 @@ async function main() {
     repos,
   );
 
-  log(`=== Summary: processed=${succeeded} skipped=${skippedCount} failed=${failed} ===`);
+  log(
+    `=== Summary: processed=${succeeded} skipped=${skippedCount} failed=${failed} ===`,
+  );
   cleanupOldLogs(LOG_DIR, ["get-shit-done-", "task-", "group-"], 7);
 }
 

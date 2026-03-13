@@ -5,6 +5,7 @@ agent: general-purpose
 model: sonnet
 argument-hint: <Figma link or design prompt> <OUT_DIR>
 allowed-tools: Read, Bash, Write, Edit, mcp__figma__*
+context: fork
 ---
 
 # Figma Reader
