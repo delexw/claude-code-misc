@@ -43,7 +43,7 @@ All context files are under `SKILL_DIR/`. Read these files as needed during impl
 - **Domain Analysis**: `SKILL_DIR/domains.json` — identified business domains and summary
 - **Domain Knowledge**: files in `SKILL_DIR/domains/` — codebase patterns and conventions per domain
 - **Supporting Context**: files in `SKILL_DIR/supporting-context/` — linked Confluence pages, related JIRA tickets, GitHub PRs
-- **Design Specs**: files in `SKILL_DIR/design/` — Figma designs and UI specifications
+- **Design Specs**: files in `SKILL_DIR/specs/` — Figma designs and UI specifications
 - **Additional Context**: `SKILL_DIR/context.md` — user-provided context (if exists)
 - **Optimized Prompt**: `SKILL_DIR/meta-prompter/output.md` — refined task description with clarifications
 

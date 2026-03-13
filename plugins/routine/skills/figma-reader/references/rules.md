@@ -14,11 +14,11 @@
 
 ## Design Input
 
-If `$ARGUMENTS` already contains a valid Figma link (`https://www.figma.com/design/...`) or prompt, use it directly — skip this step.
+If `$ARGUMENTS[0]` already contains a valid Figma link or prompt, use it directly — skip this step.
 
-If `$ARGUMENTS` is an attached UI image, show it to the user for context, then use `AskUserQuestion` below to ask them to select the relevant component in Figma.
+If `$ARGUMENTS[0]` is an attached UI image, show it to the user for context, then use `AskUserQuestion` below to ask them to select the relevant component in Figma.
 
-If `$ARGUMENTS` is empty or not provided, use `AskUserQuestion`:
+If `$ARGUMENTS[0]` is empty or not provided, use `AskUserQuestion`:
 
 **Question:** "Please select the relevant design or component in Figma and provide one of the following:"
 
@@ -30,5 +30,5 @@ If `$ARGUMENTS` is empty or not provided, use `AskUserQuestion`:
 ## Error Handling
 
 - **MCP Not Available**: Use `AskUserQuestion` — guide user to install Figma MCP: https://developers.figma.com/docs/figma-mcp-server/local-server-installation/
-- **Invalid Link**: "Figma link format not recognized. Provide a URL like `https://www.figma.com/design/...`"
+- **Invalid Link**: "Figma link format not recognized. Please provide a valid Figma URL."
 - **Access Denied**: Use `AskUserQuestion` — ask user to verify Figma MCP token permissions
