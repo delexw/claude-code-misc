@@ -88,7 +88,7 @@ gh issue list -R ${REPO} --limit 100 --json title,number,state,labels,body
 gh issue list -R ${REPO} --state closed --limit 50 --json title,number,state
 \`\`\`
 
-Do NOT create duplicate issues. An issue is a duplicate if it describes the same Claude Code change/version or the same parser impact.
+Do NOT create duplicate issues. An issue is a duplicate if ANY open or closed issue describes the same Claude Code change/version or the same parser impact. If the issue already exists (whether open, closed, or resolved), skip it entirely.
 
 ### Step 4: Create Issues
 
