@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { join } from "node:path";
+import { registerChildPid, unregisterChildPid } from "./lock.js";
 
 const HOME = process.env.HOME!;
 const CLAUDE_CLI = join(HOME, ".local/bin/claude");
@@ -37,6 +38,8 @@ export function spawnClaude(
       stdio: ["ignore", "pipe", "pipe"],
     });
 
+    if (child.pid) registerChildPid(child.pid);
+
     const chunks: Buffer[] = [];
     const stderrChunks: Buffer[] = [];
 
@@ -52,6 +55,7 @@ export function spawnClaude(
 
     child.on("close", (code) => {
       clearTimeout(timer);
+      if (child.pid) unregisterChildPid(child.pid);
       const stdout = Buffer.concat(chunks).toString();
       const stderr = Buffer.concat(stderrChunks).toString();
       resolve({
