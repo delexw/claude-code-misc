@@ -3,7 +3,7 @@ name: figma-reader
 description: Read Figma designs via Figma MCP server. Auto-detects MCP availability and prompts user only if setup is needed. Use when Figma links or UI design images are found in task context.
 agent: general-purpose
 model: sonnet
-argument-hint: <Figma link or design prompt> <OUT_DIR>
+argument-hint: <Figma link or design prompt and optional output directory>
 allowed-tools: Read, Bash, Write, Edit, mcp__figma__*
 context: fork
 ---
@@ -12,11 +12,15 @@ context: fork
 
 Read Figma design context via the Figma MCP server.
 
-## Arguments
-- DESIGN_INPUT = $ARGUMENTS[0] — Figma link, design prompt copied from Figma, or attached UI design image (optional)
-- OUT_DIR = $ARGUMENTS[1] — Output directory for persisting the design context. Defaults to `.implement-assets/figma`
+## Inputs
 
-If OUT_DIR is empty, default to `.implement-assets/figma`. Use OUT_DIR for all output paths below.
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- DESIGN_INPUT: Figma link, design prompt copied from Figma, or attached UI design image (optional)
+- OUT_DIR: output directory, or `.implement-assets/figma` if not provided
+
+Use OUT_DIR for all output paths below.
 
 ## Execution
 

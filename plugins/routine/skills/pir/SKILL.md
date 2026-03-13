@@ -3,7 +3,7 @@ name: pir
 description: Create Post Incident Records (PIRs) by discovering issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently. Orchestrates pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator, and rollbar-reader skills, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
-argument-hint: <what-to-investigate> <domain:zone-id>
+argument-hint: <what to investigate>
 allowed-tools: Read, Bash, Write, Edit
 ---
 
@@ -11,9 +11,13 @@ allowed-tools: Read, Bash, Write, Edit
 
 Discover issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently, auto-determine severity, and produce completed PIR forms for each issue.
 
-## Arguments
-- `$ARGUMENTS[0]` — What to investigate. Passed directly to each sub-skill. Defaults to `"incidents today"`.
-- `$ARGUMENTS[1]` — (optional) Cloudflare domain and zone ID in `domain:zone_id` format. Passed to the `cloudflare-traffic-investigator` skill. If not provided, the cloudflare skill will ask the user.
+## Inputs
+
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- QUERY: what to investigate. Passed directly to each sub-skill. Defaults to "incidents today".
+- CF_DOMAIN_ZONE: (optional) Cloudflare domain and zone ID in domain:zone_id format. Passed to the cloudflare-traffic-investigator skill. If not provided, the cloudflare skill will ask the user.
 
 ## PIR Form Fields
 
@@ -46,7 +50,7 @@ Use the highest applicable severity when multiple criteria match.
 
 ### Step 1: Prepare
 See [step1-gather-date-range.md](steps/step1-gather-date-range.md)
-— If `$ARGUMENTS[0]` is empty, ask the user what to investigate. Otherwise proceed directly.
+— If `QUERY` is empty, ask the user what to investigate. Otherwise proceed directly.
 
 ### Step 2: Discover — PagerDuty, Datadog, Cloudflare, Rollbar
 
@@ -62,7 +66,7 @@ See [step2b-discover-datadog.md](steps/step2b-discover-datadog.md)
 
 #### 2c. Cloudflare — Traffic Analysis
 See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
-— Invokes `Skill("cloudflare-traffic-investigator")`. Passes domain and zone ID from `$ARGUMENTS[1]` if provided.
+— Invokes `Skill("cloudflare-traffic-investigator")`. Passes domain and zone ID from `CF_DOMAIN_ZONE` if provided.
 
 #### 2d. Rollbar — Error Tracking
 See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)

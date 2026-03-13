@@ -14,11 +14,11 @@
 
 ## Design Input
 
-If `$ARGUMENTS[0]` already contains a valid Figma link or prompt, use it directly — skip this step.
+If DESIGN_INPUT already contains a valid Figma link or prompt, use it directly — skip this step.
 
-If `$ARGUMENTS[0]` is an attached UI image, show it to the user for context, then use `AskUserQuestion` below to ask them to select the relevant component in Figma.
+If DESIGN_INPUT is an attached UI image, show it to the user for context, then use `AskUserQuestion` below to ask them to select the relevant component in Figma.
 
-If `$ARGUMENTS[0]` is empty or not provided, use `AskUserQuestion`:
+If DESIGN_INPUT is empty or not provided, use `AskUserQuestion`:
 
 **Question:** "Please select the relevant design or component in Figma and provide one of the following:"
 

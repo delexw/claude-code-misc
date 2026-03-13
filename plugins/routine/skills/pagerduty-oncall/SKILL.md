@@ -11,8 +11,12 @@ context: fork
 
 Authenticate, list escalation policies, fetch all incidents and their details, then analyse relevance across Envato on-call teams.
 
-## Arguments
-- `$ARGUMENTS[0]` — What to investigate. Defaults to `"incidents today"`. Interpret the time range to derive `--since` and `--until` dates (YYYY-MM-DD) in the agent's local timezone (detect via system clock), not UTC. See the date derivation table in Step 5.
+## Inputs
+
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- QUERY: what to investigate. Defaults to "incidents today". Interpret the time range to derive --since and --until dates (YYYY-MM-DD) in the agent's local timezone (detect via system clock), not UTC. See the date derivation table in Step 5.
 
 ## Target Escalation Policies
 
@@ -96,7 +100,7 @@ Pass each target EP name as a separate argument to `filter-eps.js`. If no target
 
 ### 5. Fetch and Filter Incidents
 
-Derive `SINCE_DATE` and `UNTIL_DATE` (YYYY-MM-DD) from `$ARGUMENTS[0]` in the agent's local timezone. **Important:** `--until` is **exclusive** in the `pd` CLI — it does NOT include that day. Use this table (assuming today is 2026-03-06):
+Derive `SINCE_DATE` and `UNTIL_DATE` (YYYY-MM-DD) from `QUERY` in the agent's local timezone. **Important:** `--until` is **exclusive** in the `pd` CLI — it does NOT include that day. Use this table (assuming today is 2026-03-06):
 
 | Input | SINCE_DATE | UNTIL_DATE | Why |
 |-------|-----------|-----------|-----|

@@ -80,7 +80,7 @@ final_score = round(raw / 5 * 100)
 
 ## Context Boost
 
-When `$ARGUMENTS[1]` provides additional context (e.g. "focus on backend"):
+When EXTRA_CONTEXT provides additional context:
 - Match context keywords against ticket `labels`, `components`, `summary`, and `description`
 - Apply a +5 bonus to the final score for matching tickets
 - This acts as a tiebreaker, not a dominant factor

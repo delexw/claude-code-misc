@@ -1,7 +1,7 @@
 ---
 name: rollbar-reader
 description: Investigate and analyse Rollbar errors, items, occurrences, deploys, and project health using the rollbar CLI. Use when asked to investigate Rollbar errors, search error items, check deploy status, run RQL queries, get occurrence details, or analyse any Rollbar data.
-argument-hint: <what to investigate> <out-dir>
+argument-hint: <what to investigate>
 allowed-tools: Bash(rollbar config *), Bash(rollbar items *), Bash(rollbar occurrences *), Bash(rollbar metrics *), Bash(rollbar deploys *), Bash(rollbar environments *), Bash(rollbar rql *), Bash(rollbar reports *), Bash(rollbar projects *), Bash(rollbar tokens *), Bash(rollbar teams *), Bash(rollbar users *), Bash(rollbar team-users *), Bash(rollbar team-projects *), Bash(rollbar user-projects *), Bash(rollbar people *), Bash(rollbar notifications *), Bash(rollbar replays *), Bash(rollbar service-links *), Bash(rollbar versions *), Bash(rollbar agent *), Bash(rollbar --help *), Bash(mkdir *), Bash(test *), Read, Write, Edit
 model: sonnet
 context: fork
@@ -11,10 +11,13 @@ context: fork
 
 Investigate and analyse Rollbar error tracking data using the `rollbar` CLI (https://github.com/delexw/rollbar-cli).
 
-## Arguments
+## Inputs
 
-- `$ARGUMENTS[0]` — What to investigate. Include the time range in the sentence. Use current agent's local timezone (detect via system clock) for any time-based queries, not UTC. Defaults to last 24 hours if no time range is mentioned.
-- `$ARGUMENTS[1]` — (optional) Base directory for all temp assets. Defaults to `.rollbar-reader-tmp/`.
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- QUERY: what to investigate. Use current agent's local timezone for any time-based queries, not UTC. Defaults to last 24 hours if no time range is mentioned.
+- OUT_DIR: output directory for temp assets, or `.rollbar-reader-tmp/` if not provided
 
 ## System Requirements
 
@@ -89,11 +92,11 @@ Create the output directory and subdirectories:
 mkdir -p <OUT_DIR>/occurrences <OUT_DIR>/reports
 ```
 
-Where `<OUT_DIR>` is `$ARGUMENTS[1]` or `.rollbar-reader-tmp/` if not provided.
+Where `<OUT_DIR>` is OUT_DIR.
 
 ### 4. Investigate Using Items & Occurrences
 
-Based on `$ARGUMENTS[0]` (which includes the time range), query Rollbar data. Use `--format json` for all commands to get structured output. Run commands sequentially.
+Based on QUERY (which includes the time range), query Rollbar data. Use `--format json` for all commands to get structured output. Run commands sequentially.
 
 #### `rollbar items` — Query Error Items (Readonly)
 
@@ -180,9 +183,9 @@ This returns the complete occurrence payload — stack trace, request params, pe
 7. **Repeat** for other high-priority items
 
 **Time range handling:**
-- Extract time range from `$ARGUMENTS[0]`
+- Extract time range from QUERY
 - Convert to appropriate `--hours` flags for report commands or date ranges for RQL queries
-- Default: last 24 hours if no time range is mentioned in `$ARGUMENTS[0]`
+- Default: last 24 hours if no time range is mentioned in QUERY
 
 Save intermediate results as JSON to the output directory for reference.
 

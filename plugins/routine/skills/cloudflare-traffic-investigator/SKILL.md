@@ -2,22 +2,23 @@
 name: cloudflare-traffic-investigator
 description: Investigate traffic anomalies, spikes, and service degradation on Cloudflare-protected domains. Uses cloudflare-mcp-cli for GraphQL analytics, JA4 fingerprint analysis, bot/WAF security scoring, and incident reporting. Use this skill whenever traffic spikes, service overloads, 429 errors, circuit breaker events, Cloudflare analytics, or domain performance issues are mentioned — even if the user doesn't explicitly say "traffic spike". Also triggers when asked to check Cloudflare data for any domain.
 allowed-tools: Bash(cloudflare-mcp-cli *), Bash(which cloudflare-mcp-cli*), Bash(npm install *cloudflare-mcp-cli*), Bash(date *), Bash(mkdir *), Read, Write, Edit
-argument-hint: <domain> <zone-id> <timerange>
+argument-hint: <domain, zone ID, and optional time range>
 model: sonnet
 context: fork
 ---
 
 # Investigating Traffic on Cloudflare-Protected Domains
 
-## Arguments
+## Inputs
 
-| Argument | Description |
-|----------|-------------|
-| `$ARGUMENTS[0]` | Cloudflare-protected domain to investigate |
-| `$ARGUMENTS[1]` | Cloudflare zone ID for the domain |
-| `$ARGUMENTS[2]` | *(optional)* Time range to investigate. In current agent's local timezone (detect via system clock), not UTC. |
+Raw arguments: $ARGUMENTS
 
-If domain or zone ID is not provided, ask the user via `AskUserQuestion`. Time range is collected in Step 1 if not passed here.
+Infer from the arguments:
+- DOMAIN: Cloudflare-protected domain to investigate
+- ZONE_ID: Cloudflare zone ID for the domain
+- TIME_RANGE: (optional) time range to investigate, in current agent's local timezone (detect via system clock), not UTC
+
+If domain or zone ID cannot be inferred, ask the user via `AskUserQuestion`. Time range is collected in Step 1 if not provided.
 
 ---
 

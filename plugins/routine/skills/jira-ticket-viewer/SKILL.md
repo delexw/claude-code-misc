@@ -2,7 +2,7 @@
 name: jira-ticket-viewer
 description: View Jira ticket details using the jira CLI (jira-cli). Use when given a Jira issue key to fetch and display ticket information.
 model: sonnet
-argument-hint: <TICKET-KEY> <OUT_DIR>
+argument-hint: <Jira issue key and optional output directory>
 allowed-tools: Read, Bash, Write, Edit
 context: fork
 ---
@@ -11,11 +11,13 @@ context: fork
 
 Fetch and display Jira ticket details using the `jira` CLI tool.
 
-## Arguments
-- `$ARGUMENTS[0]` — Jira issue key
-- `$ARGUMENTS[1]` — (optional) Base directory for all temp assets (raw JSON, attachments, parsed output). Defaults to `.implement-assets/jira`
+## Inputs
 
-When invoked by the orchestrator, `$ARGUMENTS[1]` is provided. When used standalone, it defaults to `.implement-assets/jira`.
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- TICKET_KEY: the Jira issue key
+- OUT_DIR: output directory, or `.implement-assets/jira` if not provided
 
 ## System Requirements
 - `jira` CLI installed and configured (https://github.com/ankitpokhrel/jira-cli)
@@ -24,11 +26,11 @@ When invoked by the orchestrator, `$ARGUMENTS[1]` is provided. When used standal
 ## Execution
 
 1. **Pre-flight check**: Run `jira me` to verify the CLI is installed **and** authenticated — if it fails, follow error handling in [references/rules.md](references/rules.md). Do NOT continue until `jira me` succeeds.
-2. Validate `$ARGUMENTS[0]` against [references/rules.md](references/rules.md)
-3. **Fetch raw JSON** (single API call): Run `mkdir -p $ARGUMENTS[1] && jira issue view $ARGUMENTS[0] --raw > $ARGUMENTS[1]/raw.json` via Bash
-4. **Parse ticket**: Run `node ${CLAUDE_SKILL_DIR}/scripts/parse-ticket.js < $ARGUMENTS[1]/raw.json > $ARGUMENTS[1]/output.json` via Bash to get the parsed JSON output
-5. **Interpret comments**: If the parsed JSON contains a non-empty `comments` array, analyze them following [references/comment-rules.md](references/comment-rules.md). Replace the `comments` array in the JSON with a `commentSummary` object, then save the updated JSON back to `$ARGUMENTS[1]/output.json` using the Write tool.
+2. Validate TICKET_KEY against [references/rules.md](references/rules.md)
+3. **Fetch raw JSON** (single API call): Run `mkdir -p OUT_DIR && jira issue view TICKET_KEY --raw > OUT_DIR/raw.json` via Bash
+4. **Parse ticket**: Run `node ${CLAUDE_SKILL_DIR}/scripts/parse-ticket.js < OUT_DIR/raw.json > OUT_DIR/output.json` via Bash to get the parsed JSON output
+5. **Interpret comments**: If the parsed JSON contains a non-empty `comments` array, analyze them following [references/comment-rules.md](references/comment-rules.md). Replace the `comments` array in the JSON with a `commentSummary` object, then save the updated JSON back to OUT_DIR/output.json using the Write tool.
 6. **Attachments**: If the parsed JSON contains a non-empty `attachments` array, download them:
-   - Run `node ${CLAUDE_SKILL_DIR}/scripts/download-attachment.js --out $ARGUMENTS[1] < $ARGUMENTS[1]/raw.json` via Bash
+   - Run `node ${CLAUDE_SKILL_DIR}/scripts/download-attachment.js --out OUT_DIR < OUT_DIR/raw.json` via Bash
    - Include downloaded attachment file paths in the output
 7. Return the parsed JSON output (see [references/output-format.md](references/output-format.md) for schema reference), including attachment download paths if any

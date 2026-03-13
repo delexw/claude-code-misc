@@ -22,10 +22,10 @@ Evaluate a small delay or wait for a specific element using `mcp__chrome-devtool
 Use `mcp__chrome-devtools__take_screenshot` and save to the output directory with descriptive filenames:
 
 ```
-$ARGUMENTS[1]/screenshots/<page>-<width>px.png
+OUT_DIR/screenshots/<page>-<width>px.png
 ```
 
-Ensure the directory exists first: `mkdir -p $ARGUMENTS[1]/screenshots`
+Ensure the directory exists first: `mkdir -p OUT_DIR/screenshots`
 
 Screenshots capture the visible viewport — scroll or use full-page capture for below-fold content.
 

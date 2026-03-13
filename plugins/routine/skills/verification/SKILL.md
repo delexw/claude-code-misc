@@ -9,14 +9,18 @@ allowed-tools: Read, Bash, Write, Edit
 
 Verify implementation changes via iterative code review and optional QA web testing.
 
-## Arguments
-- `$ARGUMENTS[0]` — (optional) Dev environment context. Can be a dev server URL or empty to auto-detect.
+## Inputs
+
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- DEV_CONTEXT: (optional) dev environment context — can be a dev server URL or empty to auto-detect
 
 ## Execution
 
 ### Resolve Dev URL (once, before loop)
 
-If `$ARGUMENTS[0]` is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context). Otherwise check for a running dev server (`localhost:3000`, `localhost:5173`, `localhost:8080`). If no dev server found, QA web test will be skipped.
+If DEV_CONTEXT is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context). Otherwise check for a running dev server (`localhost:3000`, `localhost:5173`, `localhost:8080`). If no dev server found, QA web test will be skipped.
 
 ### Loop until all issues are resolved:
 

@@ -3,7 +3,7 @@ name: domain-discover
 description: Discover and document domain knowledge from a codebase into a structured knowledge file
 agent: general-purpose
 model: sonnet
-argument-hint: <Domain name> <OUT_DIR>
+argument-hint: <domain name and optional output directory>
 allowed-tools: Read, Bash, Write, Edit
 context: fork
 ---
@@ -12,16 +12,18 @@ context: fork
 
 You are tasked with creating a comprehensive domain knowledge file for a codebase that will help future Claude Code instances work effectively with this repository.
 
-## Arguments
-- `$ARGUMENTS[0]` — Domain name used as the output filename (`{domain}.md`)
-- `$ARGUMENTS[1]` — (optional) Output directory for the domain knowledge file. Defaults to `.` (project root / current working directory)
+## Inputs
 
-When invoked by the orchestrator, `$ARGUMENTS[1]` is provided. When used standalone, it defaults to the project root for backward compatibility.
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- DOMAIN_NAME: the domain name, used as the output filename
+- OUT_DIR: output directory, or `.` (project root) if not provided
 
 ## Output Location
 
-- Creates or updates `$ARGUMENTS[1]/{$ARGUMENTS[0]}.md`
-- Run `mkdir -p $ARGUMENTS[1]` before writing to ensure the directory exists.
+- Creates or updates `OUT_DIR/{DOMAIN_NAME}.md`
+- Run `mkdir -p OUT_DIR` before writing to ensure the directory exists.
 
 ## Objective
 

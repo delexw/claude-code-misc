@@ -11,9 +11,13 @@ context: fork
 
 Prompt evaluation and optimization using the `meta-prompter-mcp` CLI. Returns <OPTIMIZED_PROMPT> for the caller to execute.
 
-## Arguments
-- `$ARGUMENTS[0]` — The prompt to evaluate and optimize
-- `$ARGUMENTS[1]` — OUT_DIR (optional). If provided, the OPTIMIZED_PROMPT is persisted to `OUT_DIR/output.md`.
+## Inputs
+
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- CONTEXT: the task context or prompt to optimize
+- OUT_DIR: output directory, or `.implement-assets/meta-prompter` if not provided
 
 ## Session
 - If starting fresh: create **SESSION_ID** = `sess-YYYYMMDD-HHMMSS` and use it for all files.
@@ -26,9 +30,9 @@ Execute all steps A through E:
 
 ### A) Evaluate
 - If <prompt_eval> tag doesn't exist:
-  1. Run: `npx meta-prompter-mcp "$ARGUMENTS"` via Bash, with `--model` flag per [references/rules.md](references/rules.md) model resolution
+  1. Run: `npx meta-prompter-mcp "CONTEXT"` via Bash, with `--model` flag per [references/rules.md](references/rules.md) model resolution
   2. Save the JSON output to <prompt_eval> and include:
-     - "original_prompt": "$ARGUMENTS"
+     - "original_prompt": "CONTEXT"
 - Otherwise, skip to Clarify.
 
 ### B) Clarify
@@ -64,7 +68,7 @@ Execute all steps A through E:
 - **Max 3 iterations.** If `global < 8` after 3 attempts, use the best-scoring prompt as <OPTIMIZED_PROMPT> and note the score.
 
 ### E) Return
-- If `$ARGUMENTS[1]` (OUT_DIR) is provided:
-  1. Run `mkdir -p $ARGUMENTS[1]` via Bash
-  2. Use the **Write** tool to save <OPTIMIZED_PROMPT> to `$ARGUMENTS[1]/output.md`
+- If OUT_DIR is provided:
+  1. Run `mkdir -p OUT_DIR` via Bash
+  2. Use the **Write** tool to save <OPTIMIZED_PROMPT> to `OUT_DIR/output.md`
 - Return <OPTIMIZED_PROMPT> to the caller for execution

@@ -11,8 +11,12 @@ context: fork
 
 Investigate and analyse Datadog observability data using the `pup` CLI.
 
-## Arguments
-- `$ARGUMENTS[0]` — What to analyse. Use current agent's local timezone (detect via system clock) for any time-based queries, not UTC.
+## Inputs
+
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- QUERY: what to analyse. Use current agent's local timezone (detect via system clock) for any time-based queries, not UTC.
 
 ## System Requirements
 - `pup` CLI installed — see https://github.com/datadog-labs/pup/blob/main/README.md
@@ -52,7 +56,7 @@ If `pup agent guide` is not available (command not found), use the known command
 
 ### 3. Analyse
 
-Based on `$ARGUMENTS[0]`, determine which `pup` commands are most relevant. Use `--output=json` (default) for all commands to get structured output. Run commands sequentially.
+Based on `QUERY`, determine which `pup` commands are most relevant. Use `--output=json` (default) for all commands to get structured output. Run commands sequentially.
 
 **Common analysis patterns:**
 

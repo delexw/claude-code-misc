@@ -16,14 +16,14 @@ If the ticket has no web-visible impact, skip this phase.
 
 ## Find Development URL
 
-1. If `$ARGUMENTS[1]` is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context)
-2. Check for a running dev server (e.g. `localhost:3000`, `localhost:5173`, `localhost:8080`)
+1. If ADDITIONAL_CONTEXT is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context)
+2. Check for a running dev server on common ports
 3. If no dev server is found, skip this phase and note "Page inspection skipped: no dev server running"
 
 Combine the dev server URL with the relevant page path from the JIRA ticket to form the full URL.
 
 ## Run Page Inspector
 
-Invoke `Skill("page-inspector")` with `{url} SKILL_DIR/page-inspector`:
+Invoke `Skill("page-inspector")` with the full page URL and `SKILL_DIR/page-inspector` as the output directory:
 
 After completion, **read `SKILL_DIR/page-inspector/output.md`** — this serves as baseline reference during implementation.

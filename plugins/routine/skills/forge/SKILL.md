@@ -1,7 +1,7 @@
 ---
 name: forge
-description: "Forge implementation from JIRA tickets using dynamic skill generation. Gathers context into a lazy-loaded skill, then invokes it for execution. Use when given a JIRA ticket URL (format: https://[domain].atlassian.net/browse/[TICKET-ID]) to process end-to-end."
-argument-hint: <JIRA ticket URL> <Additional Context>
+description: "Forge implementation from JIRA tickets using dynamic skill generation. Gathers context into a lazy-loaded skill, then invokes it for execution. Use when given a JIRA ticket URL to process end-to-end."
+argument-hint: JIRA ticket URL and optional context
 allowed-tools: Read, Bash, ExitPlanMode, Write, Edit
 hooks:
   PreToolUse:
@@ -23,9 +23,13 @@ hooks:
 
 # Forge: JIRA Ticket → Dynamic Skill → Implementation
 
-## Arguments
-- `$ARGUMENTS[0]` — JIRA ticket URL (format: `https://[domain].atlassian.net/browse/[TICKET-ID]`)
-- `$ARGUMENTS[1]` — Additional context (quoted string, optional)
+## Inputs
+
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- TICKET_URL: the JIRA ticket URL
+- ADDITIONAL_CONTEXT: any extra context provided beyond the URL (optional)
 
 Orchestrates end-to-end JIRA ticket processing. Phases 1–5 gather context and write output files into a **dynamically created skill** at `~/.claude/skills/{ticket_id}/`. Phase 6 invokes that skill — context files are lazy-loaded on demand.
 

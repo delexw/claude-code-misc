@@ -2,7 +2,7 @@
 
 One of four concurrent discovery sources (alongside Datadog, Cloudflare, and Rollbar). All sources carry equal weight for incident discovery.
 
-Use the Skill tool to invoke "pagerduty-oncall" with args "$ARGUMENTS[0]". Then read and return the report contents from .pagerduty-oncall-tmp/report.md
+Use the Skill tool to invoke "pagerduty-oncall" with args "QUERY". Then read and return the report contents from .pagerduty-oncall-tmp/report.md
 
 **Extract from report** (`.pagerduty-oncall-tmp/report.md`):
 - All incident IDs, titles, services, statuses

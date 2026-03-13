@@ -1,7 +1,7 @@
 ---
 name: jira-ticket-prioritizer
 description: Analyze JIRA tickets to determine priority and dependency order. Outputs an ordered JIRA ID list. Use before implement/forge, or when asked to "prioritize tickets", "order these JIRAs", "what should I work on first".
-argument-hint: <TICKET-KEY1,TICKET-KEY2,...> <additional-context>
+argument-hint: <ticket keys or JQL query>
 allowed-tools: Read, Bash, Write
 ---
 
@@ -9,9 +9,13 @@ allowed-tools: Read, Bash, Write
 
 Analyze a set of JIRA tickets to determine optimal execution order based on dependencies, priority, and grouping. Produces grouped layers usable standalone or as a pre-step before `implement`/`forge`.
 
-## Arguments
-- `$ARGUMENTS[0]` — Comma-separated ticket keys OR a JQL query (detected by presence of `=`, `AND`, `OR`)
-- `$ARGUMENTS[1]` — (optional) Additional context for prioritization
+## Inputs
+
+Raw arguments: $ARGUMENTS
+
+Infer from the arguments:
+- TICKET_INPUT: comma-separated ticket keys OR a JQL query (detected by presence of `=`, `AND`, `OR`)
+- EXTRA_CONTEXT: (optional) additional context for prioritization
 
 ## System Requirements
 - `jira` CLI installed and configured (https://github.com/ankitpokhrel/jira-cli)
@@ -20,8 +24,8 @@ Analyze a set of JIRA tickets to determine optimal execution order based on depe
 ## Execution
 
 ### Step 1 — Parse Input
-- Check if `$ARGUMENTS[0]` contains `=`, `AND`, or `OR` (case-insensitive) to detect JQL
-- **If JQL detected**: run `jira issue list --jql "$ARGUMENTS[0]" --plain --columns key,status --no-headers` to resolve to ticket keys with statuses
+- Check if `TICKET_INPUT` contains `=`, `AND`, or `OR` (case-insensitive) to detect JQL
+- **If JQL detected**: run `jira issue list --jql "TICKET_INPUT" --plain --columns key,status --no-headers` to resolve to ticket keys with statuses
 - **If comma-separated**: split on `,` and trim whitespace
 - Validate each key matches `[A-Z]+-\d+`
 - If fewer than 2 valid tickets, report the single ticket and exit
@@ -57,7 +61,7 @@ Analyze a set of JIRA tickets to determine optimal execution order based on depe
 - Only score `pending` tickets — `context` tickets are not scored or placed in layers
 - For tickets at the same dependency layer, score using weights from [references/priority-weights.md](references/priority-weights.md)
 - Sort within each layer by descending score
-- Apply `$ARGUMENTS[1]` context as a tiebreaker or boost
+- Apply `EXTRA_CONTEXT` context as a tiebreaker or boost
 - **Group related tickets** within the same layer — see [references/dependency-analysis.md](references/dependency-analysis.md) Grouping Rules. First ticket in each group (highest score) is the primary ticket.
 - **Determine `hasFrontend`** for each group: set to `true` if **any** ticket in the group involves frontend/UI work. Infer from ticket summary, description, components, and labels — look for signals like UI, frontend, React, CSS, component, page, layout, design, Figma links, `.tsx`/`.jsx` file mentions, or visual/browser-related keywords. Set to `false` only when all tickets in the group are clearly backend-only.
 - **Resolve cross-layer dependencies:**

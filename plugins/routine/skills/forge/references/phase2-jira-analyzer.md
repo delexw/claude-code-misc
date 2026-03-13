@@ -1,6 +1,6 @@
 # Phase 2: JIRA Analysis (via `Skill("jira-ticket-viewer")`)
 
-- Invoke `Skill("jira-ticket-viewer")` with `"{ticket_id} {SKILL_DIR}/jira"` (e.g. `EC-10420 .claude/skills/EC-10420/jira`)
+- Invoke `Skill("jira-ticket-viewer")` with the JIRA ticket key and `SKILL_DIR/jira` as the output directory
 - After completion, **read `SKILL_DIR/jira/output.json`** to get the full parsed ticket JSON
 - If attachments were downloaded (check `SKILL_DIR/jira/` for attachment files), note the file paths for use in Phase 3.2. Do NOT Read or view image attachments here — design images are handled in Phase 3.2 Design Scanning via `Skill("figma-reader")`.
 - From the ticket output, identify:

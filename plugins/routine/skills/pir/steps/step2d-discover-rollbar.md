@@ -2,7 +2,7 @@
 
 This step runs concurrently with PagerDuty, Datadog, and Cloudflare discovery.
 
-Use the Skill tool to invoke "rollbar-reader" with args "$ARGUMENTS[0]". Then read and return the report contents from .rollbar-reader-tmp/report.md
+Use the Skill tool to invoke "rollbar-reader" with args "QUERY". Then read and return the report contents from .rollbar-reader-tmp/report.md
 
 **Extract from report** (`.rollbar-reader-tmp/report.md`):
 - Active error items and occurrence counts → **What**

@@ -4,8 +4,8 @@ After testing, save a report file to the output directory.
 
 ## Setup
 
-1. Determine the output directory from `$ARGUMENTS[1]` (default: `./qa-reports`)
-2. Run `mkdir -p $ARGUMENTS[1]/screenshots` to ensure directories exist
+1. Determine the output directory from `OUT_DIR` (default: `./qa-reports`)
+2. Run `mkdir -p OUT_DIR/screenshots` to ensure directories exist
 3. Generate a timestamp-based filename: `qa-report-{YYYY-MM-DD}.md`
 
 ## Report contents
@@ -22,7 +22,7 @@ The report file must include:
 
 ## Report template
 
-Write the following markdown to `$ARGUMENTS[1]/qa-report-{YYYY-MM-DD}.md`:
+Write the following markdown to `OUT_DIR/qa-report-{YYYY-MM-DD}.md`:
 
 ```markdown
 # QA Test Results: [Page Name]
@@ -80,7 +80,7 @@ Write the following markdown to `$ARGUMENTS[1]/qa-report-{YYYY-MM-DD}.md`:
 
 ## Save screenshots
 
-When taking screenshots during Step 3, save them to `$ARGUMENTS[1]/screenshots/{page}-{width}px.png` instead of `/tmp/`.
+When taking screenshots during Step 3, save them to `OUT_DIR/screenshots/{page}-{width}px.png` instead of `/tmp/`.
 
 ## Final output
 

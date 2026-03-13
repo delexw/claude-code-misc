@@ -34,7 +34,7 @@ Use `AskUserQuestion` to collect required information if not already provided.
 
 ## Time range
 
-If `$ARGUMENTS[2]` (time range) was provided, use it directly — **do not ask the user again**.
+If TIME_RANGE was provided, use it directly — **do not ask the user again**.
 
 Otherwise, ask: "What time range should I investigate? (Please include your timezone)"
 
@@ -44,4 +44,4 @@ Always present results in the pinned timezone (detected via system clock above).
 
 ## Zone ID
 
-Use `$ARGUMENTS[0]` (domain) and `$ARGUMENTS[1]` (zone ID) passed when invoking the skill. If not provided, ask the user for the domain and zone ID.
+Use DOMAIN and ZONE_ID passed when invoking the skill. If not provided, ask the user for the domain and zone ID.
