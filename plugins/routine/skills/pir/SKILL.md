@@ -68,9 +68,13 @@ See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
 See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
 — Invokes `Skill("rollbar-reader")`.
 
-### Step 3: Generate PIR via NotebookLM
-See [step3-generate-nlm.md](steps/step3-generate-nlm.md)
-— Checks that `nlm-skill` is installed. Creates a NotebookLM notebook, uploads all discovery reports as sources, performs codebase analysis in all working directories, then generates a report (with timeline/diagrams), an infographic, and a slide deck via NotebookLM.
+### Step 3a: Codebase Analysis
+See [step3a-codebase-analysis.md](steps/step3a-codebase-analysis.md)
+— Task subagent. Analyses git history across working directories, correlates with incident timeline from discovery reports.
+
+### Step 3b: Generate PIR via NotebookLM
+See [step3b-generate-nlm.md](steps/step3b-generate-nlm.md)
+— Task subagent. Runs after 3a. Creates NotebookLM notebook, uploads all discovery and codebase reports, generates report, infographic, and slide deck. Returns notebook ID.
 
 ### Step 4: Present Results and Clean Up
 See [step4-present-results.md](steps/step4-present-results.md)

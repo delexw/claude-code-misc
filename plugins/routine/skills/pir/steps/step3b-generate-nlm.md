@@ -1,33 +1,8 @@
-# Step 3: Generate PIR via NotebookLM
+# Step 3b: Generate PIR via NotebookLM
 
-Use the `nlm-skill` to create a NotebookLM notebook from the discovery reports, then generate a report, infographic, and slide deck.
+Launch a **Task subagent** to run nlm-skill. The Task must return the notebook ID.
 
-## 3a: Check nlm-skill Availability
-
-Run `/skills` to check if `nlm-skill` is installed. If it is NOT listed, **stop and inform the user**: "The `nlm-skill` is required for PIR report generation but is not installed. Please install it first."
-
-## 3b: Codebase Analysis
-
-Perform codebase analysis in all current working directories (any additional directories added via `--add-dir`):
-
-For each working directory:
-1. `cd` into the directory
-2. Run `git fetch origin` to get latest refs
-3. Run `git log origin/main --oneline --since="<incident_start>" --until="<incident_end>"` to find relevant commits
-4. For suspicious commits, run `git show origin/main:<file>` to examine changes
-5. Correlate commit timestamps with incident timeline from discovery reports
-
-**IMPORTANT**: Do NOT checkout main. Use `git log origin/main` and `git show origin/main:<file>` only.
-
-Save the codebase analysis to `.codebase-analysis-tmp/report.md`.
-
-The analysis must produce a **definitive** conclusion — either:
-- **"Culprit found: [description] — [evidence]"** when the root cause is confirmed, OR
-- **"No culprit identified from codebase analysis"** when no causal link can be confirmed.
-
-NEVER use hedging language.
-
-## 3c: Invoke nlm-skill
+First, check if `nlm-skill` is installed (run `/skills`). If it is NOT listed, **stop and inform the user**: "The `nlm-skill` is required for PIR report generation but is not installed. Please install it first."
 
 Invoke `Skill("nlm-skill")` with the following instructions:
 
