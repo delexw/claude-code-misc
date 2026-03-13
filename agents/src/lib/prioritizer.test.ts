@@ -83,6 +83,59 @@ describe("parsePrioritizerOutput", () => {
     assert.deepEqual(result.skipped, []);
     assert.deepEqual(result.excluded, []);
   });
+
+  it("parses many sequential single-ticket layers", () => {
+    const input = JSON.stringify({
+      layers: [
+        { group: ["EC-10819"], relation: null, hasFrontend: true },
+        { group: ["EC-10820"], relation: null, hasFrontend: true },
+        { group: ["EC-10821"], relation: null, hasFrontend: true },
+        { group: ["EC-10822"], relation: null, hasFrontend: true },
+        { group: ["EC-10823"], relation: null, hasFrontend: true },
+        { group: ["EC-10824"], relation: null, hasFrontend: true },
+      ],
+      skipped: [],
+      excluded: [
+        { key: "EC-10798", reason: "Pure container story" },
+        { key: "EC-10810", reason: "Done" },
+      ],
+    });
+
+    const result = parsePrioritizerOutput(input)!;
+    assert.equal(result.layers.length, 6);
+    assert.deepEqual(result.layers[0].group, ["EC-10819"]);
+    assert.deepEqual(result.layers[5].group, ["EC-10824"]);
+    assert.equal(result.excluded.length, 2);
+  });
+
+  it("strips code fences without language tag", () => {
+    const json = JSON.stringify({
+      layers: [{ group: ["EC-1"], relation: null, hasFrontend: true }],
+    });
+    const input = "```\n" + json + "\n```";
+
+    const result = parsePrioritizerOutput(input)!;
+    assert.deepEqual(result.layers[0].group, ["EC-1"]);
+  });
+
+  it("handles leading/trailing whitespace from stdout", () => {
+    const json = JSON.stringify({
+      layers: [{ group: ["EC-1"], relation: null, hasFrontend: true }],
+    });
+    const input = "\n\n  " + json + "  \n\n";
+
+    const result = parsePrioritizerOutput(input)!;
+    assert.deepEqual(result.layers[0].group, ["EC-1"]);
+  });
+
+  it("treats omitted relation as null", () => {
+    const input = JSON.stringify({
+      layers: [{ group: ["EC-1", "EC-2"], hasFrontend: true }],
+    });
+
+    const result = parsePrioritizerOutput(input)!;
+    assert.equal(result.layers[0].relation, null);
+  });
 });
 
 describe("fallbackResult", () => {
@@ -152,6 +205,25 @@ describe("classifyTickets", () => {
     assert.equal(pending.length, 2);
     assert.equal(context.length, 0);
   });
+
+  it("handles empty input", () => {
+    const { pending, context } = classifyTickets([]);
+    assert.equal(pending.length, 0);
+    assert.equal(context.length, 0);
+  });
+
+  it("treats In Review, Closed, Resolved as context", () => {
+    const tickets = [
+      { key: "EC-1", status: "In Review" },
+      { key: "EC-2", status: "Closed" },
+      { key: "EC-3", status: "Resolved" },
+      { key: "EC-4", status: "In Progress" },
+    ];
+
+    const { pending, context } = classifyTickets(tickets);
+    assert.equal(pending.length, 0);
+    assert.equal(context.length, 4);
+  });
 });
 
 describe("filterGroup", () => {
@@ -205,5 +277,30 @@ describe("filterGroup", () => {
       new Set(),
     );
     assert.deepEqual(result, []);
+  });
+
+  it("handles empty group input", () => {
+    const result = filterGroup([], unprocessed, new Set(), new Set());
+    assert.deepEqual(result, []);
+  });
+
+  it("passes through when all tickets are valid", () => {
+    const result = filterGroup(
+      ["EC-1", "EC-2", "EC-3"],
+      unprocessed,
+      new Set(),
+      new Set(),
+    );
+    assert.deepEqual(result, ["EC-1", "EC-2", "EC-3"]);
+  });
+
+  it("handles ticket in both skipped and excluded", () => {
+    const result = filterGroup(
+      ["EC-1", "EC-2", "EC-3"],
+      unprocessed,
+      new Set(["EC-2"]),
+      new Set(["EC-2"]),
+    );
+    assert.deepEqual(result, ["EC-1", "EC-3"]);
   });
 });
