@@ -224,8 +224,7 @@ async function main() {
 
   const missing = pending.filter((t) => !seen.has(t) && !excludedSet.has(t));
   if (missing.length > 0) {
-    orderedLayers.push(missing);
-    log(`WARN: ${missing.length} ticket(s) not in prioritizer output, appended as final layer`);
+    log(`INFO: skipping ${missing.join(", ")} — not in prioritizer output`);
   }
 
   const BATCH_SIZE = 5;
