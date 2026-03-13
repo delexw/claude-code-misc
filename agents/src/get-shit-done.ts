@@ -135,18 +135,19 @@ function buildGroupPrompt(
   const repoList = repos.join("\n");
 
   const devEnvSteps = hasFrontend
-    ? `4. Bootstrap all dev services (run ALL 5 in parallel with 10 minute timeout):
-   - Determine the merge branch name from step 1 (e.g. "${primaryTicket}-merge-...")
-   - For each service, use worktree paths if available, otherwise use original repo paths from: ${repoList}
-   - Skill("/elements-backend-bootstrap <backend_path> 'bootstrap on <merge_branch> branch'")
-   - Skill("/elements-storefront-bootstrap <storefront_path> 'bootstrap on <merge_branch> branch'")
-   - Skill("/elements-payment-bootstrap 'bootstrap on main branch'")
-   - Skill("/elements-search-bootstrap 'bootstrap on main branch'")
-   - Skill("/sso-server-bootstrap 'bootstrap on main branch'")
-   - Note all dev server URLs once ready
-5. Run verification: Skill("/verification <dev_server_url>") — pass the primary dev server URL from step 4
+    ? `4. Bootstrap all dev services in a single subagent (model: sonnet):
+   - Launch one Agent(model: sonnet) with a prompt to run ALL 5 bootstrap skills in parallel:
+     - Determine the merge branch name from step 1
+     - For each service, use worktree paths if available, otherwise use original repo paths from: ${repoList}
+     - Skill("/elements-backend-bootstrap <backend_path> bootstrap on <merge_branch> branch")
+     - Skill("/elements-storefront-bootstrap <storefront_path> bootstrap on <merge_branch> branch")
+     - Skill("/elements-payment-bootstrap bootstrap on main branch")
+     - Skill("/elements-search-bootstrap bootstrap on main branch")
+     - Skill("/sso-server-bootstrap bootstrap on main branch")
+     - Return all dev server URLs once ready
+5. Run verification in a subagent: Agent(prompt: "Skill('/verification <dev_server_url>')") — pass the primary dev server URL from step 4
 6. Kill all dev servers`
-    : `4. Run verification: Skill("/verification")`;
+    : `4. Run verification in a subagent: Agent(prompt: "Skill('/verification')")`;
 
   const prStepBase = hasFrontend ? 7 : 5;
   const prSteps = forges
@@ -183,7 +184,7 @@ async function forgeTicket(
 
   const { code, stdout } = await runClaudeTask(
     buildForgePrompt(ticketUrl, repos),
-    { repos, taskName: `get-shit-done: forge ${ticketKey}` },
+    { repos, taskName: `get-shit-done: forge ${ticketKey}`, model: "opus" },
   );
 
   writeTaskLog("task", ticketKey, stdout);
