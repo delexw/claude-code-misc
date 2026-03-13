@@ -34,12 +34,12 @@ Analyze a set of JIRA tickets to determine optimal execution order based on depe
   ```
 - Parse each ticket using the jira-ticket-viewer parse script:
   ```
-  node ../jira-ticket-viewer/scripts/parse-ticket.js < .jira-ticket-prioritizer-tmp/tickets/{KEY}.json > .jira-ticket-prioritizer-tmp/tickets/{KEY}-parsed.json
+  node ${CLAUDE_SKILL_DIR}/../jira-ticket-viewer/scripts/parse-ticket.js < .jira-ticket-prioritizer-tmp/tickets/{KEY}.json > .jira-ticket-prioritizer-tmp/tickets/{KEY}-parsed.json
   ```
 - Collect all parsed outputs into a single JSON array and write to `.jira-ticket-prioritizer-tmp/all-tickets.json`
 
 ### Step 3 — Build Dependency Graph
-- Run: `node ./scripts/build-dependency-graph.js < .jira-ticket-prioritizer-tmp/all-tickets.json > .jira-ticket-prioritizer-tmp/graph.json`
+- Run: `node ${CLAUDE_SKILL_DIR}/scripts/build-dependency-graph.js < .jira-ticket-prioritizer-tmp/all-tickets.json > .jira-ticket-prioritizer-tmp/graph.json`
 - Review graph output for cycles or warnings
 - See [references/dependency-analysis.md](references/dependency-analysis.md) for relationship mapping rules
 
