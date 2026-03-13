@@ -56,7 +56,8 @@ Analyze a set of JIRA tickets to determine optimal execution order based on depe
 - Apply `$ARGUMENTS[1]` context as a tiebreaker or boost (e.g. "focus on backend" boosts tickets with backend labels/components)
 
 ### Step 6 — Generate Output
-- Write `.jira-ticket-prioritizer-tmp/detailed-report.json` — full details including scores, justifications, dependency graph, excluded tickets, and warnings (see [references/output-format.md](references/output-format.md) for schema)
+- See [references/output-format.md](references/output-format.md) for report schema and JSON structure
+- Write `.jira-ticket-prioritizer-tmp/detailed-report.json` — full details including scores, justifications, dependency graph, excluded tickets, and warnings
 - Write `.jira-ticket-prioritizer-tmp/output.json` — a JSON object `{ "layers": [...] }` where `layers` contains ticket keys grouped by dependency layer (array of arrays), sorted by priority score within each layer
 - **Present only `output.json`** (the simple layers object) to the user. The detailed report is saved for reference but not displayed.
 
