@@ -42,22 +42,51 @@ claude --plugin-dir ./path/to/plugins/routine
 
 ## Setup
 
-### Required
+> **Reminder:** Ensure each CLI tool is installed and available in your Claude Code session context (i.e. on `$PATH`) before invoking the skill that needs it. If a CLI is missing at runtime the skill will fail. You can verify with `which <tool>` or `<tool> --version`.
 
-| Dependency | Description |
-|---|---|
-| [jira-cli](https://github.com/ankitpokhrel/jira-cli) | Jira CLI tool |
-| [confluence-cli](https://github.com/pchuri/confluence-cli) | Confluence CLI tool |
-| `JIRA_API_TOKEN` | [Jira API token](https://id.atlassian.com/manage-profile/security/api-tokens) — set as env var |
+### Implementation (Forge workflow)
 
-### Optional
+| Skill | CLI / Tool | Env Vars | Install |
+|---|---|---|---|
+| `forge` | `git` | — | ships with macOS / Xcode CLT |
+| `jira-ticket-viewer` | `jira` | `JIRA_API_TOKEN` | [jira-cli](https://github.com/ankitpokhrel/jira-cli) |
+| `jira-ticket-prioritizer` | `jira` | `JIRA_API_TOKEN` | [jira-cli](https://github.com/ankitpokhrel/jira-cli) |
+| `confluence-page-viewer` | `npx confluence-cli` | `CONFLUENCE_USERNAME`, `CONFLUENCE_PASSWORD` | `npm i -g confluence-cli` / [confluence-cli](https://github.com/pchuri/confluence-cli) |
+| `figma-reader` | — | — | [Figma MCP](https://github.com/nichochar/figma-mcp) server |
+| `page-inspector` | — | — | [Chrome DevTools MCP](https://github.com/nichochar/chrome-devtools-mcp) server |
+| `meta-prompter` | `npx meta-prompter-mcp` | `PROMPT_EVAL_API_KEY`, `PROMPT_EVAL_MODEL` | [meta-prompter](https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli) |
+| `domain-discover` | `git` | — | ships with macOS / Xcode CLT |
 
-| Dependency | Description |
-|---|---|
-| [Figma MCP](https://github.com/nichochar/figma-mcp) | Read Figma designs from ticket links |
-| [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) | Browser automation for QA testing and visual verification |
-| `PROMPT_EVAL_API_KEY` | Prompt optimization via [meta-prompter](https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter#cli) |
-| `PROMPT_EVAL_MODEL` | Model for prompt evaluation (default: `anthropic:claude-sonnet-4-5`). Format: `provider:model-id` |
+### QA / Verification
+
+| Skill | CLI / Tool | Env Vars | Install |
+|---|---|---|---|
+| `qa-web-test` | — | — | [Chrome DevTools MCP](https://github.com/nichochar/chrome-devtools-mcp) server |
+| `codex-review` | `codex` | `OPENAI_API_KEY` | [Codex CLI](https://github.com/openai/codex) |
+| `verification` | `codex` | `OPENAI_API_KEY` | orchestrates `codex-review` + `qa-web-test` |
+
+### Incident Response (PIR workflow)
+
+| Skill | CLI / Tool | Env Vars | Install |
+|---|---|---|---|
+| `pagerduty-oncall` | `pd` | `PAGERDUTY_API_TOKEN` | [PagerDuty CLI](https://github.com/martindstone/pagerduty-cli) |
+| `datadog-analyser` | `pup` | `DD_API_KEY`, `DD_APP_KEY` | [Pup CLI](https://github.com/DataDog/pup) |
+| `cloudflare-traffic-investigator` | `cloudflare-mcp-cli` | `CLOUDFLARE_API_TOKEN` | [cloudflare-mcp-cli](https://github.com/nichochar/cloudflare-mcp-cli) |
+| `rollbar-reader` | `rollbar` | `ROLLBAR_TOKEN` | [Rollbar CLI](https://github.com/nichochar/rollbar-cli) |
+
+### Git / GitHub
+
+| Skill | CLI / Tool | Env Vars | Install |
+|---|---|---|---|
+| `git-commit` | `git` | — | ships with macOS / Xcode CLT |
+| `create-pr` | `git`, `gh` | `GITHUB_TOKEN` | [GitHub CLI](https://cli.github.com/) |
+
+### Code Quality
+
+| Skill | CLI / Tool | Env Vars | Install |
+|---|---|---|---|
+| `oxlint` | `npx oxlint` | — | auto-downloaded via npx |
+| `oxfmt` | `oxfmt` | — | [oxfmt](https://github.com/nichochar/oxfmt) |
 
 ## Skills
 
