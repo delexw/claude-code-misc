@@ -5,7 +5,7 @@
 - Required: `$ARGUMENTS` must contain a valid Confluence page URL
 
 ## Command Restrictions
-- Only read-only commands from `npx confluence-cli` are permitted:
+- Only read-only commands from `confluence-cli` are permitted:
   - `read` — Read a page by ID or URL
   - `info` — Get information about a page
   - `search` — Search for pages
@@ -19,7 +19,7 @@
 
 ## Error Handling
 
-- **CLI Not Available**: Use `AskUserQuestion` — guide user to ensure Node.js/npx is available and `confluence-cli` can be run via `npx confluence-cli`: https://github.com/pchuri/confluence-cli
+- **CLI Not Available**: Use `AskUserQuestion` — guide user to install `confluence-cli` and ensure it is available in PATH: https://github.com/pchuri/confluence-cli
 - **CLI Not Configured**: Use `AskUserQuestion` — guide user to configure their Confluence instance credentials
 - **Page Not Found**: "Page not found. Verify the URL exists and you have access permissions."
 - **Auth Error**: Use `AskUserQuestion` — guide user to reconfigure credentials

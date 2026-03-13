@@ -10,7 +10,7 @@ model: sonnet
 
 # Confluence Page Viewer
 
-Fetch and display Confluence page content using `npx confluence-cli`.
+Fetch and display Confluence page content using `confluence-cli`.
 
 ## Arguments
 - `$ARGUMENTS[0]` — Confluence page URL
@@ -19,13 +19,12 @@ Fetch and display Confluence page content using `npx confluence-cli`.
 When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided. When used standalone, it defaults to `.implement-assets/confluence`.
 
 ## System Requirements
-- Node.js and npm/npx available
-- `confluence-cli` package (https://github.com/pchuri/confluence-cli) — invoked via `npx confluence-cli` to avoid asdf Node.js version conflicts
+- `confluence-cli` installed and available in PATH (https://github.com/pchuri/confluence-cli)
 
 ## Execution
 
-1. **Pre-flight check**: Run `npx confluence-cli --help` to verify the CLI works — if it fails, follow error handling in [references/rules.md](references/rules.md). Do NOT continue until the CLI is available. Auth errors are caught when the actual command runs.
+1. **Pre-flight check**: Run `which confluence-cli` to verify the CLI is available. If not found, follow error handling in [references/rules.md](references/rules.md). Do NOT continue until the CLI is available.
 2. Validate `$ARGUMENTS[0]` against [references/rules.md](references/rules.md)
-3. Run `npx confluence-cli read $ARGUMENTS[0]` via Bash
+3. Run `confluence-cli read $ARGUMENTS[0]` via Bash
 4. Format the output per [references/output-format.md](references/output-format.md)
 5. **Save output**: Run `mkdir -p $ARGUMENTS[1]` via Bash, then save the full formatted output to `$ARGUMENTS[1]/output.md` using the Write tool. This ensures the complete output is persisted for the orchestrator to read.
