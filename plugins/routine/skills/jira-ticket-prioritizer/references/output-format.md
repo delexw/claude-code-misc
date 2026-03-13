@@ -12,6 +12,12 @@ Ticket keys grouped by dependency layer, sorted by priority score within each la
     ["PROJ-100", "PROJ-104"],
     ["PROJ-101", "PROJ-102"],
     ["PROJ-103"]
+  ],
+  "excluded": [
+    {
+      "key": "PROJ-99",
+      "reason": "Pure container story — no implementable tasks distinct from its sub-tasks"
+    }
   ]
 }
 ```
@@ -20,12 +26,14 @@ Ticket keys grouped by dependency layer, sorted by priority score within each la
 - **layers[1]** = Layer 1 (depends on layer 0 being done)
 - **layers[2]** = Layer 2 (depends on layer 1 being done)
 - ...and so on
+- **excluded** = Tickets intentionally omitted from layers (container stories, Done/Closed/Resolved, etc.) with a reason string
 
 ### Ordering Rules
 
 1. `layers` array is ordered by **dependency layer** (0, 1, 2, ...)
 2. Within each layer, tickets are ordered by **descending priority score**
-3. Tickets with status Done/Closed/Resolved are **excluded**
+3. Tickets with status Done/Closed/Resolved are placed in `excluded`
+4. Container/parent stories with no implementable tasks of their own are placed in `excluded`
 
 ---
 

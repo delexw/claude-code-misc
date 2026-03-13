@@ -135,8 +135,13 @@ Track progress with a TODO list. Run each step as a Task subagent:
 
 // ─── Prioritize tickets ─────────────────────────────────────────────────────
 
-async function prioritizeTickets(tickets: string[]): Promise<string[][]> {
-  if (tickets.length <= 1) return [tickets];
+interface PrioritizeResult {
+  layers: string[][];
+  excluded: string[];
+}
+
+async function prioritizeTickets(tickets: string[]): Promise<PrioritizeResult> {
+  if (tickets.length <= 1) return { layers: [tickets], excluded: [] };
 
   const ticketList = tickets.join(",");
   const prompt = `Autonomy mode: never use AskUserQuestion tool.
@@ -154,8 +159,12 @@ Return json ONLY without code fence`;
     const parsed = JSON.parse(stdout.trim());
     const layers = parsed.layers ?? parsed;
     if (Array.isArray(layers) && layers.every(Array.isArray)) {
+      const excluded = Array.isArray(parsed.excluded)
+        ? parsed.excluded.map((e: { key: string }) => e.key ?? e)
+        : [];
       log(`PRIORITIZED: ${layers.length} layer(s) — ${layers.map((l: string[], i: number) => `L${i}:[${l.join(",")}]`).join(" ")}`);
-      return layers;
+      if (excluded.length > 0) log(`EXCLUDED: ${excluded.join(", ")}`);
+      return { layers, excluded };
     }
   }
 
@@ -192,7 +201,8 @@ async function main() {
     }
   }
 
-  const layers = await prioritizeTickets(pending);
+  const { layers, excluded } = await prioritizeTickets(pending);
+  const excludedSet = new Set(excluded);
 
   const pendingSet = new Set(pending);
   const seen = new Set<string>();
@@ -204,7 +214,7 @@ async function main() {
     if (filtered.length > 0) orderedLayers.push(filtered);
   }
 
-  const missing = pending.filter((t) => !seen.has(t));
+  const missing = pending.filter((t) => !seen.has(t) && !excludedSet.has(t));
   if (missing.length > 0) {
     orderedLayers.push(missing);
     log(`WARN: ${missing.length} ticket(s) not in prioritizer output, appended as final layer`);
