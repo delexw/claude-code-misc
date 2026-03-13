@@ -16,11 +16,11 @@ You are tasked with creating a comprehensive domain knowledge file for a codebas
 - `$ARGUMENTS[0]` — Domain name used as the output filename (`{domain}.md`)
 - `$ARGUMENTS[1]` — (optional) Output directory for the domain knowledge file. Defaults to `.` (project root / current working directory)
 
-When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided. When used standalone, it defaults to the project root for backward compatibility.
+When invoked by the orchestrator, `$ARGUMENTS[1]` is provided. When used standalone, it defaults to the project root for backward compatibility.
 
 ## Output Location
 
-- Creates or updates `$ARGUMENTS[1]/{$ARGUMENTS[0]}.md` (e.g. `./payments.md`)
+- Creates or updates `$ARGUMENTS[1]/{$ARGUMENTS[0]}.md`
 - Run `mkdir -p $ARGUMENTS[1]` before writing to ensure the directory exists.
 
 ## Objective

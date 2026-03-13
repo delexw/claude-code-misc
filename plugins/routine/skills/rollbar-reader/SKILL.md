@@ -13,7 +13,7 @@ Investigate and analyse Rollbar error tracking data using the `rollbar` CLI (htt
 
 ## Arguments
 
-- `$ARGUMENTS[0]` — What to investigate (e.g. `"active errors last 24h"`, `"top items production"`, `"item 12345"`, `"deploys this week"`). Include the time range in the sentence (e.g. `"last 24h"`, `"yesterday"`, `"2026-03-01 to 2026-03-05"`). Use current agent's local timezone (detect via system clock) for any time-based queries, not UTC. Defaults to last 24 hours if no time range is mentioned.
+- `$ARGUMENTS[0]` — What to investigate. Include the time range in the sentence. Use current agent's local timezone (detect via system clock) for any time-based queries, not UTC. Defaults to last 24 hours if no time range is mentioned.
 - `$ARGUMENTS[1]` — (optional) Base directory for all temp assets. Defaults to `.rollbar-reader-tmp/`.
 
 ## System Requirements
@@ -180,7 +180,7 @@ This returns the complete occurrence payload — stack trace, request params, pe
 7. **Repeat** for other high-priority items
 
 **Time range handling:**
-- Extract time range from `$ARGUMENTS[0]` (e.g. `"last 24h"`, `"yesterday"`, `"2026-03-01 to 2026-03-05"`)
+- Extract time range from `$ARGUMENTS[0]`
 - Convert to appropriate `--hours` flags for report commands or date ranges for RQL queries
 - Default: last 24 hours if no time range is mentioned in `$ARGUMENTS[0]`
 

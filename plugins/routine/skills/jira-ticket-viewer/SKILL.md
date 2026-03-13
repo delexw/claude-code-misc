@@ -12,10 +12,10 @@ context: fork
 Fetch and display Jira ticket details using the `jira` CLI tool.
 
 ## Arguments
-- `$ARGUMENTS[0]` — Jira issue key (e.g. `PROJ-123`)
+- `$ARGUMENTS[0]` — Jira issue key
 - `$ARGUMENTS[1]` — (optional) Base directory for all temp assets (raw JSON, attachments, parsed output). Defaults to `.implement-assets/jira`
 
-When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided. When used standalone, it defaults to `.implement-assets/jira`.
+When invoked by the orchestrator, `$ARGUMENTS[1]` is provided. When used standalone, it defaults to `.implement-assets/jira`.
 
 ## System Requirements
 - `jira` CLI installed and configured (https://github.com/ankitpokhrel/jira-cli)

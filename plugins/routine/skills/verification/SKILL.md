@@ -1,7 +1,7 @@
 ---
 name: verification
 description: Verify implementation changes via code review and QA web testing. Runs a loop of codex-review + qa-web-test until all issues are resolved. Use after implementation is complete, on a branch with uncommitted or committed changes.
-argument-hint: '[dev-env-context]'
+argument-hint: <dev-env-context>
 allowed-tools: Read, Bash, Write, Edit
 ---
 
@@ -10,7 +10,7 @@ allowed-tools: Read, Bash, Write, Edit
 Verify implementation changes via iterative code review and optional QA web testing.
 
 ## Arguments
-- `$ARGUMENTS[0]` — (optional) Dev environment context. Can be a dev server URL (e.g. `"http://localhost:3000"`), or empty to auto-detect.
+- `$ARGUMENTS[0]` — (optional) Dev environment context. Can be a dev server URL or empty to auto-detect.
 
 ## Execution
 

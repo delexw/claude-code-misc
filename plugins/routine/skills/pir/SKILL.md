@@ -3,7 +3,7 @@ name: pir
 description: Create Post Incident Records (PIRs) by discovering issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently. Orchestrates pagerduty-oncall, datadog-analyser, cloudflare-traffic-investigator, and rollbar-reader skills, auto-determines severity, and outputs completed PIR forms. Use when asked to "create a PIR", "write a post incident record", "fill out PIR form", "incident report", "analyse incidents", or after on-call shifts need documentation.
 model: sonnet
 context: fork
-argument-hint: "what to investigate (e.g. 'incidents last 24h', 'errors yesterday', 'outage last 1h') [domain:zone-id]"
+argument-hint: <what-to-investigate> <domain:zone-id>
 allowed-tools: Read, Bash, Write, Edit
 ---
 
@@ -12,8 +12,8 @@ allowed-tools: Read, Bash, Write, Edit
 Discover issues from PagerDuty, Datadog, Cloudflare, and Rollbar concurrently, auto-determine severity, and produce completed PIR forms for each issue.
 
 ## Arguments
-- `$ARGUMENTS[0]` — What to investigate (e.g. `"incidents last 24h"`, `"errors yesterday"`, `"outage last 1h"`, `"incidents 2026-03-01 to 2026-03-05"`). Passed directly to each sub-skill. Defaults to `"incidents today"`.
-- `$ARGUMENTS[1]` — (optional) Cloudflare domain and zone ID in `domain:zone_id` format (e.g. `example.com:abc123def456`). Passed to the `cloudflare-traffic-investigator` skill. If not provided, the cloudflare skill will ask the user.
+- `$ARGUMENTS[0]` — What to investigate. Passed directly to each sub-skill. Defaults to `"incidents today"`.
+- `$ARGUMENTS[1]` — (optional) Cloudflare domain and zone ID in `domain:zone_id` format. Passed to the `cloudflare-traffic-investigator` skill. If not provided, the cloudflare skill will ask the user.
 
 ## PIR Form Fields
 

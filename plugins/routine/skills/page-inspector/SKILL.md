@@ -12,7 +12,7 @@ context: fork
 Connects to a running Chrome browser session via Chrome DevTools MCP, navigates to the target page, and captures a comprehensive snapshot of the current layout, styles, and structure. This output serves as a baseline reference for implementation.
 
 ## Arguments
-- `$ARGUMENTS[0]` — Target URL to inspect (e.g. `http://localhost:3000/page`)
+- `$ARGUMENTS[0]` — Target URL to inspect
 - `$ARGUMENTS[1]` — (optional) Output directory. Defaults to `./page-inspector-output`
 
 ## Prerequisites

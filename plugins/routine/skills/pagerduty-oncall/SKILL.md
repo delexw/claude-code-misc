@@ -1,7 +1,7 @@
 ---
 name: pagerduty-oncall
 description: Investigate PagerDuty incidents for Envato on-call escalation policies. Use when asked about incidents, on-call status, incident analysis, or PagerDuty investigation.
-argument-hint: "what to investigate (e.g. 'incidents last 24h', 'on-call yesterday', 'incidents today')"
+argument-hint: <what-to-investigate>
 allowed-tools: Bash(pd auth *), Bash(pd ep list *), Bash(pd incident list *), Bash(pd incident log *), Bash(pd incident notes *), Bash(pd incident analytics *), Bash(node *), Bash(mkdir *), Bash(test *), Bash(chmod *), Read, Write, Edit
 model: sonnet
 context: fork
@@ -12,7 +12,7 @@ context: fork
 Authenticate, list escalation policies, fetch all incidents and their details, then analyse relevance across Envato on-call teams.
 
 ## Arguments
-- `$ARGUMENTS[0]` — What to investigate (e.g. `"incidents last 24h"`, `"on-call yesterday"`, `"incidents today"`, `"incidents 2026-03-01 to 2026-03-05"`). Defaults to `"incidents today"`. Interpret the time range to derive `--since` and `--until` dates (YYYY-MM-DD) in the agent's local timezone (detect via system clock), not UTC. See the date derivation table in Step 5.
+- `$ARGUMENTS[0]` — What to investigate. Defaults to `"incidents today"`. Interpret the time range to derive `--since` and `--until` dates (YYYY-MM-DD) in the agent's local timezone (detect via system clock), not UTC. See the date derivation table in Step 5.
 
 ## Target Escalation Policies
 

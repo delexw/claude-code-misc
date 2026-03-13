@@ -14,13 +14,13 @@ already-running Chrome browser session, navigates to pages, emulates viewports, 
 screenshots, and inspects CSS properties to catch responsive layout bugs.
 
 ## Arguments
-- `$ARGUMENTS[0]` — Target URL to test (e.g. `http://localhost:3000/page`)
+- `$ARGUMENTS[0]` — Target URL to test
 - `$ARGUMENTS[1]` — (optional) Output directory for the QA report and screenshots. Defaults to `./qa-reports`
 
 ## Output Location
 
-- Creates or updates `$ARGUMENTS[1]/qa-report-{timestamp}.md` (e.g. `./qa-reports/qa-report-2026-02-27.md`)
-- Screenshots are saved to `$ARGUMENTS[1]/screenshots/` (e.g. `./qa-reports/screenshots/page-700px.png`)
+- Creates or updates `$ARGUMENTS[1]/qa-report-{timestamp}.md`
+- Screenshots are saved to `$ARGUMENTS[1]/screenshots/`
 - Run `mkdir -p $ARGUMENTS[1]/screenshots` before writing to ensure directories exist.
 
 ## Prerequisites
