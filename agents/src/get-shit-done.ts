@@ -116,9 +116,13 @@ function extractWorktreePath(stdout: string): string {
 const AUTONOMY_PREFIX =
   "Autonomy mode: never use AskUserQuestion tool — explore answers yourself.";
 
-function buildForgePrompt(ticketUrl: string, repos: string[]): string {
+function buildForgePrompt(
+  ticketKey: string,
+  ticketUrl: string,
+  repos: string[],
+): string {
   const repoList = repos.join("\n");
-  return `${AUTONOMY_PREFIX}
+  return `[GSD: forge ${ticketKey}] ${AUTONOMY_PREFIX}
 Invoke Skill("/forge ${ticketUrl} 'Find the correct repo from: ${repoList}. Multiple repos are possible.'")
 Return the JSON output from forge ONLY without code fence.`;
 }
@@ -157,7 +161,7 @@ function buildGroupPrompt(
     )
     .join("\n");
 
-  return `${AUTONOMY_PREFIX}
+  return `[GSD: merge+verify ${primaryTicket}] ${AUTONOMY_PREFIX}
 Track progress with a TODO list.
 
 Forge results (ticket:worktree_path):
@@ -183,7 +187,7 @@ async function forgeTicket(
   log(`FORGING: ${ticketKey} -> ${ticketUrl}`);
 
   const { code, stdout } = await runClaudeTask(
-    buildForgePrompt(ticketUrl, repos),
+    buildForgePrompt(ticketKey, ticketUrl, repos),
     { repos, taskName: `get-shit-done: forge ${ticketKey}`, model: "opus" },
   );
 
@@ -297,7 +301,7 @@ async function prioritizeTickets(
 
   const ticketList = allTickets.join(",");
   const { code, stdout } = await runClaudeTask(
-    `${AUTONOMY_PREFIX}\nInvoke Skill("/jira-ticket-prioritizer ${ticketList}").\nReturn json ONLY without code fence`,
+    `[GSD: prioritize ${allTickets.length} tickets] ${AUTONOMY_PREFIX}\nInvoke Skill("/jira-ticket-prioritizer ${ticketList}").\nReturn json ONLY without code fence`,
     {
       taskName: `get-shit-done: prioritizing ${allTickets.length} tickets`,
       cwd: SCRIPT_DIR,
