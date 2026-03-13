@@ -156,7 +156,9 @@ Return json ONLY without code fence`;
   );
 
   if (code === 0) {
-    const parsed = JSON.parse(stdout.trim());
+    // Strip markdown code fences if Claude wraps the JSON
+    const raw = stdout.trim().replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+    const parsed = JSON.parse(raw);
     const layers = parsed.layers ?? parsed;
     if (Array.isArray(layers) && layers.every(Array.isArray)) {
       const excluded = Array.isArray(parsed.excluded)
