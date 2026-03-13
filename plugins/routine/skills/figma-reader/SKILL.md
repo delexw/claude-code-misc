@@ -16,7 +16,7 @@ Read Figma design context via the Figma MCP server.
 - `$ARGUMENTS[0]` — Figma link, design prompt copied from Figma, or attached UI design image (optional)
 - `$ARGUMENTS[1]` — (optional) Output directory for persisting the design context. Defaults to `.implement-assets/figma`
 
-When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided. When used standalone, it defaults to `.implement-assets/figma`.
+Set `OUT_DIR` to `$ARGUMENTS[1]` if provided, otherwise `.implement-assets/figma`. Use `OUT_DIR` for all output paths below.
 
 ## Execution
 
@@ -28,4 +28,4 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
    - If `$ARGUMENTS[0]` is empty or not provided → use `AskUserQuestion` to ask user (see [references/rules.md](references/rules.md) Design Input)
 4. **Read design**: Use the Figma MCP tools to read the design from the Figma link resolved in step 3
    - Format the output per [references/output-format.md](references/output-format.md)
-   - **Save output**: Run `mkdir -p $ARGUMENTS[1]` via Bash, then save the full formatted output to `$ARGUMENTS[1]/output.md` using the Write tool
+   - **Save output**: Run `mkdir -p OUT_DIR` via Bash, then save the full formatted output to `OUT_DIR/output.md` using the Write tool

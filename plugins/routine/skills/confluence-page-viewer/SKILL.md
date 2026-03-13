@@ -16,7 +16,7 @@ Fetch and display Confluence page content using `confluence-cli`.
 - `$ARGUMENTS[0]` — Confluence page URL
 - `$ARGUMENTS[1]` — (optional) Output directory for persisting the page content. Defaults to `.implement-assets/confluence`
 
-When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided. When used standalone, it defaults to `.implement-assets/confluence`.
+Set `OUT_DIR` to `$ARGUMENTS[1]` if provided, otherwise `.implement-assets/confluence`. Use `OUT_DIR` for all output paths below.
 
 ## System Requirements
 - `confluence-cli` installed and available in PATH (https://github.com/pchuri/confluence-cli)
@@ -27,4 +27,4 @@ When invoked by the orchestrator (e.g. `implement`), `$ARGUMENTS[1]` is provided
 2. Validate `$ARGUMENTS[0]` against [references/rules.md](references/rules.md)
 3. Run `confluence-cli read $ARGUMENTS[0]` via Bash
 4. Format the output per [references/output-format.md](references/output-format.md)
-5. **Save output**: Run `mkdir -p $ARGUMENTS[1]` via Bash, then save the full formatted output to `$ARGUMENTS[1]/output.md` using the Write tool. This ensures the complete output is persisted for the orchestrator to read.
+5. **Save output**: Run `mkdir -p OUT_DIR` via Bash, then save the full formatted output to `OUT_DIR/output.md` using the Write tool.
