@@ -10,7 +10,7 @@ allowed-tools: Read, Bash, Write, Edit
 Verify implementation changes via iterative code review and optional QA web testing.
 
 ## Arguments
-- `$ARGUMENTS[0]` — (optional) Dev environment context. Can be a skill reference (e.g. `"/elements-dev-env <backend> <storefront>"`), a dev server URL (e.g. `"http://localhost:3000"`), or empty to auto-detect.
+- `$ARGUMENTS[0]` — (optional) Dev environment context. Can be a dev server URL (e.g. `"http://localhost:3000"`), or empty to auto-detect.
 
 ## Execution
 

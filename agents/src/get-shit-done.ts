@@ -185,10 +185,16 @@ async function processGroup(
   const taskLog = join(LOG_DIR, `group-${primaryTicket}-${TIMESTAMP}.log`);
 
   const devEnvInstruction = hasFrontend
-    ? `4. Launch dev env: Skill("/elements-dev-env <backend_path> <storefront_path>") with a 10 minute timeout
-   - Use worktree paths if available, otherwise use original repo paths from: ${repoList}
-   - Note the dev server URL (e.g. http://localhost:3000)
-5. Run verification: Skill("/verification <dev_server_url>") — pass the dev server URL from step 4
+    ? `4. Bootstrap all dev services (run ALL 5 in parallel with 10 minute timeout):
+   - Determine the merge branch name from step 1 (e.g. "${group[0]}-merge-...")
+   - For each service, use worktree paths if available, otherwise use original repo paths from: ${repoList}
+   - Skill("/elements-backend-bootstrap <backend_path> 'bootstrap on <merge_branch> branch'")
+   - Skill("/elements-storefront-bootstrap <storefront_path> 'bootstrap on <merge_branch> branch'")
+   - Skill("/elements-payment-bootstrap 'bootstrap on main branch'")
+   - Skill("/elements-search-bootstrap 'bootstrap on main branch'")
+   - Skill("/sso-server-bootstrap 'bootstrap on main branch'")
+   - Note all dev server URLs once ready
+5. Run verification: Skill("/verification <dev_server_url>") — pass the primary dev server URL from step 4
 6. Kill all dev servers`
     : `4. Run verification: Skill("/verification")`;
 
