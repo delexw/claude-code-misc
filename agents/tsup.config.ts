@@ -6,6 +6,7 @@ export default defineConfig({
     "src/get-shit-done.ts",
     "src/checkpoint-learner.ts",
     "src/memory-synthesizer.ts",
+    "src/jsonl-compat-checker.ts",
     "src/test-env.ts",
   ],
   format: "esm",

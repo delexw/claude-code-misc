@@ -29,6 +29,11 @@ export const agents: AgentConfig[] = [
     schedule: { type: "calendar", hour: 1, minute: 0, weekday: 0 },
   },
   {
+    name: "jsonl-compat-checker",
+    label: "Claude Code Agent - JSONL Compat Checker",
+    schedule: { type: "calendar", hour: 10, minute: 0, weekday: 0 },
+  },
+  {
     name: "test-env",
     label: "Claude Code Agent - Test Env",
     schedule: { type: "calendar", hour: 0, minute: 0 }, // manual only
