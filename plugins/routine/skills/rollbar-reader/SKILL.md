@@ -1,7 +1,7 @@
 ---
 name: rollbar-reader
 description: Investigate and analyse Rollbar errors, items, occurrences, deploys, and project health using the rollbar CLI. Use when asked to investigate Rollbar errors, search error items, check deploy status, run RQL queries, get occurrence details, or analyse any Rollbar data.
-argument-hint: "what to investigate (e.g. 'active errors last 24h', 'top items production', 'item 12345') [out-dir]"
+argument-hint: <what to investigate> <out-dir>
 allowed-tools: Bash(rollbar config *), Bash(rollbar items *), Bash(rollbar occurrences *), Bash(rollbar metrics *), Bash(rollbar deploys *), Bash(rollbar environments *), Bash(rollbar rql *), Bash(rollbar reports *), Bash(rollbar projects *), Bash(rollbar tokens *), Bash(rollbar teams *), Bash(rollbar users *), Bash(rollbar team-users *), Bash(rollbar team-projects *), Bash(rollbar user-projects *), Bash(rollbar people *), Bash(rollbar notifications *), Bash(rollbar replays *), Bash(rollbar service-links *), Bash(rollbar versions *), Bash(rollbar agent *), Bash(rollbar --help *), Bash(mkdir *), Bash(test *), Read, Write, Edit
 model: sonnet
 context: fork

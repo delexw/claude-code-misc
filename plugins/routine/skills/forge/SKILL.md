@@ -1,7 +1,7 @@
 ---
 name: forge
 description: "Forge implementation from JIRA tickets using dynamic skill generation. Gathers context into a lazy-loaded skill, then invokes it for execution. Use when given a JIRA ticket URL (format: https://[domain].atlassian.net/browse/[TICKET-ID]) to process end-to-end."
-argument-hint: 'JIRA ticket URL (format: https://[domain].atlassian.net/browse/[TICKET-ID]) "(Optional) Additional Context"'
+argument-hint: <JIRA ticket URL> <Additional Context>
 allowed-tools: Read, Bash, ExitPlanMode, Write, Edit
 hooks:
   PreToolUse:

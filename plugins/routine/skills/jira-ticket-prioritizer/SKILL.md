@@ -1,7 +1,7 @@
 ---
 name: jira-ticket-prioritizer
 description: Analyze JIRA tickets to determine priority and dependency order. Outputs an ordered JIRA ID list. Use before implement/forge, or when asked to "prioritize tickets", "order these JIRAs", "what should I work on first".
-argument-hint: 'TICKET-KEY1,TICKET-KEY2,... [additional-context]'
+argument-hint: <TICKET-KEY1,TICKET-KEY2,...> <additional-context>
 allowed-tools: Read, Bash, Write
 ---
 
