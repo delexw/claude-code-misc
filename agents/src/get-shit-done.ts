@@ -156,22 +156,28 @@ Return json ONLY without code fence`;
   );
 
   if (code === 0) {
-    // Strip markdown code fences if Claude wraps the JSON
-    const raw = stdout.trim().replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
-    const parsed = JSON.parse(raw);
-    const layers = parsed.layers ?? parsed;
-    if (Array.isArray(layers) && layers.every(Array.isArray)) {
-      const excluded = Array.isArray(parsed.excluded)
-        ? parsed.excluded.map((e: { key: string }) => e.key ?? e)
-        : [];
-      log(`PRIORITIZED: ${layers.length} layer(s) — ${layers.map((l: string[], i: number) => `L${i}:[${l.join(",")}]`).join(" ")}`);
-      if (excluded.length > 0) log(`EXCLUDED: ${excluded.join(", ")}`);
-      return { layers, excluded };
+    try {
+      // Strip markdown code fences if Claude wraps the JSON
+      const raw = stdout.trim().replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+      const parsed = JSON.parse(raw);
+      const layers = parsed.layers ?? parsed;
+      if (Array.isArray(layers) && layers.every(Array.isArray)) {
+        const excluded = Array.isArray(parsed.excluded)
+          ? parsed.excluded.map((e: { key: string }) => e.key ?? e)
+          : [];
+        log(`PRIORITIZED: ${layers.length} layer(s) — ${layers.map((l: string[], i: number) => `L${i}:[${l.join(",")}]`).join(" ")}`);
+        if (excluded.length > 0) log(`EXCLUDED: ${excluded.join(", ")}`);
+        return { layers, excluded };
+      }
+    } catch (err) {
+      log(`WARN: Prioritizer parse failed: ${(err as Error).message}`);
     }
+  } else {
+    log(`WARN: Prioritizer exited with code ${code}`);
   }
 
-  log(`FATAL: Prioritizer failed (exit ${code})`);
-  process.exit(1);
+  log(`WARN: Falling back to unprioritized order`);
+  return { layers: [tickets], excluded: [] };
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────
