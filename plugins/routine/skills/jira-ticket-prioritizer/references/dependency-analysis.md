@@ -76,6 +76,24 @@ Tickets referenced in `linkedIssues` that are not in the input set:
 - Flag if the external ticket has status that could block work (e.g. "Open", "In Progress")
 - Do NOT fetch external tickets — just note them
 
+## Grouping Rules
+
+After dependency layers are determined, group related tickets **within the same layer**. Grouped tickets can be worked on in parallel and their changes merged together for verification.
+
+### Grouping Signals (in order of strength)
+
+1. **Same epic/parent** — tickets sharing the same `parent.key` or epic
+2. **"Relates to" JIRA link** — tickets linked via "relates to" in the same layer
+3. **Same component** — tickets sharing JIRA `components` values
+4. **Semantic similarity** — tickets modifying the same feature area (inferred from summary, description, labels)
+
+### Grouping Constraints
+
+- Tickets in the same group must have **no dependencies on each other** (if A depends on B, they go in separate layers, not the same group)
+- First ticket in each group is the **primary ticket** (highest priority score) — used for merge branch naming
+- Single-ticket groups have `relation: null`
+- Multi-ticket groups have a `relation` string describing why they're grouped (e.g. `"same-epic"`, `"same-component"`, `"same-feature"`)
+
 ## Cycle Handling
 
 If Kahn's algorithm detects a cycle (remaining nodes with non-zero in-degree after sort completes):

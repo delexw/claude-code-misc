@@ -1,12 +1,22 @@
-# Verification Checklist
+---
+name: verification
+description: Verify implementation changes via code review and QA web testing. Runs a loop of codex-review + qa-web-test until all issues are resolved. Use after implementation is complete, on a branch with uncommitted or committed changes.
+argument-hint: '[dev-env-context]'
+allowed-tools: Read, Bash, Write, Edit
+---
 
-## Phase 7: Verify Changes
+# Verification
 
-> **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
+Verify implementation changes via iterative code review and optional QA web testing.
+
+## Arguments
+- `$ARGUMENTS[0]` — (optional) Dev environment context. Can be a skill reference (e.g. `"/elements-dev-env <backend> <storefront>"`), a dev server URL (e.g. `"http://localhost:3000"`), or empty to auto-detect.
+
+## Execution
 
 ### Resolve Dev URL (once, before loop)
 
-If `$ARGUMENTS[1]` is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context). Otherwise check for a running dev server (`localhost:3000`, `localhost:5173`, `localhost:8080`). If no dev server found, QA web test will be skipped.
+If `$ARGUMENTS[0]` is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context). Otherwise check for a running dev server (`localhost:3000`, `localhost:5173`, `localhost:8080`). If no dev server found, QA web test will be skipped.
 
 ### Loop until all issues are resolved:
 
@@ -23,43 +33,28 @@ If `$ARGUMENTS[1]` is provided, use it to infer the dev environment setup (it ma
    - **If QA issues found** — fix them and loop back to step 1 (code review again after fixes).
 
 3. **Confidence Check** — After both code review and QA pass with no issues, verify again:
-   - Re-read ALL requirements — JIRA ticket, Figma designs, domain discovery notes, and implementation plan. Are ALL acceptance criteria actually met?
    - Review the diff one more time — any edge cases missed, logic errors, regressions, security vulnerabilities, performance issues, improper abstractions, duplicate code, or failure to reuse existing shared code?
    - Any issues dismissed as minor that are actually important?
    - Are you lacking specific technical knowledge relevant to this task (e.g., framework APIs, library behavior, platform constraints)? If so, look it up before concluding.
    - **If any issue found** — fix it and loop back to step 1.
    - **Only exit the loop when sure** there are no remaining issues.
 
-## Error Handling
-
-- If any phase failed, report which phase and why
-
 ## Output
 
 Do NOT delete `.codex-review-output.md` — it serves as an audit trail of the code review.
 
-Clean up the dynamic skill directory — only delete the exact `~/.claude/skills/{ticket_id}` directory, nothing else:
-
-```bash
-rm -rf ~/.claude/skills/{ticket_id}
-```
-
-Then output a JSON summary as the skill's response:
+Output a summary of what was verified and any fixes applied:
 
 ```json
 {
-  "ticket_id": "EC-1234",
-  "branch": "EC-1234-fix-payment-checkout-bug",
-  "worktree_path": "/absolute/path/to/worktree",
-  "status": "completed | partial | failed",
-  "summary": "Brief description of what was implemented",
+  "status": "passed | fixed | skipped",
+  "reviewRounds": 2,
+  "qaRun": true,
+  "fixesApplied": ["Fixed missing null check in auth handler"],
   "errors": []
 }
 ```
 
-- `status`:
-  - `completed` — all phases succeeded, implementation done
-  - `partial` — implementation done but some non-critical phases were skipped (e.g. no git repo, no Figma links)
-  - `failed` — a critical phase failed, implementation incomplete
-- `worktree_path` — the absolute path to the git worktree where changes were made (empty string if Phase 2.5 was skipped)
-- `errors` — array of error messages from any failed phases (empty if none)
+- `passed` — all checks passed without needing fixes
+- `fixed` — issues were found and fixed, final round passed
+- `skipped` — verification was skipped (e.g. no dev server, no changes)
