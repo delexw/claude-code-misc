@@ -5,6 +5,7 @@ agent: Explore
 argument-hint: Confluence page URL [OUT_DIR] (e.g. https://envato.atlassian.net/wiki/spaces/MS/pages/... ./out)
 allowed-tools: Read, Bash, Write, Edit
 context: fork
+model: sonnet
 ---
 
 # Confluence Page Viewer
