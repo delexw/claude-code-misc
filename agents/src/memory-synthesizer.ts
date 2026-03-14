@@ -9,6 +9,7 @@ import {
   existsSync,
   copyFileSync,
   rmSync,
+  readdirSync,
 } from "node:fs";
 import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,21 +37,32 @@ interface MemoryFileInfo {
   repo: string;
   repoName: string;
   slug: string;
-  path: string;
-  content: string;
+  memoryDir: string;
+  memoryFile: string;
+  memoryContent: string;
+  topicFiles: Array<{ name: string; path: string; content: string }>;
 }
 
 function discoverMemoryFiles(): MemoryFileInfo[] {
   const files: MemoryFileInfo[] = [];
   for (const repo of BASE_REPOS) {
     const slug = repoToSlug(repo);
-    const memoryFile = join(PROJECTS_DIR, slug, "memory", "MEMORY.md");
-    if (existsSync(memoryFile)) {
-      const content = readFileSync(memoryFile, "utf-8").trim();
-      if (content) {
-        files.push({ repo, repoName: basename(repo), slug, path: memoryFile, content });
+    const memoryDir = join(PROJECTS_DIR, slug, "memory");
+    const memoryFile = join(memoryDir, "MEMORY.md");
+    if (!existsSync(memoryFile)) continue;
+    const memoryContent = readFileSync(memoryFile, "utf-8").trim();
+    if (!memoryContent) continue;
+
+    const topicFiles: MemoryFileInfo["topicFiles"] = [];
+    if (existsSync(memoryDir)) {
+      for (const f of readdirSync(memoryDir)) {
+        if (f === "MEMORY.md" || !f.endsWith(".md")) continue;
+        const content = readFileSync(join(memoryDir, f), "utf-8").trim();
+        if (content) topicFiles.push({ name: f, path: join(memoryDir, f), content });
       }
     }
+
+    files.push({ repo, repoName: basename(repo), slug, memoryDir, memoryFile, memoryContent, topicFiles });
   }
   return files;
 }
@@ -69,7 +81,7 @@ async function main() {
 
   log(`Found ${memoryFiles.length} project memory file(s):`);
   for (const f of memoryFiles) {
-    log(`  - ${f.repoName}: ${f.path} (${f.content.split("\n").length} lines)`);
+    log(`  - ${f.repoName}: ${f.memoryFile} (${f.memoryContent.split("\n").length} lines, ${f.topicFiles.length} topic files)`);
   }
 
   const suffix = randomBytes(3).toString("hex");
@@ -84,40 +96,53 @@ async function main() {
     writeFileSync(join(skillRefDir, "existing-claude-md.md"), "[empty - file does not exist yet]");
   }
 
+  // Copy MEMORY.md and topic files per project into references
   const memoryRefLinks: string[] = [];
   for (const f of memoryFiles) {
-    const refName = `project-memory-${f.repoName}.md`;
-    copyFileSync(f.path, join(skillRefDir, refName));
-    memoryRefLinks.push(`  - **${f.repoName}**: [${refName}](references/${refName}) → \`${f.path}\``);
+    const projectRefDir = join(skillRefDir, f.repoName);
+    mkdirSync(projectRefDir, { recursive: true });
+
+    copyFileSync(f.memoryFile, join(projectRefDir, "MEMORY.md"));
+    for (const topic of f.topicFiles) {
+      copyFileSync(topic.path, join(projectRefDir, topic.name));
+    }
+
+    const topicList = f.topicFiles.length > 0
+      ? f.topicFiles.map((t) => `    - [${t.name}](references/${f.repoName}/${t.name})`).join("\n")
+      : "    - (no topic files)";
+    memoryRefLinks.push(
+      `  - **${f.repoName}**: [MEMORY.md](references/${f.repoName}/MEMORY.md) → \`${f.memoryDir}/\`\n${topicList}`,
+    );
   }
 
   const filePathMapping = memoryFiles
-    .map((f) => `  - ${f.repoName}: ${f.path}`)
+    .map((f) => `  - ${f.repoName}: \`${f.memoryDir}/\``)
     .join("\n");
 
   const skillMd = `---
 name: memory-synthesizer
 description: Synthesize project-level memories into global CLAUDE.md
-allowed-tools: Read, Edit, Write, Bash(mkdir *)
+allowed-tools: Read, Edit, Write, Bash(mkdir *, rm *)
 context: fork
 ---
 
 # Memory Synthesizer
 
-Analyze all project-level MEMORY.md files. Extract patterns that appear across 2+ projects
-into the global CLAUDE.md, then remove those promoted entries from project-level files.
+Analyze all project-level memory files (MEMORY.md indexes + topic files). Extract patterns
+that appear across 2+ projects into the global CLAUDE.md, then remove those promoted entries
+from project-level files.
 
 ## Task
 
-You have ${memoryFiles.length} project memory files and the global CLAUDE.md to work with.
+You have ${memoryFiles.length} project memory directories and the global CLAUDE.md to work with.
 
 ### Step 1: Read all reference files
 - Read [existing-claude-md.md](references/existing-claude-md.md)
 ${memoryRefLinks.join("\n")}
 
 ### Step 2: Identify cross-project patterns
-Find entries in **2 or more** project memory files. Be CONSERVATIVE — only promote genuinely
-cross-project patterns, not framework-specific ones.
+Find entries (in MEMORY.md inline content OR topic files) that appear in **2 or more** projects.
+Be CONSERVATIVE — only promote genuinely cross-project patterns, not framework-specific ones.
 
 ### Step 3: Update global CLAUDE.md
 - File: ${CLAUDE_MD}
@@ -127,12 +152,16 @@ cross-project patterns, not framework-specific ones.
 ### Step 4: Remove promoted entries from project files
 ${filePathMapping}
 
+When removing a promoted entry:
+- If the entry is a **topic file**, delete the file and remove its index line from MEMORY.md
+- If the entry is **inline content in MEMORY.md**, remove that section/bullet
+
 ### Step 5: Output summary
 
 ## Rules
 - Be CONSERVATIVE — when in doubt, leave entries in project files
 - An entry must appear in 2+ project files to qualify
-- Don't promote framework-specific patterns
+- Don't promote framework-specific patterns (e.g., Rails-specific, React-specific)
 - Keep CLAUDE.md organized and concise
 - Preserve all existing CLAUDE.md content
 `;

@@ -10,6 +10,7 @@ import {
   existsSync,
   rmSync,
   copyFileSync,
+  readdirSync,
 } from "node:fs";
 import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,13 +19,12 @@ import { mkdirSync } from "node:fs";
 import { createLogger, makeTimestamp, cleanupOldLogs } from "./lib/logger.js";
 import { exec } from "./lib/exec.js";
 import { spawnClaude } from "./lib/claude.js";
-import { parseRepos, discoverRepos, repoToSlug } from "./lib/repos.js";
+import { parseRepos, repoToSlug } from "./lib/repos.js";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
 const HOME = process.env.HOME!;
 const CHECKPOINT_BRANCH = "entire/checkpoints/v1";
-const MAX_MEMORY_LINES = 200;
 const BASE_REPOS = parseRepos("CHECKPOINT_REPOS");
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -43,10 +43,13 @@ async function main() {
 
   let totalNew = 0;
 
-  const REPOS = discoverRepos(BASE_REPOS);
-  log(`Discovered ${REPOS.length} repo(s) (including worktrees)`);
+  // Only scan base repos — worktrees share the same checkpoint branch,
+  // so scanning them separately is redundant and wastes time.
+  const REPOS = BASE_REPOS.filter((r) => existsSync(r));
+  log(`Scanning ${REPOS.length} base repo(s) (worktrees skipped — shared checkpoint branch)`);
 
-  for (const { repo, baseRepo } of REPOS) {
+  for (const repo of REPOS) {
+    const baseRepo = repo;
     const repoName = basename(repo);
     const baseRepoName = basename(baseRepo);
     const baseRepoSlugStr = repoToSlug(baseRepo);
@@ -108,10 +111,19 @@ async function main() {
     const skillRefDir = join(skillDir, "references");
     mkdirSync(skillRefDir, { recursive: true });
 
+    // Copy MEMORY.md and all existing topic files as references for deduplication
+    const existingTopicFiles: string[] = [];
     if (existsSync(memoryFile)) {
       copyFileSync(memoryFile, join(skillRefDir, "existing-memory.md"));
     } else {
       writeFileSync(join(skillRefDir, "existing-memory.md"), "[empty - file does not exist yet]");
+    }
+    if (existsSync(memoryDir)) {
+      for (const f of readdirSync(memoryDir)) {
+        if (f === "MEMORY.md" || !f.endsWith(".md")) continue;
+        copyFileSync(join(memoryDir, f), join(skillRefDir, `topic-${f}`));
+        existingTopicFiles.push(f);
+      }
     }
 
     const sessionIdsBatch: string[] = [];
@@ -177,6 +189,10 @@ async function main() {
       `  - [Session ${i + 1}](references/session-${i + 1}.md)`,
     ).join("\n");
 
+    const existingTopicLinks = existingTopicFiles.length > 0
+      ? existingTopicFiles.map((f) => `  - [${f}](references/topic-${f})`).join("\n")
+      : "  - (none)";
+
     const skillMd = `---
 name: checkpoint-learner-${repoName}
 description: Extract domain knowledge from checkpoint sessions for ${baseRepoName}
@@ -198,34 +214,85 @@ Analyze the checkpoint prompts from the **${baseRepoName}** project. Extract:
 
 ## Reference Files
 
-- **Existing memory** (for deduplication): Read [existing-memory.md](references/existing-memory.md)
+- **Existing MEMORY.md index** (for deduplication): Read [existing-memory.md](references/existing-memory.md)
+- **Existing topic files** (read each for deduplication):
+${existingTopicLinks}
 - **Checkpoint sessions to analyze** (read each file):
 ${sessionLinks}
 
-## Rules
+## Memory Structure
 
-- Write ONLY to this file: ${memoryFile}
-- DEDUPLICATE — if the existing memory already covers a pattern, skip it
-- CORRECT CONTRADICTIONS — if a new learning contradicts an existing entry, REPLACE the old entry
-- Be ADDITIVE for new learnings — append under appropriate headings
-- Keep entries concise (1-3 lines each) with concrete examples
-- The file must stay under ${MAX_MEMORY_LINES} lines total
-- If nothing genuinely new is found, output "No new learnings" and make no changes
+The memory directory uses **topic files** — each learning is a separate .md file with YAML frontmatter.
+\`MEMORY.md\` is a **concise index** (under 200 lines) that links to topic files with brief descriptions.
 
-## Output Format for MEMORY.md
+### Topic file format
 
-If the file is new, start with:
+Each topic file in \`${memoryDir}/\` follows this format:
+
 \`\`\`markdown
-# Project Memory: ${baseRepoName}
-<!-- Auto-maintained by checkpoint-learner. Manual edits welcome. -->
+---
+name: {{short descriptive name}}
+description: {{one-line description — used to decide relevance in future conversations}}
+type: {{user | feedback | project | reference}}
+---
 
-## User Corrections
-## Domain Patterns
-## Workflow Preferences
+{{content body — concise, actionable, with concrete examples}}
+
+**Why:** {{reason the user gave or context behind this learning}}
+
+**How to apply:** {{when/where this guidance kicks in}}
 \`\`\`
 
-If the file exists, append new entries under the appropriate heading.
-Ensure the memory directory exists: mkdir -p ${memoryDir}
+### Type definitions
+
+- **user** — info about the user's role, preferences, knowledge (e.g., "senior Rails dev, new to React")
+- **feedback** — corrections or guidance the user gave (e.g., "don't mock the database in tests")
+- **project** — ongoing work, goals, decisions not derivable from code/git (e.g., "merge freeze after Thursday")
+- **reference** — pointers to external resources (e.g., "pipeline bugs tracked in Linear project INGEST")
+
+### Naming convention
+
+File names: \`{type}_{descriptive_slug}.md\` (e.g., \`feedback_no_easy_fixes.md\`, \`project_auth_rewrite.md\`)
+
+## Rules
+
+- Write topic files to: \`${memoryDir}/\`
+- Update the MEMORY.md index at: \`${memoryFile}\`
+- Ensure the memory directory exists: \`mkdir -p ${memoryDir}\`
+- **DEDUPLICATE** — read ALL existing topic files first. If an existing topic already covers a learning, skip it.
+- **CORRECT CONTRADICTIONS** — if a new learning contradicts an existing topic file, UPDATE that file (newer wins).
+- **MERGE related learnings** — if a new learning extends an existing topic, update that topic file rather than creating a new one.
+- Be ADDITIVE for genuinely new learnings — create a new topic file and add an index entry.
+- Keep each topic file focused on ONE concept (1-15 lines of content after frontmatter).
+- Keep MEMORY.md as a concise index (links + one-line descriptions). Do NOT put detailed content in MEMORY.md.
+- If nothing genuinely new is found, output "No new learnings" and make no changes.
+
+## MEMORY.md Index Format
+
+\`\`\`markdown
+# Project Memory: ${baseRepoName}
+
+## User
+- [user_topic.md](user_topic.md) — Brief description
+
+## Feedback
+- [feedback_topic.md](feedback_topic.md) — Brief description
+
+## Project
+- [project_topic.md](project_topic.md) — Brief description
+
+## Reference
+- [reference_topic.md](reference_topic.md) — Brief description
+
+## Domain Patterns
+- [domain_topic.md](domain_topic.md) — Brief description
+
+## Workflow Preferences
+- [workflow_topic.md](workflow_topic.md) — Brief description
+\`\`\`
+
+If the MEMORY.md file exists with inline content (not links), migrate those entries into topic files
+and replace the inline content with index links. Only include sections that have entries.
 `;
 
     writeFileSync(join(skillDir, "SKILL.md"), skillMd);
@@ -250,14 +317,6 @@ Ensure the memory directory exists: mkdir -p ${memoryDir}
     for (const sid of sessionIdsBatch) appendFileSync(processedFile, sid + "\n");
     totalNew += sessionIdsBatch.length;
     log(`Marked ${sessionIdsBatch.length} session(s) as processed for ${repoName}`);
-
-    if (existsSync(memoryFile)) {
-      const lines = readFileSync(memoryFile, "utf-8").split("\n");
-      if (lines.length > MAX_MEMORY_LINES) {
-        log(`WARNING: MEMORY.md has ${lines.length} lines (limit: ${MAX_MEMORY_LINES}). Truncating.`);
-        writeFileSync(memoryFile, lines.slice(0, MAX_MEMORY_LINES).join("\n"));
-      }
-    }
   }
 
   log(`=== Checkpoint Learner finished (processed ${totalNew} new sessions) ===`);
