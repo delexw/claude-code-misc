@@ -73,6 +73,7 @@ claude --plugin-dir ./path/to/plugins/routine
 | `datadog-analyser` | `pup` | `DD_API_KEY`, `DD_APP_KEY` | [Pup CLI](https://github.com/DataDog/pup) |
 | `cloudflare-traffic-investigator` | `cloudflare-mcp-cli` | `CLOUDFLARE_API_TOKEN` | [cloudflare-mcp-cli](https://github.com/nichochar/cloudflare-mcp-cli) |
 | `rollbar-reader` | `rollbar` | `ROLLBAR_TOKEN` | [Rollbar CLI](https://github.com/nichochar/rollbar-cli) |
+| `nlm-skill` *(external)* | `nlm` | — | [nlm-skill](https://github.com/nichochar/nlm-skill) — install via `npx skills add https://github.com/nichochar/nlm-skill` |
 
 ### Git / GitHub
 
