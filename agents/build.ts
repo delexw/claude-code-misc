@@ -21,7 +21,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { agents } from "./plist/configs.js";
-import { generatePlist, plistLabel } from "./plist/generate.js";
+import { captureDevEnv, generatePlist, plistLabel } from "./plist/generate.js";
 
 const HOME = process.env.HOME!;
 const INSTALL_DIR = join(HOME, ".claude/scheduler");
@@ -71,15 +71,18 @@ execSync("npx tsup", { stdio: "inherit", cwd: import.meta.dirname! });
 
 // ─── Generate plists ────────────────────────────────────────────────────────
 
-console.log("\nStep 2: Generating plist files...\n");
+console.log("\nStep 2: Capturing dev environment + generating plist files...\n");
 mkdirSync(DIST_DIR, { recursive: true });
+
+const devEnv = captureDevEnv();
+console.log(`  Captured ${Object.keys(devEnv).length} env vars from current shell`);
 
 const targetAgents = testOnly
   ? agents.filter((a) => a.name === "test-env")
   : agents.filter((a) => a.name !== "test-env");
 
 for (const config of targetAgents) {
-  const plistContent = generatePlist(config, HOME);
+  const plistContent = generatePlist(config, HOME, devEnv);
   const plistFile = join(DIST_DIR, `${plistLabel(config)}.plist`);
   writeFileSync(plistFile, plistContent);
   console.log(`  Generated ${plistLabel(config)}.plist`);

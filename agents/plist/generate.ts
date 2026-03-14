@@ -27,17 +27,46 @@ ${inner}
 \t</dict>`;
 }
 
-export function generatePlist(config: AgentConfig, home: string): string {
+/**
+ * Dynamically capture the entire current dev environment at build time.
+ * No filtering — the plist gets exactly what your shell has.
+ */
+export function captureDevEnv(): Record<string, string> {
+  const captured: Record<string, string> = {};
+  for (const [key, val] of Object.entries(process.env)) {
+    if (val !== undefined) captured[key] = val;
+  }
+  return captured;
+}
+
+export function generatePlist(
+  config: AgentConfig,
+  home: string,
+  envVars?: Record<string, string>,
+): string {
   const envrcPath = `${home}/.claude/scheduler/.envrc`;
   const nodePath = `${home}/.asdf/shims/node`;
   const scriptPath = `${home}/.claude/scheduler/${config.name}.mjs`;
   const logDir = `${home}/.claude/scheduler/logs/.${config.name}`;
   const runAtLoad = config.runAtLoad ?? false;
 
-  // Use bash wrapper to source .envrc before running node
+  // Use bash login shell to source .envrc before running node
   const bashCmd = escapeXml(
     `[ -f '${envrcPath}' ] && source '${envrcPath}'; exec '${nodePath}' '${scriptPath}'`,
   );
+
+  // Build EnvironmentVariables dict entries from captured env
+  const env = envVars ?? {};
+  // Ensure HOME is always set
+  if (!env.HOME) env.HOME = home;
+
+  const envEntries = Object.entries(env)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([k, v]) =>
+        `\t\t<key>${escapeXml(k)}</key>\n\t\t<string>${escapeXml(v)}</string>`,
+    )
+    .join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -45,10 +74,7 @@ export function generatePlist(config: AgentConfig, home: string): string {
 <dict>
 \t<key>EnvironmentVariables</key>
 \t<dict>
-\t\t<key>HOME</key>
-\t\t<string>${home}</string>
-\t\t<key>PATH</key>
-\t\t<string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:${home}/.local/bin</string>
+${envEntries}
 \t</dict>
 \t<key>Label</key>
 \t<string>${escapeXml(config.label)}</string>
@@ -61,6 +87,7 @@ export function generatePlist(config: AgentConfig, home: string): string {
 \t<key>ProgramArguments</key>
 \t<array>
 \t\t<string>/bin/bash</string>
+\t\t<string>-l</string>
 \t\t<string>-c</string>
 \t\t<string>${bashCmd}</string>
 \t</array>
