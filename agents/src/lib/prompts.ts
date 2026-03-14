@@ -55,7 +55,7 @@ export function buildGroupPrompt(
 
   const devEnvSteps = hasFrontend
     ? `4. Bootstrap all dev services in a single subagent (model: sonnet):
-   - Launch one Agent(model: sonnet) with a prompt to run ALL 5 bootstrap skills in parallel:
+   - Launch one Agent(model: sonnet) with a prompt to run ALL 5 bootstrap skills sequentially (one by one, wait for each to finish before starting the next):
      - Determine the merge branch name from step 1
      - For each service, use worktree paths if available, otherwise use original repo paths from: ${repoList}
      - Skill("/elements-backend-bootstrap <backend_path> bootstrap on <merge_branch> branch")
@@ -95,7 +95,7 @@ ${prSteps}`;
 export function buildBootstrapPrompt(): string {
   return `[GSD: bootstrap dev services on main] ${AUTONOMY_PREFIX}
 Bootstrap all dev services in a single subagent (model: sonnet):
-- Launch one Agent(model: sonnet) with a prompt to run ALL 5 bootstrap skills in parallel:
+- Launch one Agent(model: sonnet) with a prompt to run ALL 5 bootstrap skills sequentially (one by one, wait for each to finish before starting the next):
   - Skill("/elements-backend-bootstrap fetch main to up-to-date and bootstrap on main branch")
   - Skill("/elements-storefront-bootstrap fetch main to up-to-date and bootstrap on main branch")
   - Skill("/elements-payment-bootstrap fetch main to up-to-date and bootstrap on main branch")
