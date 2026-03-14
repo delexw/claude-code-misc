@@ -4,9 +4,9 @@
 
 ## 5a: Generate Implementation Plan
 
-- Read `SKILL_DIR/meta-prompter/output.md` for the optimized prompt
-- Read `SKILL_DIR/jira/output.json` and check for `subtasks` and `parent`:
-  - **If subtasks exist:** identify which are **not started** (`To Do`, `Backlog`, or similar status) — these subtasks are **out of scope** for this implementation. Their context is available in supporting-context for understanding boundaries, but their work must NOT be planned or implemented here.
+- Read `SKILL_DIR/references/soul.md` for the optimized prompt
+- Read `SKILL_DIR/references/dossier.json` and check for `subtasks` and `parent`:
+  - **If subtasks exist:** identify which are **not started** (`To Do`, `Backlog`, or similar status) — these subtasks are **out of scope** for this implementation. Their context is available in `references/intel/` for understanding boundaries, but their work must NOT be planned or implemented here.
   - **If parent is non-null** (current ticket is a subtask): use the parent ticket's summary as broader context for understanding the goal this subtask contributes to. The parent ticket is not out of scope — it provides context only.
 - Launch a `Task` call with the optimized prompt and context from key output files, instructing it to generate a structured implementation plan. If out-of-scope subtasks were identified, explicitly include them in the task prompt as an **out-of-scope boundary** so the plan excludes their work:
   - **Identify task type:** code, debug, content/docs, or safety
@@ -17,8 +17,8 @@
     - Rollback or recovery steps for risky operations (migrations, data changes, deploys)
   - **List critical files** that will be touched
   - **Identify risks** and how they will be mitigated
-  - Write the plan to `SKILL_DIR/implementation-plan.md`
-- After the task completes, **read `SKILL_DIR/implementation-plan.md`**
+  - Write the plan to `SKILL_DIR/battle-plan.md`
+- After the task completes, **read `SKILL_DIR/battle-plan.md`**
 
 ## 5b: Generate Dynamic Skill
 
@@ -37,19 +37,19 @@ model: opus
 
 ## Context Files
 
-All context files are under `SKILL_DIR/`. Read these files as needed during implementation:
+All context files are under `SKILL_DIR/references/`. Read these files as needed during implementation:
 
-- **Requirements**: `SKILL_DIR/jira/output.json` — JIRA ticket details, acceptance criteria, links
-- **Domain Analysis**: `SKILL_DIR/domains.json` — identified business domains and summary
-- **Domain Knowledge**: files in `SKILL_DIR/domains/` — codebase patterns and conventions per domain
-- **Supporting Context**: files in `SKILL_DIR/supporting-context/` — linked Confluence pages, related JIRA tickets, GitHub PRs
-- **Design Specs**: files in `SKILL_DIR/specs/` — Figma designs and UI specifications
-- **Additional Context**: `SKILL_DIR/context.md` — user-provided context (if exists)
-- **Optimized Prompt**: `SKILL_DIR/meta-prompter/output.md` — refined task description with clarifications
+- **Requirements**: `SKILL_DIR/references/dossier.json` — JIRA ticket details, acceptance criteria, links
+- **Domain Analysis**: `SKILL_DIR/references/domains.json` — identified business domains and summary
+- **Domain Knowledge**: files in `SKILL_DIR/references/lore/` — codebase patterns and conventions per domain
+- **Supporting Context**: files in `SKILL_DIR/references/intel/` — linked Confluence pages, related JIRA tickets, GitHub PRs
+- **Design Specs**: files in `SKILL_DIR/references/blueprints/` — Figma designs and UI specifications
+- **Additional Context**: `SKILL_DIR/references/briefing.md` — user-provided context (if exists)
+- **Optimized Prompt**: `SKILL_DIR/references/soul.md` — refined task description with clarifications
 
 ## Execution
 
-Follow `SKILL_DIR/implementation-plan.md` step by step. Complete each phase fully before starting the next.
+Follow `SKILL_DIR/battle-plan.md` step by step. Complete each phase fully before starting the next.
 
 Ensure UI changes comply with design specs. Ensure code follows project conventions.
 ```

@@ -32,4 +32,4 @@ Use OUT_DIR for all output paths below.
    - If DESIGN_INPUT is empty or not provided → use `AskUserQuestion` to ask user (see [references/rules.md](references/rules.md) Design Input)
 4. **Read design**: Use the Figma MCP tools to read the design from the Figma link resolved in step 3
    - Format the output per [references/output-format.md](references/output-format.md)
-   - **Save output**: Run `mkdir -p OUT_DIR` via Bash, then save the full formatted output to `OUT_DIR/output.md` using the Write tool
+   - **Save output**: Run `mkdir -p OUT_DIR` via Bash, then save the full formatted output to `OUT_DIR/blueprint.md` using the Write tool

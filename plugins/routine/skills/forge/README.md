@@ -14,15 +14,17 @@ Each phase runs in isolated context (`context: fork`), writing output to a **dyn
 
 ```
 ~/.claude/skills/{ticket_id}/
-├── SKILL.md                    # Generated in Phase 5 — ties everything together
-├── context.md                  # User-provided context
-├── jira/output.json            # JIRA ticket data
-├── domains.json                # Identified business domains
-├── domains/{domain}.md         # Codebase knowledge per domain
-├── supporting-context/         # Confluence pages, linked tickets, PRs
-├── design/                     # Figma designs, UI specs
-├── meta-prompter/output.md     # Optimized prompt
-└── implementation-plan.md      # Structured execution plan
+├── SKILL.md                            # Generated in Phase 5 — ties everything together
+├── battle-plan.md              # Structured execution plan
+└── references/
+    ├── briefing.md                     # User-provided context
+    ├── dossier.json                    # JIRA ticket data
+    ├── domains.json                    # Identified business domains
+    ├── soul.md                         # Optimized prompt
+    ├── lore/{domain}.md                # Codebase knowledge per domain
+    ├── intel/                          # Confluence pages, linked tickets, PRs
+    ├── blueprints/                          # Figma designs, UI specs
+    └── mugshots/                       # Page inspection baseline + screenshots
 ```
 
 ### Stage 2: Execution (Phases 6-7)
@@ -71,12 +73,12 @@ Forge is **not** the best fit for:
 | Phase | What | Output |
 |-------|------|--------|
 | 1 | Initialization | `SKILL_DIR` created, model ID captured |
-| 2 | JIRA Analysis | `jira/output.json`, `domains.json` |
+| 2 | JIRA Analysis | `references/dossier.json`, `references/domains.json` |
 | 2.5 | Create Git Branch | Git worktree for isolated work |
-| 3.1 | Domain Discovery | `domains/{domain}.md` |
-| 3.2 | Resource Scanning | `supporting-context/`, `design/` |
-| 4 | Prompt Optimization | `meta-prompter/output.md` |
-| 5 | Planning + Skill Gen | `implementation-plan.md`, `SKILL.md` |
+| 3.1 | Domain Discovery | `references/lore/{domain}.md` |
+| 3.2 | Resource Scanning | `references/intel/`, `references/blueprints/` |
+| 4 | Prompt Optimization | `references/soul.md` |
+| 5 | Planning + Skill Gen | `battle-plan.md`, `SKILL.md` |
 | 6 | Execute | Invoke `Skill("{ticket_id}-impl")` |
 | 7 | Verification | Verify → fix → verify loop until passing |
 

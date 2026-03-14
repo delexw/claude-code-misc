@@ -8,25 +8,27 @@ Each phase writes its output to files inside a **dynamically created skill** at 
 
 ```
 ~/.claude/skills/{ticket_id}/
-├── SKILL.md                    # Created in Phase 5, references all context files
-├── context.md                  # P1: additional user-provided context
-├── jira/                       # P2: raw JIRA ticket output
-│   └── output.json
-├── domains.json                # P2: identified domains + summary
-├── domains/                    # P3.1: codebase knowledge per domain
-│   └── {domain}.md
-├── supporting-context/         # P3.2: scanned links
-│   ├── confluence/
-│   ├── linked-jira/
-│   └── other/
-├── design/                     # P3.2: Figma/UI design context
-│   └── figma-{index}.md
-├── meta-prompter/              # P4: optimized prompt
-│   └── output.md
-└── implementation-plan.md      # P5: structured execution plan
+├── SKILL.md                            # Created in Phase 5
+├── battle-plan.md              # P5: structured execution plan
+└── references/
+    ├── briefing.md                     # P1: additional user-provided context
+    ├── dossier.json                    # P2: JIRA ticket data
+    ├── domains.json                    # P2: identified domains + summary
+    ├── soul.md                         # P4: optimized prompt
+    ├── lore/                           # P3.1: codebase knowledge per domain
+    │   └── {domain}.md
+    ├── intel/                          # P3.2: scanned links
+    │   ├── scrolls/
+    │   ├── dossiers/
+    │   └── scraps/
+    ├── blueprints/                     # P3.2: Figma/UI design context
+    │   └── {index}/blueprint.md
+    └── mugshots/                       # P3.3: page inspection baseline
+        ├── mugshot.md
+        └── screenshots/
 ```
 
-> **Output file convention:** Sub-skills with `context: fork` run as subagents whose return values may be summarized. To get the **complete** output, each sub-skill persists its full response to a file on disk. After a forked skill completes, **always read the output file** (e.g. `OUT_DIR/output.md`) rather than relying on the subagent's return value.
+> **Output file convention:** Sub-skills with `context: fork` run as subagents whose return values may be summarized. To get the **complete** output, each sub-skill persists its full response to a file on disk. After a forked skill completes, **always read the output file** (e.g. `SKILL_DIR/references/soul.md`, `SKILL_DIR/references/intel/scrolls/{index}/scroll.md`) rather than relying on the subagent's return value.
 
 ## Phases
 

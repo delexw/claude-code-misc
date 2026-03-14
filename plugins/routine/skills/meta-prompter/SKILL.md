@@ -70,5 +70,5 @@ Execute all steps A through E:
 ### E) Return
 - If OUT_DIR is provided:
   1. Run `mkdir -p OUT_DIR` via Bash
-  2. Use the **Write** tool to save <OPTIMIZED_PROMPT> to `OUT_DIR/output.md`
+  2. Use the **Write** tool to save <OPTIMIZED_PROMPT> to `OUT_DIR/soul.md`
 - Return <OPTIMIZED_PROMPT> to the caller for execution

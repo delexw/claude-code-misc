@@ -29,4 +29,4 @@ Infer from the arguments:
 2. Validate PAGE_URL against [references/rules.md](references/rules.md)
 3. Run `confluence-cli read PAGE_URL` via Bash
 4. Format the output per [references/output-format.md](references/output-format.md)
-5. **Save output**: Run `mkdir -p OUT_DIR` via Bash, then save the full formatted output to `OUT_DIR/output.md` using the Write tool.
+5. **Save output**: Run `mkdir -p OUT_DIR` via Bash, then save the full formatted output to `OUT_DIR/scroll.md` using the Write tool.

@@ -3,11 +3,10 @@
 > **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 - Build a summary of the task context by reading key output files:
-  - `SKILL_DIR/jira/output.json` — requirements
-  - `SKILL_DIR/domains.json` — domain analysis
-  - `SKILL_DIR/domains/*.md` — domain knowledge
-  - `SKILL_DIR/supporting-context/` — scanned links (if any)
-  - `SKILL_DIR/specs/` — design specs (if any)
-  - `SKILL_DIR/context.md` — additional user context (if exists)
-- Invoke `Skill("meta-prompter")` with the summarized context and `SKILL_DIR/meta-prompter` as the output directory
-- After completion, **read `SKILL_DIR/meta-prompter/output.md`** to get the full `<OPTIMIZED_PROMPT>`
+  - `SKILL_DIR/references/dossier.json` — requirements
+  - `SKILL_DIR/references/domains.json` — domain analysis
+  - `SKILL_DIR/references/lore/*.md` — domain knowledge
+  - `SKILL_DIR/references/intel/` — scanned links (if any)
+  - `SKILL_DIR/references/blueprints/` — design specs (if any)
+  - `SKILL_DIR/references/briefing.md` — additional user context (if exists)
+- Invoke `Skill("meta-prompter")` with the summarized context and `SKILL_DIR/references` as the output directory

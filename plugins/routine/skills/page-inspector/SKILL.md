@@ -72,7 +72,7 @@ For the main content area and key UI elements, capture:
 
 ### 6. Write Output
 
-Create `OUT_DIR/output.md` with:
+Create `OUT_DIR/mugshot.md` with:
 
 ```markdown
 # Page Inspector Report: {url}

@@ -24,6 +24,4 @@ Combine the dev server URL with the relevant page path from the JIRA ticket to f
 
 ## Run Page Inspector
 
-Invoke `Skill("page-inspector")` with the full page URL and `SKILL_DIR/page-inspector` as the output directory:
-
-After completion, **read `SKILL_DIR/page-inspector/output.md`** — this serves as baseline reference during implementation.
+Invoke `Skill("page-inspector")` with the full page URL and `SKILL_DIR/references/mugshots` as the output directory.

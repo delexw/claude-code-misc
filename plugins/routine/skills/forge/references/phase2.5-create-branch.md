@@ -1,6 +1,6 @@
 # Phase 2.5: Create Git Branch
 
-- Read `SKILL_DIR/domains.json` for the ticket summary, and `SKILL_DIR/jira/output.json` for the ticket title
+- Read `SKILL_DIR/references/domains.json` for the ticket summary, and `SKILL_DIR/references/dossier.json` for the ticket title
 - Using the ticket ID and ticket title:
   - Slugify the ticket title: lowercase, replace spaces and special characters with hyphens, collapse consecutive hyphens, strip leading/trailing hyphens, truncate to 50 characters
   - Compose branch name: `{ticket_id}-{slugified_title}`
