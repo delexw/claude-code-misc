@@ -16,8 +16,8 @@ If the ticket has no web-visible impact, skip this phase.
 
 ## Find Development URL
 
-1. If ADDITIONAL_CONTEXT is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context)
-2. Check for a running dev server on common ports
+1. If ADDITIONAL_CONTEXT includes dev server URLs, use the most relevant one for the ticket's target page
+2. Otherwise, check for a running dev server by probing localhost ports
 3. If no dev server is found, skip this phase and note "Page inspection skipped: no dev server running"
 
 Combine the dev server URL with the relevant page path from the JIRA ticket to form the full URL.
