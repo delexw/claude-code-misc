@@ -27,6 +27,7 @@ Infer from the arguments:
 
 1. **Pre-flight check**: Run `which confluence-cli` to verify the CLI is available. If not found, follow error handling in [references/rules.md](references/rules.md). Do NOT continue until the CLI is available.
 2. Validate PAGE_URL against [references/rules.md](references/rules.md)
-3. Run `confluence-cli read PAGE_URL` via Bash
-4. Format the output per [references/output-format.md](references/output-format.md)
-5. **Save output**: Run `mkdir -p OUT_DIR` via Bash, then save the full formatted output to `OUT_DIR/scroll.md` using the Write tool.
+3. **Resolve short links**: If PAGE_URL matches `/wiki/x/ENCODED`, decode it to a numeric page ID (see [references/rules.md](references/rules.md) for decoding steps), then use that ID instead.
+4. Run `confluence-cli read PAGE_URL_OR_ID` via Bash
+5. Format the output per [references/output-format.md](references/output-format.md)
+6. **Save output**: Run `mkdir -p OUT_DIR` via Bash, then save the full formatted output to `OUT_DIR/scroll.md` using the Write tool.

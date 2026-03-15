@@ -1,8 +1,22 @@
 # Confluence Page Viewer Rules
 
 ## Validation Rules
-- URL must match Confluence page format: `https://[domain].atlassian.net/wiki/spaces/...`
+- URL must match one of these Confluence page formats:
+  - Standard: `https://[domain].atlassian.net/wiki/spaces/SPACE/pages/ID/Title`
+  - Short link: `https://[domain].atlassian.net/wiki/x/ENCODED`
 - Required: `$ARGUMENTS` must contain a valid Confluence page URL
+
+## Short Link Resolution
+The confluence CLI does **not** support short links (`/wiki/x/...`) directly — they return 404.
+Short links use a base64-encoded little-endian page ID. To resolve:
+
+```bash
+# Extract the encoded part from the URL (e.g., "BADROQ" from /wiki/x/BADROQ)
+# Pad with "==" if needed, decode base64, convert little-endian bytes to page ID
+python3 -c "import base64; data = base64.b64decode('ENCODED=='); print(int.from_bytes(data, 'little'))"
+```
+
+Then use the decoded numeric page ID with the CLI: `confluence read <pageId>`
 
 ## Command Restrictions
 - Only read-only commands from `confluence-cli` are permitted:
