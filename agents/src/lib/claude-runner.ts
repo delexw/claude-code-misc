@@ -12,6 +12,7 @@ interface RunOpts {
   model?: string;
   effort?: string;
   worktree?: string;
+  continueSession?: boolean;
 }
 
 export class ClaudeRunner {
@@ -27,6 +28,7 @@ export class ClaudeRunner {
       ...(opts.model ? ["--model", opts.model] : []),
       ...(opts.effort ? ["--effort", opts.effort] : []),
       ...(opts.worktree ? ["-w", opts.worktree] : []),
+      ...(opts.continueSession ? ["-c"] : []),
       "--permission-mode",
       "acceptEdits",
     ];

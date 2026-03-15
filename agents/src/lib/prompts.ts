@@ -87,19 +87,26 @@ export function buildVerifyPrompt(
   ].join("\n");
 }
 
+// ─── Commit prompt ──────────────────────────────────────────────────────────
+
+export function buildCommitPrompt(ticketKey: string): string {
+  return [
+    `[GSD: commit ${ticketKey}] ${AUTONOMY_PREFIX}`,
+    "",
+    `Commit all changes in this worktree for ${ticketKey}.`,
+    `Skill("/git-commit")`,
+  ].join("\n");
+}
+
 // ─── PR prompt ───────────────────────────────────────────────────────────────
 
-export function buildPrPrompt(forges: ForgeResult[]): string {
-  let stepNum = 0;
-  const steps = forges
-    .flatMap((r) =>
-      r.worktrees.map(
-        (wt) =>
-          `${++stepNum}. In worktree ${wt.worktreePath} (${r.ticketKey}):\n` +
-          `   Skill("/git-commit") then Skill("/create-pr 'create a Draft PR and keep description concise'")`,
-      ),
-    )
-    .join("\n");
+export function buildPrPrompt(ticketKeys: string[], mergeBranch: string): string {
+  const tickets = ticketKeys.join(", ");
 
-  return [`[GSD: create PRs] ${AUTONOMY_PREFIX}`, "", steps].join("\n");
+  return [
+    `[GSD: create PR for ${tickets}] ${AUTONOMY_PREFIX}`,
+    "",
+    `You are on merge branch "${mergeBranch}" with all changes already committed and merged.`,
+    `Skill("/create-pr 'create a Draft PR and keep description concise'")`,
+  ].join("\n");
 }

@@ -4,7 +4,12 @@ import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
 import type { GroupedLayer, TicketAssignment } from "./prioritizer.js";
 import type { ForgeResult } from "./prompts.js";
-import { buildMergePrompt, buildVerifyPrompt, buildPrPrompt } from "./prompts.js";
+import {
+  buildCommitPrompt,
+  buildMergePrompt,
+  buildVerifyPrompt,
+  buildPrPrompt,
+} from "./prompts.js";
 import { filterGroup, ticketKeys } from "./prioritizer.js";
 import { forgeGroup } from "./forge.js";
 
@@ -54,7 +59,24 @@ export async function mergeAndVerify(
 
   const primaryTicket = keys[0];
 
-  // Step 1: Merge per repo in parallel
+  // Step 1: Commit each worktree (continue from forge session)
+  log(`COMMITTING: ${primaryTicket} (${successful.length} ticket(s))`);
+  await Promise.all(
+    successful.flatMap((forge) =>
+      forge.worktrees.map(async (wt) => {
+        const { code, stdout } = await runner.run(buildCommitPrompt(forge.ticketKey), {
+          cwd: wt.worktreePath,
+          continueSession: true,
+          taskName: `get-shit-done: commit ${forge.ticketKey}`,
+        });
+        runner.writeLog("commit", forge.ticketKey, stdout);
+        if (code !== 0)
+          log(`COMMIT WARN: ${forge.ticketKey} in ${wt.worktreePath} (exit code: ${code})`);
+      }),
+    ),
+  );
+
+  // Step 2: Merge committed worktrees per repo in parallel
   const worktreesByRepo = groupWorktreesByRepo(successful);
   log(`MERGING: ${primaryTicket} across ${worktreesByRepo.size} repo(s)`);
 
@@ -83,7 +105,7 @@ export async function mergeAndVerify(
     else if (!r.branch) log(`MERGE WARN: ${primaryTicket} in ${r.repoRoot} — empty branch name`);
   }
 
-  // Step 2: Restart servers on first merge branch
+  // Step 3: Restart servers on first merge branch
   const mergeBranch = mergedBranches[0].branch;
   log(`MERGE BRANCH: ${mergeBranch}`);
 
@@ -91,12 +113,16 @@ export async function mergeAndVerify(
     await devServers.restartOnBranch(mergeBranch);
   }
 
-  // Step 3: Verify
+  // Step 4: Verify
   if (hasFrontend) {
     log(`VERIFYING: ${primaryTicket}`);
     const { code: verifyCode, stdout: verifyOut } = await runner.run(
       buildVerifyPrompt(primaryTicket, devServers.devUrl, mergeBranch),
-      { repos, taskName: `get-shit-done: verify ${primaryTicket}` },
+      {
+        cwd: mergedBranches[0].repoRoot,
+        continueSession: true,
+        taskName: `get-shit-done: verify ${primaryTicket}`,
+      },
     );
     runner.writeLog("verify", primaryTicket, verifyOut);
 
@@ -105,19 +131,25 @@ export async function mergeAndVerify(
     }
   }
 
-  // Step 4: Create PRs
-  log(`CREATING PRs: ${primaryTicket}`);
-  const { code: prCode, stdout: prOut } = await runner.run(buildPrPrompt(successful), {
-    repos,
-    taskName: `get-shit-done: pr ${primaryTicket}`,
-  });
-  runner.writeLog("pr", primaryTicket, prOut);
+  // Step 5: Create PRs per repo (continue from forge session for full context)
+  const succeededKeys = successful.map((r) => r.ticketKey);
+  await Promise.all(
+    mergedBranches.map(async (mb) => {
+      log(`CREATING PR: ${primaryTicket} in ${mb.repoRoot}`);
+      const { code: prCode, stdout: prOut } = await runner.run(
+        buildPrPrompt(succeededKeys, mb.branch),
+        {
+          cwd: mb.repoRoot,
+          continueSession: true,
+          taskName: `get-shit-done: pr ${primaryTicket} in ${mb.repoRoot}`,
+        },
+      );
+      runner.writeLog("pr", primaryTicket, prOut);
+      if (prCode !== 0) log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
+    }),
+  );
 
-  if (prCode !== 0) {
-    log(`PR CREATION FAILED: ${primaryTicket}`);
-  }
-
-  // Step 5: Update JIRA
+  // Step 6: Update JIRA
   await Promise.all(
     successful.map(async (r) => {
       log(`SUCCESS: ${r.ticketKey}`);

@@ -69,6 +69,8 @@ void describe("mergeAndVerify", () => {
 
   void it("returns all succeeded when merge, verify, and PR pass", async () => {
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
+      { code: 0, stdout: "" }, // commit EC-2
       { code: 0, stdout: "EC-1-merge-branch" }, // merge
       { code: 0, stdout: "verify ok" }, // verify
       { code: 0, stdout: "pr created" }, // PR
@@ -117,6 +119,8 @@ void describe("mergeAndVerify", () => {
 
   void it("returns all failed when merge fails", async () => {
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
+      { code: 0, stdout: "" }, // commit EC-2
       { code: 1, stdout: "" }, // merge fails
     ]);
     const { log } = collectLogs();
@@ -151,6 +155,7 @@ void describe("mergeAndVerify", () => {
       { ticketKey: "EC-2", status: "failed", worktrees: [] },
     ];
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
       { code: 0, stdout: "merge-branch" },
       { code: 0, stdout: "verify ok" },
       { code: 0, stdout: "pr ok" },
@@ -178,6 +183,8 @@ void describe("mergeAndVerify", () => {
 
   void it("marks successful tickets in tracker", async () => {
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
+      { code: 0, stdout: "" }, // commit EC-2
       { code: 0, stdout: "branch" },
       { code: 0, stdout: "ok" },
       { code: 0, stdout: "ok" },
@@ -215,6 +222,8 @@ void describe("mergeAndVerify", () => {
     } as unknown as JiraClient;
 
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
+      { code: 0, stdout: "" }, // commit EC-2
       { code: 0, stdout: "branch" },
       { code: 0, stdout: "ok" },
       { code: 0, stdout: "ok" },
@@ -263,8 +272,8 @@ void describe("mergeAndVerify", () => {
       log,
     );
 
-    // merge + PR = 2 calls (no verify)
-    assert.equal(runCallCount, 2);
+    // commit + merge + PR = 3 calls (no verify)
+    assert.equal(runCallCount, 3);
   });
 
   void it("calls restartOnBranch when hasFrontend and merge succeeds", async () => {
@@ -280,6 +289,7 @@ void describe("mergeAndVerify", () => {
     } as unknown as DevServerManager;
 
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
       { code: 0, stdout: "my-merge-branch" },
       { code: 0, stdout: "ok" },
       { code: 0, stdout: "ok" },
@@ -314,6 +324,7 @@ void describe("mergeAndVerify", () => {
     } as unknown as DevServerManager;
 
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
       { code: 0, stdout: "branch" },
       { code: 0, stdout: "ok" },
     ]);
@@ -342,6 +353,7 @@ void describe("mergeAndVerify", () => {
     } as unknown as JiraClient;
 
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
       { code: 0, stdout: "branch" },
       { code: 0, stdout: "ok" },
       { code: 0, stdout: "ok" },
@@ -365,6 +377,7 @@ void describe("mergeAndVerify", () => {
 
   void it("still succeeds when verify fails", async () => {
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
       { code: 0, stdout: "branch" },
       { code: 1, stdout: "verify failed" }, // verify fails
       { code: 0, stdout: "pr ok" },
@@ -388,6 +401,7 @@ void describe("mergeAndVerify", () => {
 
   void it("still succeeds when PR creation fails", async () => {
     const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
       { code: 0, stdout: "branch" },
       { code: 0, stdout: "ok" },
       { code: 1, stdout: "pr failed" }, // PR fails

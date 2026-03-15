@@ -68,24 +68,10 @@ void describe("buildVerifyPrompt", () => {
 });
 
 void describe("buildPrPrompt", () => {
-  const forges = [
-    {
-      ticketKey: "EC-1",
-      status: "success" as const,
-      worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-1" }],
-    },
-    {
-      ticketKey: "EC-2",
-      status: "success" as const,
-      worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-2" }],
-    },
-  ];
-
-  void it("generates PR steps for each forge", () => {
-    const result = buildPrPrompt(forges);
-    assert.ok(result.includes("In worktree /wt/ec-1"));
-    assert.ok(result.includes("In worktree /wt/ec-2"));
-    assert.ok(result.includes("git-commit"));
+  void it("includes ticket keys and merge branch in prompt", () => {
+    const result = buildPrPrompt(["EC-1", "EC-2"], "EC-1-merge");
+    assert.ok(result.includes("EC-1, EC-2"));
+    assert.ok(result.includes('merge branch "EC-1-merge"'));
     assert.ok(result.includes("create-pr"));
   });
 });
