@@ -1,10 +1,11 @@
 export interface AgentConfig {
   name: string;
   label: string;
-  schedule:
+  schedule?:
     | { type: "interval"; seconds: number }
     | { type: "calendar"; hour: number; minute: number; weekday?: number };
   runAtLoad?: boolean;
+  envVars?: Record<string, string>;
 }
 
 export const agents: AgentConfig[] = [
@@ -32,11 +33,5 @@ export const agents: AgentConfig[] = [
     name: "jsonl-compat-checker",
     label: "Claude Code Agent - JSONL Compat Checker",
     schedule: { type: "calendar", hour: 10, minute: 0, weekday: 0 },
-  },
-  {
-    name: "test-env",
-    label: "Claude Code Agent - Test Env",
-    schedule: { type: "calendar", hour: 0, minute: 0 }, // manual only
-    runAtLoad: true,
   },
 ];

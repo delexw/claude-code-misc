@@ -9,6 +9,16 @@ const CLAUDE_CLI = join(HOME, ".local/bin/claude");
 // Unset nested session guard so Claude CLI can launch
 delete (process.env as Record<string, unknown>).CLAUDECODE;
 
+// Strip direct asdf install paths (e.g. ~/.asdf/installs/nodejs/22.22.0/bin)
+// so only ~/.asdf/shims remains. The session-setup.sh hook handles this too via
+// CLAUDE_ENV_FILE, but this is a safety net for the initial PATH passed to Claude CLI.
+function buildClaudePath(): string {
+  return (process.env.PATH || "")
+    .split(":")
+    .filter((p) => !p.includes(`${HOME}/.asdf/installs/`))
+    .join(":");
+}
+
 interface SpawnClaudeOptions {
   cwd?: string;
   taskName: string;
@@ -34,6 +44,11 @@ export function spawnClaude(
         ...process.env,
         CLAUDECODE: undefined,
         CLAUDE_SCHEDULER_TASK: taskName,
+        // Ensure Claude Code uses zsh (not sh) for Bash tool and has a proper TERM
+        SHELL: process.env.SHELL || "/bin/zsh",
+        TERM: process.env.TERM || "xterm-256color",
+        // Clean PATH so asdf shims resolve per-project .tool-versions
+        PATH: buildClaudePath(),
       },
       stdio: ["ignore", "pipe", "pipe"],
     });

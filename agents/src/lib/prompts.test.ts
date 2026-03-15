@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import {
   extractWorktreePath,
   buildForgePrompt,
-  buildGroupPrompt,
-  buildBootstrapPrompt,
+  buildMergePrompt,
+  buildVerifyPrompt,
+  buildPrPrompt,
   AUTONOMY_PREFIX,
 } from "./prompts.js";
 
@@ -70,79 +71,45 @@ describe("buildForgePrompt", () => {
   });
 });
 
-describe("buildGroupPrompt", () => {
+describe("buildMergePrompt", () => {
   const forges = [
     { ticketKey: "EC-1", status: "success" as const, worktreePath: "/wt/ec-1" },
     { ticketKey: "EC-2", status: "success" as const, worktreePath: "/wt/ec-2" },
   ];
 
   it("includes primary ticket in merge branch name", () => {
-    const result = buildGroupPrompt("EC-1", forges, ["/repo"], true);
+    const result = buildMergePrompt("EC-1", forges);
     assert.ok(result.includes('"EC-1-merge"'));
   });
 
   it("lists worktree paths", () => {
-    const result = buildGroupPrompt("EC-1", forges, ["/repo"], true);
-    assert.ok(result.includes("EC-1:/wt/ec-1"));
-    assert.ok(result.includes("EC-2:/wt/ec-2"));
-  });
-
-  it("includes bootstrap and verification steps when hasFrontend is true", () => {
-    const result = buildGroupPrompt("EC-1", forges, ["/repo"], true);
-    assert.ok(result.includes("Bootstrap all dev services"));
-    assert.ok(result.includes("verification"));
-    assert.ok(result.includes("Kill all dev servers"));
-  });
-
-  it("skips bootstrap and kill steps when hasFrontend is false", () => {
-    const result = buildGroupPrompt("EC-1", forges, ["/repo"], false);
-    assert.ok(!result.includes("Bootstrap all dev services"));
-    assert.ok(!result.includes("Kill all dev servers"));
-    assert.ok(result.includes("verification"));
-  });
-
-  it("generates PR steps starting at 7 when hasFrontend", () => {
-    const result = buildGroupPrompt("EC-1", forges, ["/repo"], true);
-    assert.ok(result.includes("7. In worktree /wt/ec-1"));
-    assert.ok(result.includes("8. In worktree /wt/ec-2"));
-  });
-
-  it("generates PR steps starting at 5 when no frontend", () => {
-    const result = buildGroupPrompt("EC-1", forges, ["/repo"], false);
-    assert.ok(result.includes("5. In worktree /wt/ec-1"));
-    assert.ok(result.includes("6. In worktree /wt/ec-2"));
-  });
-
-  it("includes repo list in bootstrap steps", () => {
-    const result = buildGroupPrompt("EC-1", forges, ["/repo-a", "/repo-b"], true);
-    assert.ok(result.includes("/repo-a"));
-    assert.ok(result.includes("/repo-b"));
+    const result = buildMergePrompt("EC-1", forges);
+    assert.ok(result.includes("EC-1: /wt/ec-1"));
+    assert.ok(result.includes("EC-2: /wt/ec-2"));
   });
 });
 
-describe("buildBootstrapPrompt", () => {
-  it("includes all 5 bootstrap skills", () => {
-    const result = buildBootstrapPrompt();
-    assert.ok(result.includes("elements-backend-bootstrap"));
-    assert.ok(result.includes("elements-storefront-bootstrap"));
-    assert.ok(result.includes("elements-payment-bootstrap"));
-    assert.ok(result.includes("elements-search-bootstrap"));
-    assert.ok(result.includes("sso-server-bootstrap"));
-  });
-
-  it("instructs to fetch main and bootstrap on main branch", () => {
-    const result = buildBootstrapPrompt();
-    assert.ok(result.includes("fetch main to up-to-date and bootstrap on main branch"));
-  });
-
-  it("requests JSON output with urls field", () => {
-    const result = buildBootstrapPrompt();
-    assert.ok(result.includes('"urls"'));
-    assert.ok(result.includes("JSON object"));
-  });
-
-  it("includes autonomy prefix", () => {
-    const result = buildBootstrapPrompt();
-    assert.ok(result.includes(AUTONOMY_PREFIX));
+describe("buildVerifyPrompt", () => {
+  it("includes dev URL", () => {
+    const result = buildVerifyPrompt("EC-1", "https://elements.envato.dev");
+    assert.ok(result.includes("https://elements.envato.dev"));
+    assert.ok(result.includes("verification"));
   });
 });
+
+describe("buildPrPrompt", () => {
+  const forges = [
+    { ticketKey: "EC-1", status: "success" as const, worktreePath: "/wt/ec-1" },
+    { ticketKey: "EC-2", status: "success" as const, worktreePath: "/wt/ec-2" },
+  ];
+
+  it("generates PR steps for each forge", () => {
+    const result = buildPrPrompt(forges);
+    assert.ok(result.includes("In worktree /wt/ec-1"));
+    assert.ok(result.includes("In worktree /wt/ec-2"));
+    assert.ok(result.includes("git-commit"));
+    assert.ok(result.includes("create-pr"));
+  });
+});
+
+// buildBootstrapPrompt tests removed — function deleted, servers now start from Node.js directly

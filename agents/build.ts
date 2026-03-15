@@ -6,7 +6,6 @@
  * Usage:
  *   npm run install-agents          # build + install + reload all agents
  *   npm run install-agents -- --uninstall   # unload + remove all agents
- *   npm run install-agents -- --test        # build + install + run test-env only
  */
 
 import { execSync } from "node:child_process";
@@ -21,7 +20,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { agents } from "./plist/configs.js";
-import { captureDevEnv, generatePlist, plistLabel } from "./plist/generate.js";
+import { generatePlist, plistLabel } from "./plist/generate.js";
 
 const HOME = process.env.HOME!;
 const INSTALL_DIR = join(HOME, ".claude/scheduler");
@@ -31,8 +30,6 @@ const uid = execSync("id -u").toString().trim();
 
 const args = process.argv.slice(2);
 const uninstall = args.includes("--uninstall");
-const testOnly = args.includes("--test");
-const uninstallTest = args.includes("--uninstall-test");
 
 function run(cmd: string, label: string): void {
   console.log(`  ${label}`);
@@ -45,12 +42,9 @@ function run(cmd: string, label: string): void {
 
 // ─── Uninstall ──────────────────────────────────────────────────────────────
 
-if (uninstall || uninstallTest) {
-  const toRemove = uninstallTest
-    ? agents.filter((a) => a.name === "test-env")
-    : agents;
-  console.log(`Uninstalling ${uninstallTest ? "test-env" : "all"} scheduler agents...\n`);
-  for (const config of toRemove) {
+if (uninstall) {
+  console.log(`Uninstalling all scheduler agents...\n`);
+  for (const config of agents) {
     const label = plistLabel(config);
     const plistPath = join(LAUNCH_AGENTS_DIR, `${label}.plist`);
     run(`launchctl bootout gui/${uid} ${plistPath}`, `Unloading ${config.name}`);
@@ -71,18 +65,13 @@ execSync("npx tsup", { stdio: "inherit", cwd: import.meta.dirname! });
 
 // ─── Generate plists ────────────────────────────────────────────────────────
 
-console.log("\nStep 2: Capturing dev environment + generating plist files...\n");
+console.log("\nStep 2: Generating plist files (zsh login shell handles env)...\n");
 mkdirSync(DIST_DIR, { recursive: true });
 
-const devEnv = captureDevEnv();
-console.log(`  Captured ${Object.keys(devEnv).length} env vars from current shell`);
-
-const targetAgents = testOnly
-  ? agents.filter((a) => a.name === "test-env")
-  : agents.filter((a) => a.name !== "test-env");
+const targetAgents = agents;
 
 for (const config of targetAgents) {
-  const plistContent = generatePlist(config, HOME, devEnv);
+  const plistContent = generatePlist(config, HOME);
   const plistFile = join(DIST_DIR, `${plistLabel(config)}.plist`);
   writeFileSync(plistFile, plistContent);
   console.log(`  Generated ${plistLabel(config)}.plist`);
@@ -95,8 +84,6 @@ mkdirSync(INSTALL_DIR, { recursive: true });
 
 for (const file of readdirSync(DIST_DIR)) {
   if (!file.endsWith(".mjs")) continue;
-  if (!testOnly && file === "test-env.mjs") continue;
-  if (testOnly && file !== "test-env.mjs") continue;
   const src = join(DIST_DIR, file);
   const dest = join(INSTALL_DIR, file);
   copyFileSync(src, dest);
@@ -159,8 +146,3 @@ for (const config of targetAgents) {
 }
 
 console.log("\nDone!");
-if (testOnly) {
-  console.log("\nTest agent installed with RunAtLoad=true. Check:");
-  console.log(`  cat ${INSTALL_DIR}/logs/.test-env/out.log`);
-  console.log(`  cat ${INSTALL_DIR}/logs/.test-env/err.log`);
-}

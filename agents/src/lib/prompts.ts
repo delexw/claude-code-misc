@@ -25,7 +25,7 @@ export function extractWorktreePath(stdout: string): string {
   return "";
 }
 
-// ─── Prompt builders ─────────────────────────────────────────────────────────
+// ─── Forge prompt ────────────────────────────────────────────────────────────
 
 export function buildForgePrompt(
   ticketKey: string,
@@ -34,75 +34,81 @@ export function buildForgePrompt(
   devServerInfo: string,
 ): string {
   const repoList = repos.join("\n");
-  const devUrlContext = devServerInfo
-    ? ` Dev servers are already running: ${devServerInfo}`
+  const devCtx = devServerInfo
+    ? `\nDev servers are already running: ${devServerInfo}`
     : "";
-  return `[GSD: forge ${ticketKey}] ${AUTONOMY_PREFIX}
-Invoke Skill("/forge ${ticketUrl} 'Find the correct repo from: ${repoList}. Multiple repos are possible.${devUrlContext}'")
-Return the JSON output from forge ONLY without code fence.`;
+
+  return [
+    `[GSD: forge ${ticketKey}] ${AUTONOMY_PREFIX}`,
+    "",
+    `Invoke Skill("/forge ${ticketUrl} 'Find the correct repo from:`,
+    `${repoList}`,
+    `Multiple repos are possible.${devCtx}'")`,
+    "",
+    "Return the JSON output from forge ONLY without code fence.",
+  ].join("\n");
 }
 
-export function buildGroupPrompt(
+// ─── Merge prompt ────────────────────────────────────────────────────────────
+
+export function buildMergePrompt(
   primaryTicket: string,
   forges: ForgeResult[],
-  repos: string[],
-  hasFrontend: boolean,
 ): string {
-  const worktreePaths = forges
-    .map((r) => `${r.ticketKey}:${r.worktreePath}`)
+  const worktrees = forges
+    .map((r) => `  ${r.ticketKey}: ${r.worktreePath}`)
     .join("\n");
-  const repoList = repos.join("\n");
 
-  const devEnvSteps = hasFrontend
-    ? `4. Bootstrap all dev services in a single subagent (model: sonnet):
-   - Launch one Agent(model: sonnet) with a prompt to run ALL 5 bootstrap skills sequentially (one by one, wait for each to finish before starting the next):
-     - Determine the merge branch name from step 1
-     - For each service, use worktree paths if available, otherwise use original repo paths from: ${repoList}
-     - Skill("/elements-backend-bootstrap <backend_path> bootstrap on <merge_branch> branch")
-     - Skill("/elements-storefront-bootstrap <storefront_path> bootstrap on <merge_branch> branch")
-     - Skill("/elements-payment-bootstrap bootstrap on main branch")
-     - Skill("/elements-search-bootstrap bootstrap on main branch")
-     - Skill("/sso-server-bootstrap bootstrap on main branch")
-     - Return all dev server URLs once ready
-5. Run verification in a subagent: Agent(prompt: "Skill('/verification <dev_server_url>')") — pass the primary dev server URL from step 4
-6. Kill all dev servers`
-    : `4. Run verification in a subagent: Agent(prompt: "Skill('/verification')")`;
+  return [
+    `[GSD: merge ${primaryTicket}] ${AUTONOMY_PREFIX}`,
+    "",
+    "Forge results (ticket: worktree_path):",
+    worktrees,
+    "",
+    "Steps:",
+    `1. Create a merge branch from main named "${primaryTicket}-merge"`,
+    "   (include a slug from the primary ticket title)",
+    "2. Merge ALL worktree changes into the merge branch",
+    "   (even if only one worktree — always merge to the merge branch):",
+    "   - git merge or cherry-pick from each worktree branch",
+    "   - Resolve any conflicts",
+    "3. Verify the merged code compiles and has no obvious issues",
+    "",
+    "Return ONLY the merge branch name as plain text.",
+  ].join("\n");
+}
 
-  const prStepBase = hasFrontend ? 7 : 5;
-  const prSteps = forges
+// ─── Verify prompt ───────────────────────────────────────────────────────────
+
+export function buildVerifyPrompt(
+  primaryTicket: string,
+  devUrl: string,
+): string {
+  return [
+    `[GSD: verify ${primaryTicket}] ${AUTONOMY_PREFIX}`,
+    "",
+    `Dev servers are running at ${devUrl} (started externally).`,
+    "",
+    `Run: Skill("/verification ${devUrl}")`,
+    "",
+    "Report the result as plain text.",
+  ].join("\n");
+}
+
+// ─── PR prompt ───────────────────────────────────────────────────────────────
+
+export function buildPrPrompt(forges: ForgeResult[]): string {
+  const steps = forges
     .map(
       (r, i) =>
-        `${prStepBase + i}. In worktree ${r.worktreePath}: Skill("/git-commit") then Skill("/create-pr 'create a Draft PR and keep description concise'")`,
+        `${i + 1}. In worktree ${r.worktreePath}:\n` +
+        `   Skill("/git-commit") then Skill("/create-pr 'create a Draft PR and keep description concise'")`,
     )
     .join("\n");
 
-  return `[GSD: merge+verify ${primaryTicket}] ${AUTONOMY_PREFIX}
-Track progress with a TODO list.
-
-Forge results (ticket:worktree_path):
-${worktreePaths}
-
-Steps:
-1. Create a merge branch from main named "${primaryTicket}-merge" (include a slug from the primary ticket title)
-2. For each worktree, merge its changes into the merge branch:
-   - git merge or cherry-pick from each worktree branch
-   - Resolve any conflicts
-3. Verify the merged code compiles and has no obvious issues
-${devEnvSteps}
-${prSteps}`;
-}
-
-export function buildBootstrapPrompt(): string {
-  return `[GSD: bootstrap dev services on main] ${AUTONOMY_PREFIX}
-Bootstrap all dev services in a single subagent (model: sonnet):
-- Launch one Agent(model: sonnet) with a prompt to run ALL 5 bootstrap skills sequentially (one by one, wait for each to finish before starting the next):
-  - Skill("/elements-backend-bootstrap fetch main to up-to-date and bootstrap on main branch")
-  - Skill("/elements-storefront-bootstrap fetch main to up-to-date and bootstrap on main branch")
-  - Skill("/elements-payment-bootstrap fetch main to up-to-date and bootstrap on main branch")
-  - Skill("/elements-search-bootstrap fetch main to up-to-date and bootstrap on main branch")
-  - Skill("/sso-server-bootstrap fetch main to up-to-date and bootstrap on main branch")
-  - Return all dev server URLs once ready
-
-Return ONLY a JSON object (no code fence) with the dev server URLs:
-{"urls": ["<url1>", "<url2>", ...]}`;
+  return [
+    `[GSD: create PRs] ${AUTONOMY_PREFIX}`,
+    "",
+    steps,
+  ].join("\n");
 }

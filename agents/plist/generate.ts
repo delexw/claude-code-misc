@@ -6,43 +6,56 @@ function escapeXml(s: string): string {
 
 function scheduleBlock(config: AgentConfig): string {
   const { schedule } = config;
+  if (!schedule) return "";
+
   if (schedule.type === "interval") {
-    return `\t<key>StartInterval</key>
-\t<integer>${schedule.seconds}</integer>`;
+    return [
+      "    <key>StartInterval</key>",
+      `    <integer>${schedule.seconds}</integer>`,
+    ].join("\n");
   }
 
-  let inner = `\t\t<key>Hour</key>
-\t\t<integer>${schedule.hour}</integer>
-\t\t<key>Minute</key>
-\t\t<integer>${schedule.minute}</integer>`;
+  const entries = [
+    "        <key>Hour</key>",
+    `        <integer>${schedule.hour}</integer>`,
+    "        <key>Minute</key>",
+    `        <integer>${schedule.minute}</integer>`,
+  ];
 
   if ("weekday" in schedule && schedule.weekday !== undefined) {
-    inner += `\n\t\t<key>Weekday</key>
-\t\t<integer>${schedule.weekday}</integer>`;
+    entries.push(
+      "        <key>Weekday</key>",
+      `        <integer>${schedule.weekday}</integer>`,
+    );
   }
 
-  return `\t<key>StartCalendarInterval</key>
-\t<dict>
-${inner}
-\t</dict>`;
+  return [
+    "    <key>StartCalendarInterval</key>",
+    "    <dict>",
+    ...entries,
+    "    </dict>",
+  ].join("\n");
 }
 
-/**
- * Dynamically capture the entire current dev environment at build time.
- * No filtering — the plist gets exactly what your shell has.
- */
-export function captureDevEnv(): Record<string, string> {
-  const captured: Record<string, string> = {};
-  for (const [key, val] of Object.entries(process.env)) {
-    if (val !== undefined) captured[key] = val;
-  }
-  return captured;
+function envVarsBlock(envVars: Record<string, string>): string {
+  const entries = Object.entries(envVars)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .flatMap(([k, v]) => [
+      `        <key>${escapeXml(k)}</key>`,
+      `        <string>${escapeXml(v)}</string>`,
+    ]);
+
+  return [
+    "    <key>EnvironmentVariables</key>",
+    "    <dict>",
+    ...entries,
+    "    </dict>",
+  ].join("\n");
 }
 
 export function generatePlist(
   config: AgentConfig,
   home: string,
-  envVars?: Record<string, string>,
 ): string {
   const envrcPath = `${home}/.claude/scheduler/.envrc`;
   const nodePath = `${home}/.asdf/shims/node`;
@@ -50,56 +63,74 @@ export function generatePlist(
   const logDir = `${home}/.claude/scheduler/logs/.${config.name}`;
   const runAtLoad = config.runAtLoad ?? false;
 
-  // Use bash login shell to source .envrc before running node
-  const bashCmd = escapeXml(
-    `[ -f '${envrcPath}' ] && source '${envrcPath}'; exec '${nodePath}' '${scriptPath}'`,
+  // Use zsh login shell + explicitly source asdf.sh to ensure ~/.asdf/shims
+  // is on PATH (login shell alone doesn't source .zshrc in launchd context)
+  const asdfSh = "/opt/homebrew/opt/asdf/libexec/asdf.sh";
+  const shellCmd = escapeXml(
+    `[ -f '${asdfSh}' ] && . '${asdfSh}'; [ -f '${envrcPath}' ] && source '${envrcPath}'; exec '${nodePath}' '${scriptPath}'`,
   );
 
-  // Build EnvironmentVariables dict entries from captured env
-  const env = envVars ?? {};
-  // Ensure HOME is always set
-  if (!env.HOME) env.HOME = home;
+  const sections: string[] = [];
 
-  const envEntries = Object.entries(env)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(
-      ([k, v]) =>
-        `\t\t<key>${escapeXml(k)}</key>\n\t\t<string>${escapeXml(v)}</string>`,
-    )
-    .join("\n");
+  // EnvironmentVariables (optional)
+  if (config.envVars) {
+    sections.push(envVarsBlock(config.envVars));
+  }
+
+  // Label
+  sections.push(
+    "    <key>Label</key>",
+    `    <string>${escapeXml(config.label)}</string>`,
+  );
+
+  // ProcessType
+  sections.push(
+    "    <key>ProcessType</key>",
+    "    <string>Interactive</string>",
+  );
+
+  // ProgramArguments
+  sections.push(
+    "    <key>ProgramArguments</key>",
+    "    <array>",
+    "        <string>/bin/zsh</string>",
+    "        <string>-l</string>",
+    "        <string>-c</string>",
+    `        <string>${shellCmd}</string>`,
+    "    </array>",
+  );
+
+  // RunAtLoad
+  sections.push(
+    "    <key>RunAtLoad</key>",
+    `    <${runAtLoad}/>`,
+  );
+
+  // StandardErrorPath / StandardOutPath
+  sections.push(
+    "    <key>StandardErrorPath</key>",
+    `    <string>${logDir}/err.log</string>`,
+    "    <key>StandardOutPath</key>",
+    `    <string>${logDir}/out.log</string>`,
+  );
+
+  // Schedule (optional)
+  const schedule = scheduleBlock(config);
+  if (schedule) {
+    sections.push(schedule);
+  }
+
+  // WorkingDirectory
+  sections.push(
+    "    <key>WorkingDirectory</key>",
+    `    <string>${home}</string>`,
+  );
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-\t<key>EnvironmentVariables</key>
-\t<dict>
-${envEntries}
-\t</dict>
-\t<key>Label</key>
-\t<string>${escapeXml(config.label)}</string>
-\t<key>LowPriorityIO</key>
-\t<true/>
-\t<key>Nice</key>
-\t<integer>10</integer>
-\t<key>ProcessType</key>
-\t<string>Background</string>
-\t<key>ProgramArguments</key>
-\t<array>
-\t\t<string>/bin/bash</string>
-\t\t<string>-l</string>
-\t\t<string>-c</string>
-\t\t<string>${bashCmd}</string>
-\t</array>
-\t<key>RunAtLoad</key>
-\t<${runAtLoad}/>
-\t<key>StandardErrorPath</key>
-\t<string>${logDir}/err.log</string>
-\t<key>StandardOutPath</key>
-\t<string>${logDir}/out.log</string>
-${scheduleBlock(config)}
-\t<key>WorkingDirectory</key>
-\t<string>${home}</string>
+${sections.join("\n")}
 </dict>
 </plist>
 `;

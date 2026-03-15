@@ -1,7 +1,9 @@
 /**
- * Pure logic functions for prioritizer output parsing and layer filtering.
- * Extracted from get-shit-done.ts for testability.
+ * Prioritizer: parsing, filtering, and ticket prioritization via Claude.
  */
+
+import type { ClaudeRunner, LogFn } from "./claude-runner.js";
+import { AUTONOMY_PREFIX } from "./prompts.js";
 
 export interface GroupedLayer {
   group: string[];
@@ -79,4 +81,62 @@ export function filterGroup(
   return group.filter((t) =>
     unprocessed.has(t) && !skippedKeys.has(t) && !excludedKeys.has(t),
   );
+}
+
+// ─── Prioritize via Claude ──────────────────────────────────────────────────
+
+export async function prioritizeTickets(
+  allTickets: string[],
+  runner: ClaudeRunner,
+  scriptDir: string,
+  log: LogFn,
+): Promise<PrioritizeResult> {
+  if (allTickets.length <= 1) return fallbackResult(allTickets);
+
+  log(`PRIORITIZING: ${allTickets.length} ticket(s)`);
+
+  const ticketList = allTickets.join(",");
+  const { code, stdout } = await runner.run(
+    [
+      `[GSD: prioritize ${allTickets.length} tickets] ${AUTONOMY_PREFIX}`,
+      "",
+      `Invoke Skill("/jira-ticket-prioritizer ${ticketList}").`,
+      "",
+      "Return json ONLY without code fence",
+    ].join("\n"),
+    {
+      taskName: `get-shit-done: prioritizing ${allTickets.length} tickets`,
+      cwd: scriptDir,
+      timeoutMs: 5 * 60 * 60 * 1000,
+      model: "opus",
+    },
+  );
+
+  if (code === 0) {
+    try {
+      const result = parsePrioritizerOutput(stdout);
+      if (result) {
+        logPrioritizeResult(result, log);
+        return result;
+      }
+    } catch (err) {
+      log(`WARN: Prioritizer parse failed: ${(err as Error).message}`);
+    }
+  } else {
+    log(`WARN: Prioritizer exited with code ${code}`);
+  }
+
+  log(`WARN: Falling back to unprioritized order`);
+  return fallbackResult(allTickets);
+}
+
+function logPrioritizeResult(result: PrioritizeResult, log: LogFn): void {
+  const summary = result.layers
+    .map((l, i) => `L${i}:[${l.group.join(",")}]`)
+    .join(" ");
+  log(`PRIORITIZED: ${result.layers.length} layer(s) — ${summary}`);
+  if (result.skipped.length > 0)
+    log(`SKIPPED: ${result.skipped.map((s) => s.key).join(", ")}`);
+  if (result.excluded.length > 0)
+    log(`EXCLUDED: ${result.excluded.map((e) => e.key).join(", ")}`);
 }

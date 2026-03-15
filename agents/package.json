@@ -6,9 +6,7 @@
   "scripts": {
     "build": "tsup",
     "install": "tsx build.ts",
-    "uninstall": "tsx build.ts --uninstall",
-    "test-env": "tsx build.ts --test",
-    "uninstall-test": "tsx build.ts --uninstall-test"
+    "uninstall": "tsx build.ts --uninstall"
   },
   "devDependencies": {
     "@types/node": "^25.4.0",
