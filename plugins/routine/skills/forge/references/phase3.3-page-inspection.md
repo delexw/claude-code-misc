@@ -1,6 +1,5 @@
 # Phase 3.3: Page Inspection (Conditional)
 
-> **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 > **Skip this phase** if the JIRA ticket context does not suggest frontend or UI-affecting changes.
 

@@ -1,6 +1,5 @@
 # Phase 5: Implementation Planning + Skill Generation
 
-> **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 ## 5a: Generate Implementation Plan
 

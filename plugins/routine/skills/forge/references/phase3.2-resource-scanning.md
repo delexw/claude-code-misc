@@ -1,6 +1,5 @@
 # Phase 3.2: Resource Scanning
 
-> **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 ## Link Scanning
 - Read `SKILL_DIR/references/dossier.json` to get the `links` object and identify categorized URLs

@@ -1,6 +1,5 @@
 # Phase 4: Prompt Optimization (via `Skill("meta-prompter")`)
 
-> **Worktree reminder:** If Phase 2.5 created a worktree, ensure you are in the worktree directory before proceeding (`cd "$WORKTREE_PATH"`).
 
 - Build a summary of the task context by reading key output files:
   - `SKILL_DIR/references/dossier.json` — requirements
