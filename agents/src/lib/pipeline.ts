@@ -2,7 +2,7 @@ import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
-import type { GroupedLayer, TicketAssignment } from "./prioritizer.js";
+import type { GroupedLayer, TicketAssignment, Verification } from "./prioritizer.js";
 import type { ForgeResult, PrDependency } from "./prompts.js";
 import {
   buildCommitPrompt,
@@ -76,7 +76,7 @@ export async function mergeAndVerify(
   forges: ForgeResult[],
   group: TicketAssignment[],
   repos: string[],
-  hasFrontend: boolean,
+  verification: Verification,
   prevState: LayerState,
   runner: ClaudeRunner,
   devServers: DevServerManager,
@@ -146,30 +146,27 @@ export async function mergeAndVerify(
     else if (!r.branch) log(`MERGE WARN: ${primaryTicket} in ${r.repoRoot} — empty branch name`);
   }
 
-  // Step 3: Restart servers on first merge branch
+  // Step 3: Restart servers on merge branch (only when UI verification needed)
   const mergeBranch = mergedBranches[0].branch;
   log(`MERGE BRANCH: ${mergeBranch}`);
-
-  if (hasFrontend) {
+  if (verification.required) {
     await devServers.restartOnBranch(mergeBranch);
   }
 
-  // Step 4: Verify
-  if (hasFrontend) {
-    log(`VERIFYING: ${primaryTicket}`);
-    const { code: verifyCode, stdout: verifyOut } = await runner.run(
-      buildVerifyPrompt(primaryTicket, devServers.devUrl, mergeBranch),
-      {
-        cwd: mergedBranches[0].repoRoot,
-        continueSession: true,
-        taskName: `get-shit-done: verify ${primaryTicket}`,
-      },
-    );
-    runner.writeLog("verify", primaryTicket, verifyOut);
+  // Step 4: Verify — always run; the skill decides what to check based on verification context
+  log(`VERIFYING: ${primaryTicket} (ui required: ${verification.required}, reason: ${verification.reason})`);
+  const { code: verifyCode, stdout: verifyOut } = await runner.run(
+    buildVerifyPrompt(primaryTicket, verification.required ? devServers.devUrl : "", mergeBranch, verification),
+    {
+      cwd: mergedBranches[0].repoRoot,
+      continueSession: true,
+      taskName: `get-shit-done: verify ${primaryTicket}`,
+    },
+  );
+  runner.writeLog("verify", primaryTicket, verifyOut);
 
-    if (verifyCode !== 0) {
-      log(`VERIFY FAILED: ${primaryTicket} (exit code: ${verifyCode})`);
-    }
+  if (verifyCode !== 0) {
+    log(`VERIFY FAILED: ${primaryTicket} (exit code: ${verifyCode})`);
   }
 
   // Step 5: Create PRs per repo (continue from forge session for full context)
@@ -230,7 +227,7 @@ export async function mergeAndVerify(
 export async function processGroup(
   group: TicketAssignment[],
   repos: string[],
-  hasFrontend: boolean,
+  verification: Verification,
   prevState: LayerState,
   runner: ClaudeRunner,
   devServers: DevServerManager,
@@ -238,15 +235,15 @@ export async function processGroup(
   tracker: ProcessedTracker,
   log: LogFn,
 ): Promise<GroupResult> {
-  if (hasFrontend) await devServers.startAll();
+  if (verification.required) await devServers.startAll();
 
-  const devServerInfo = hasFrontend ? devServers.devUrl : "";
+  const devServerInfo = verification.required ? devServers.devUrl : "";
   const forgeResults = await forgeGroup(group, devServerInfo, runner, jira, log);
   const result = await mergeAndVerify(
     forgeResults,
     group,
     repos,
-    hasFrontend,
+    verification,
     prevState,
     runner,
     devServers,
@@ -255,7 +252,7 @@ export async function processGroup(
     log,
   );
 
-  if (hasFrontend) devServers.stopAll();
+  if (verification.required) devServers.stopAll();
 
   return result;
 }
@@ -293,7 +290,7 @@ export async function processLayers(
     const result = await processGroup(
       group,
       repos,
-      layer.hasFrontend,
+      layer.verification,
       layerState,
       runner,
       devServers,

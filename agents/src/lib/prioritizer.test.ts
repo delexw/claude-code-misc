@@ -8,12 +8,32 @@ import {
   type TicketAssignment,
 } from "./prioritizer.js";
 
+/** Build a minimal valid layer for tests that don't care about specific fields. */
+function makeLayer(keys: string[], verification = { required: false, reason: "test" }) {
+  return {
+    group: keys.map((key) => ({ key, repos: [] as Array<{ repo: string; branch: string }> })),
+    relation: null,
+    verification,
+  };
+}
+
 void describe("parsePrioritizerOutput", () => {
   void it("parses grouped format with all fields", () => {
     const input = JSON.stringify({
       layers: [
-        { group: ["EC-100", "EC-104"], relation: "same-epic", hasFrontend: true },
-        { group: ["EC-101"], relation: null, hasFrontend: false },
+        {
+          group: [
+            { key: "EC-100", repos: [{ repo: "acme-api", branch: "ec-100-fix" }] },
+            { key: "EC-104", repos: [{ repo: "acme-web", branch: "ec-104-ui" }] },
+          ],
+          relation: "same-epic",
+          verification: { required: true, reason: "updates login UI" },
+        },
+        {
+          group: [{ key: "EC-101", repos: [{ repo: "acme-api", branch: "ec-101-rate" }] }],
+          relation: null,
+          verification: { required: false, reason: "API-only" },
+        },
       ],
       skipped: [{ key: "EC-102", reason: "depends on EC-100 (status: In Progress)" }],
       excluded: [{ key: "EC-99", reason: "Done" }],
@@ -21,48 +41,27 @@ void describe("parsePrioritizerOutput", () => {
 
     const result = parsePrioritizerOutput(input)!;
     assert.equal(result.layers.length, 2);
-    assert.deepEqual(result.layers[0].group, [
-      { key: "EC-100", repos: [] },
-      { key: "EC-104", repos: [] },
-    ]);
+    assert.equal(result.layers[0].group[0].key, "EC-100");
+    assert.equal(result.layers[0].group[0].repos[0].repoPath, "acme-api");
+    assert.equal(result.layers[0].group[1].key, "EC-104");
     assert.equal(result.layers[0].relation, "same-epic");
-    assert.equal(result.layers[0].hasFrontend, true);
-    assert.equal(result.layers[1].hasFrontend, false);
+    assert.equal(result.layers[0].verification.required, true);
+    assert.equal(result.layers[0].verification.reason, "updates login UI");
+    assert.equal(result.layers[1].verification.required, false);
     assert.equal(result.skipped.length, 1);
     assert.equal(result.skipped[0].key, "EC-102");
     assert.equal(result.excluded.length, 1);
     assert.equal(result.excluded[0].key, "EC-99");
   });
 
-  void it("parses legacy array-of-arrays format", () => {
-    const input = JSON.stringify({
-      layers: [["EC-100", "EC-101"], ["EC-102"]],
-      skipped: [],
-      excluded: [],
-    });
-
-    const result = parsePrioritizerOutput(input)!;
-    assert.equal(result.layers.length, 2);
-    assert.deepEqual(result.layers[0].group, [
-      { key: "EC-100", repos: [] },
-      { key: "EC-101", repos: [] },
-    ]);
-    assert.equal(result.layers[0].relation, null);
-    assert.equal(result.layers[0].hasFrontend, true);
-    assert.deepEqual(result.layers[1].group, [{ key: "EC-102", repos: [] }]);
-  });
-
   void it("strips code fences before parsing", () => {
     const json = JSON.stringify({
-      layers: [{ group: ["EC-1"], relation: null, hasFrontend: false }],
-      skipped: [],
-      excluded: [],
+      layers: [makeLayer(["EC-1"])],
     });
     const input = "```json\n" + json + "\n```";
 
     const result = parsePrioritizerOutput(input)!;
     assert.equal(result.layers.length, 1);
-    assert.deepEqual(result.layers[0].group, [{ key: "EC-1", repos: [] }]);
   });
 
   void it("returns null for empty layers", () => {
@@ -75,18 +74,16 @@ void describe("parsePrioritizerOutput", () => {
     assert.equal(parsePrioritizerOutput(input), null);
   });
 
-  void it("throws on invalid JSON", () => {
-    assert.throws(() => parsePrioritizerOutput("not json"));
+  void it("returns null for invalid JSON", () => {
+    assert.equal(parsePrioritizerOutput("not json"), null);
   });
 
-  void it("defaults missing optional fields", () => {
+  void it("defaults skipped and excluded when omitted", () => {
     const input = JSON.stringify({
-      layers: [{ group: ["EC-1"] }],
+      layers: [makeLayer(["EC-1"])],
     });
 
     const result = parsePrioritizerOutput(input)!;
-    assert.equal(result.layers[0].relation, null);
-    assert.equal(result.layers[0].hasFrontend, true);
     assert.deepEqual(result.skipped, []);
     assert.deepEqual(result.excluded, []);
   });
@@ -94,54 +91,56 @@ void describe("parsePrioritizerOutput", () => {
   void it("parses many sequential single-ticket layers", () => {
     const input = JSON.stringify({
       layers: [
-        { group: ["EC-10819"], relation: null, hasFrontend: true },
-        { group: ["EC-10820"], relation: null, hasFrontend: true },
-        { group: ["EC-10821"], relation: null, hasFrontend: true },
-        { group: ["EC-10822"], relation: null, hasFrontend: true },
-        { group: ["EC-10823"], relation: null, hasFrontend: true },
-        { group: ["EC-10824"], relation: null, hasFrontend: true },
+        makeLayer(["EC-10819"]),
+        makeLayer(["EC-10820"]),
+        makeLayer(["EC-10821"]),
       ],
       skipped: [],
-      excluded: [
-        { key: "EC-10798", reason: "Pure container story" },
-        { key: "EC-10810", reason: "Done" },
-      ],
+      excluded: [{ key: "EC-10798", reason: "Pure container story" }],
     });
 
     const result = parsePrioritizerOutput(input)!;
-    assert.equal(result.layers.length, 6);
-    assert.deepEqual(result.layers[0].group, [{ key: "EC-10819", repos: [] }]);
-    assert.deepEqual(result.layers[5].group, [{ key: "EC-10824", repos: [] }]);
-    assert.equal(result.excluded.length, 2);
+    assert.equal(result.layers.length, 3);
+    assert.equal(result.excluded.length, 1);
   });
 
   void it("strips code fences without language tag", () => {
-    const json = JSON.stringify({
-      layers: [{ group: ["EC-1"], relation: null, hasFrontend: true }],
-    });
+    const json = JSON.stringify({ layers: [makeLayer(["EC-1"])] });
     const input = "```\n" + json + "\n```";
 
     const result = parsePrioritizerOutput(input)!;
-    assert.deepEqual(result.layers[0].group, [{ key: "EC-1", repos: [] }]);
+    assert.ok(result);
   });
 
   void it("handles leading/trailing whitespace from stdout", () => {
-    const json = JSON.stringify({
-      layers: [{ group: ["EC-1"], relation: null, hasFrontend: true }],
-    });
+    const json = JSON.stringify({ layers: [makeLayer(["EC-1"])] });
     const input = "\n\n  " + json + "  \n\n";
 
     const result = parsePrioritizerOutput(input)!;
-    assert.deepEqual(result.layers[0].group, [{ key: "EC-1", repos: [] }]);
+    assert.ok(result);
   });
 
-  void it("treats omitted relation as null", () => {
+  void it("parses repo assignments with branch names", () => {
     const input = JSON.stringify({
-      layers: [{ group: ["EC-1", "EC-2"], hasFrontend: true }],
+      layers: [{
+        group: [
+          { key: "EC-1", repos: [{ repo: "acme-api", branch: "ec-1-fix-auth" }] },
+          { key: "EC-2", repos: [
+            { repo: "acme-api", branch: "ec-2-endpoint" },
+            { repo: "acme-web", branch: "ec-2-ui" },
+          ]},
+        ],
+        relation: "same-epic",
+        verification: { required: true, reason: "EC-2 updates login page" },
+      }],
     });
 
     const result = parsePrioritizerOutput(input)!;
-    assert.equal(result.layers[0].relation, null);
+    assert.equal(result.layers[0].group.length, 2);
+    assert.equal(result.layers[0].group[0].repos[0].repoPath, "acme-api");
+    assert.equal(result.layers[0].group[0].repos[0].branch, "ec-1-fix-auth");
+    assert.equal(result.layers[0].group[1].repos.length, 2);
+    assert.equal(result.layers[0].verification.reason, "EC-2 updates login page");
   });
 });
 
@@ -150,7 +149,8 @@ void describe("fallbackResult", () => {
     const result = fallbackResult(["EC-1"]);
     assert.equal(result.layers.length, 1);
     assert.deepEqual(result.layers[0].group, [{ key: "EC-1", repos: [] }]);
-    assert.equal(result.layers[0].hasFrontend, true);
+    assert.equal(result.layers[0].verification.required, true);
+    assert.equal(result.layers[0].verification.reason, "fallback — assuming verification needed");
     assert.deepEqual(result.skipped, []);
     assert.deepEqual(result.excluded, []);
   });

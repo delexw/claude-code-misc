@@ -80,14 +80,23 @@ export function buildVerifyPrompt(
   primaryTicket: string,
   devUrl: string,
   mergeBranch: string,
+  verification: { required: boolean; reason: string },
 ): string {
+  const devCtx = devUrl
+    ? `Dev servers are running at ${devUrl} on merge branch "${mergeBranch}" (started externally).`
+    : `No dev servers running (UI verification not required).`;
+
   return [
     `[GSD: verify ${primaryTicket}] ${AUTONOMY_PREFIX}`,
     "",
-    `Dev servers are running at ${devUrl} on merge branch "${mergeBranch}" (started externally).`,
+    devCtx,
     `Ensure you are on the merge branch "${mergeBranch}" before verifying.`,
     "",
-    `Run: Skill("/verification ${devUrl}")`,
+    `Verification context:`,
+    `- Web UI verification required: ${verification.required}`,
+    `- Reason: ${verification.reason}`,
+    "",
+    `Run: Skill("/verification${devUrl ? ` ${devUrl}` : ""}")`,
     "",
     "Report the result as plain text.",
   ].join("\n");

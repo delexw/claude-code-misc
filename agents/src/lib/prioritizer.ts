@@ -3,7 +3,7 @@
  */
 
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
-import { parseJsonRaw } from "./json.js";
+import { parseJson } from "./json.js";
 import { AUTONOMY_PREFIX } from "./prompts.js";
 import { resolveRepoName } from "./repos.js";
 
@@ -21,10 +21,15 @@ export function ticketKeys(group: TicketAssignment[]): string[] {
   return group.map((t) => t.key);
 }
 
+export interface Verification {
+  required: boolean;
+  reason: string;
+}
+
 export interface GroupedLayer {
   group: TicketAssignment[];
   relation: string | null;
-  hasFrontend: boolean;
+  verification: Verification;
 }
 
 export interface PrioritizeResult {
@@ -38,104 +43,70 @@ export interface SprintTicket {
   status: string;
 }
 
-function isRepoObj(r: unknown): r is { repo: string; branch: string } {
+// ─── Raw JSON shape matching the skill output-format.md ─────────────────────
+
+interface RawRepo {
+  repo: string;
+  branch: string;
+}
+interface RawTicket {
+  key: string;
+  repos: RawRepo[];
+}
+interface RawVerification {
+  required: boolean;
+  reason: string;
+}
+interface RawLayer {
+  group: RawTicket[];
+  relation: string | null;
+  verification: RawVerification;
+}
+interface RawKeyReason {
+  key: string;
+  reason: string;
+}
+interface RawPrioritizeOutput {
+  layers: RawLayer[];
+  skipped?: RawKeyReason[];
+  excluded?: RawKeyReason[];
+}
+
+function isRawOutput(v: unknown): v is RawPrioritizeOutput {
   return (
-    typeof r === "object" &&
-    r !== null &&
-    "repo" in r &&
-    typeof r.repo === "string" &&
-    "branch" in r &&
-    typeof r.branch === "string"
+    typeof v === "object" &&
+    v !== null &&
+    "layers" in v &&
+    Array.isArray(v.layers) &&
+    v.layers.length > 0
   );
 }
 
-function toRepoAssignments(raw: unknown): RepoAssignment[] {
-  if (Array.isArray(raw)) {
-    return raw.filter(isRepoObj).map((r) => ({ repoPath: r.repo, branch: r.branch }));
-  }
-  if (isRepoObj(raw)) {
-    return [{ repoPath: raw.repo, branch: raw.branch }];
-  }
-  return [];
-}
-
-/** Parse mixed array of strings or {key, repos} objects into TicketAssignment[] */
-function toTicketAssignments(arr: unknown[]): TicketAssignment[] {
-  return arr
-    .map((item) => {
-      if (typeof item === "string") return { key: item, repos: [] };
-      if (
-        typeof item === "object" &&
-        item !== null &&
-        "key" in item &&
-        typeof item.key === "string"
-      ) {
-        // New format: { key, repos: [{ repo, branch }] }
-        if ("repos" in item) {
-          return { key: item.key, repos: toRepoAssignments(item.repos) };
-        }
-        // Compat: { key, repo, branch } → single-element repos array
-        if (
-          "repo" in item &&
-          typeof item.repo === "string" &&
-          "branch" in item &&
-          typeof item.branch === "string"
-        ) {
-          return { key: item.key, repos: [{ repoPath: item.repo, branch: item.branch }] };
-        }
-        return { key: item.key, repos: [] };
-      }
-      return null;
-    })
-    .filter((x): x is TicketAssignment => x !== null);
-}
-
-function toKeyReasonArray(arr: unknown[]): Array<{ key: string; reason: string }> {
-  return arr.filter(
-    (item): item is { key: string; reason: string } =>
-      typeof item === "object" &&
-      item !== null &&
-      "key" in item &&
-      typeof item.key === "string" &&
-      "reason" in item &&
-      typeof item.reason === "string",
-  );
+function toGroupedLayer(raw: RawLayer): GroupedLayer {
+  return {
+    group: raw.group.map((t) => ({
+      key: t.key,
+      repos: (t.repos ?? []).map((r) => ({ repoPath: r.repo, branch: r.branch })),
+    })),
+    relation: raw.relation ?? null,
+    verification: {
+      required: raw.verification?.required ?? true,
+      reason: raw.verification?.reason ?? "unknown",
+    },
+  };
 }
 
 /**
  * Parse raw prioritizer JSON output into a typed PrioritizeResult.
- * Handles both new grouped format and legacy array-of-arrays format.
- * Returns null if parsing fails.
+ * Expects the format defined in output-format.md. Returns null if parsing fails.
  */
 export function parsePrioritizerOutput(raw: string): PrioritizeResult | null {
-  const parsed: unknown = parseJsonRaw(raw);
+  const parsed = parseJson(raw, isRawOutput);
+  if (!parsed) return null;
 
-  if (typeof parsed !== "object" || parsed === null) return null;
-  if (!("layers" in parsed) || !Array.isArray(parsed.layers) || parsed.layers.length === 0)
-    return null;
-
-  const layers: GroupedLayer[] = parsed.layers.map((l: unknown) => {
-    if (Array.isArray(l)) {
-      return {
-        group: toTicketAssignments(l),
-        relation: null,
-        hasFrontend: true,
-      };
-    }
-    if (typeof l === "object" && l !== null) {
-      const group = "group" in l && Array.isArray(l.group) ? toTicketAssignments(l.group) : [];
-      const relation = "relation" in l && typeof l.relation === "string" ? l.relation : null;
-      const hasFrontend =
-        "hasFrontend" in l && typeof l.hasFrontend === "boolean" ? l.hasFrontend : true;
-      return { group, relation, hasFrontend };
-    }
-    return { group: [], relation: null, hasFrontend: true };
-  });
-
-  const skipped =
-    "skipped" in parsed && Array.isArray(parsed.skipped) ? toKeyReasonArray(parsed.skipped) : [];
-  const excluded =
-    "excluded" in parsed && Array.isArray(parsed.excluded) ? toKeyReasonArray(parsed.excluded) : [];
+  const layers = parsed.layers.map(toGroupedLayer);
+  const skipped = parsed.skipped ?? [];
+  const excluded = parsed.excluded ?? [];
 
   return { layers, skipped, excluded };
 }
@@ -149,7 +120,7 @@ export function fallbackResult(tickets: string[]): PrioritizeResult {
       {
         group: tickets.map((key) => ({ key, repos: [] })),
         relation: null,
-        hasFrontend: true,
+        verification: { required: true, reason: "fallback — assuming verification needed" },
       },
     ],
     skipped: [],
@@ -219,16 +190,13 @@ export async function prioritizeTickets(
   );
 
   if (code === 0) {
-    try {
-      const result = parsePrioritizerOutput(stdout);
-      if (result) {
-        resolveAndValidateRepos(result, repos);
-        logPrioritizeResult(result, log);
-        return result;
-      }
-    } catch (err) {
-      log(`WARN: Prioritizer parse failed: ${err instanceof Error ? err.message : String(err)}`);
+    const result = parsePrioritizerOutput(stdout);
+    if (result) {
+      resolveAndValidateRepos(result, repos);
+      logPrioritizeResult(result, log);
+      return result;
     }
+    log(`WARN: Prioritizer output parse failed`);
   } else {
     log(`WARN: Prioritizer exited with code ${code}`);
   }

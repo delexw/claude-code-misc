@@ -6,9 +6,11 @@ import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
 import type { ForgeResult } from "./prompts.js";
-import type { GroupedLayer } from "./prioritizer.js";
+import type { GroupedLayer, Verification } from "./prioritizer.js";
 
 const NO_BASE: LayerState = { branches: new Map(), prUrls: new Map() };
+const VERIFY: Verification = { required: true, reason: "test" };
+const NO_VERIFY: Verification = { required: false, reason: "test" };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -86,7 +88,7 @@ void describe("mergeAndVerify", () => {
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -108,7 +110,7 @@ void describe("mergeAndVerify", () => {
       forges,
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -136,7 +138,7 @@ void describe("mergeAndVerify", () => {
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -174,7 +176,7 @@ void describe("mergeAndVerify", () => {
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -205,7 +207,7 @@ void describe("mergeAndVerify", () => {
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -244,7 +246,7 @@ void describe("mergeAndVerify", () => {
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -256,7 +258,7 @@ void describe("mergeAndVerify", () => {
     assert.deepEqual(movedTickets, ["EC-1", "EC-2"]);
   });
 
-  void it("skips verify when hasFrontend is false", async () => {
+  void it("always runs verify even when verification.required is false", async () => {
     let runCallCount = 0;
     const runner = {
       run: async () => {
@@ -272,7 +274,7 @@ void describe("mergeAndVerify", () => {
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
-      false,
+      NO_VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -281,11 +283,11 @@ void describe("mergeAndVerify", () => {
       log,
     );
 
-    // commit + merge + PR = 3 calls (no verify)
-    assert.equal(runCallCount, 3);
+    // commit + merge + verify + PR = 4 calls (verify always runs)
+    assert.equal(runCallCount, 4);
   });
 
-  void it("calls restartOnBranch when hasFrontend and merge succeeds", async () => {
+  void it("calls restartOnBranch when needsVerification and merge succeeds", async () => {
     let restartedBranch = "";
     const devServers = {
       devUrl: "http://localhost:3000",
@@ -309,7 +311,7 @@ void describe("mergeAndVerify", () => {
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       devServers,
@@ -321,7 +323,7 @@ void describe("mergeAndVerify", () => {
     assert.equal(restartedBranch, "my-merge-branch");
   });
 
-  void it("does not restart servers when hasFrontend is false", async () => {
+  void it("does not restart servers when needsVerification is false", async () => {
     let restarted = false;
     const devServers = {
       devUrl: "http://localhost:3000",
@@ -344,7 +346,7 @@ void describe("mergeAndVerify", () => {
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
-      false,
+      NO_VERIFY,
       NO_BASE,
       runner,
       devServers,
@@ -375,7 +377,7 @@ void describe("mergeAndVerify", () => {
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -400,7 +402,7 @@ void describe("mergeAndVerify", () => {
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -425,7 +427,7 @@ void describe("mergeAndVerify", () => {
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
-      true,
+      VERIFY,
       NO_BASE,
       runner,
       makeDevServers(),
@@ -462,12 +464,12 @@ void describe("processLayers", () => {
       {
         group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       },
       {
         group: [{ key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       },
     ];
     const runner = makeFullRunner();
@@ -495,12 +497,12 @@ void describe("processLayers", () => {
       {
         group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       },
       {
         group: [{ key: "EC-99", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       }, // not in unprocessed
     ];
     const runner = makeFullRunner();
@@ -532,7 +534,7 @@ void describe("processLayers", () => {
           { key: "EC-3", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
         ],
         relation: null,
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       },
     ];
     const runner = makeFullRunner();
@@ -560,7 +562,7 @@ void describe("processLayers", () => {
       {
         group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       },
     ];
     const runner = makeFullRunner(1); // forge fails
@@ -609,7 +611,7 @@ void describe("processLayers", () => {
       {
         group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: "same-epic",
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       },
     ];
     const runner = makeFullRunner();
@@ -636,7 +638,7 @@ void describe("processLayers", () => {
       {
         group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       },
     ];
     const runner = makeFullRunner();
@@ -665,12 +667,12 @@ void describe("processLayers", () => {
       {
         group: [{ key: "EC-10", repos: [{ repoPath: "/repo", branch: "ec-10-auth" }] }],
         relation: null,
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       },
       {
         group: [{ key: "EC-20", repos: [{ repoPath: "/repo", branch: "ec-20-rate-limit" }] }],
         relation: null,
-        hasFrontend: false,
+        verification: { required: false, reason: "test" },
       },
     ];
 

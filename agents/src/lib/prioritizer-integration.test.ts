@@ -73,12 +73,12 @@ void describe("prioritizeTickets", () => {
             { key: "EC-2", repos: [{ repo: "repo-b", branch: "ec-2-fix" }] },
           ],
           relation: "same-epic",
-          hasFrontend: true,
+          verification: { required: true, reason: "test" },
         },
         {
           group: [{ key: "EC-3", repos: [{ repo: "repo-a", branch: "ec-3-fix" }] }],
           relation: null,
-          hasFrontend: false,
+          verification: { required: false, reason: "API-only" },
         },
       ],
       skipped: [{ key: "EC-4", reason: "blocked" }],
@@ -138,7 +138,7 @@ void describe("prioritizeTickets", () => {
         {
           group: [{ key: "EC-1", repos: [{ repo: "repo-a", branch: "ec-1-fix" }] }],
           relation: null,
-          hasFrontend: true,
+          verification: { required: true, reason: "test" },
         },
       ],
       skipped: [],
@@ -158,7 +158,7 @@ void describe("prioritizeTickets", () => {
         {
           group: [{ key: "EC-1", repos: [{ repo: "repo-a", branch: "ec-1-fix" }] }],
           relation: null,
-          hasFrontend: true,
+          verification: { required: true, reason: "test" },
         },
       ],
       skipped: [{ key: "EC-2", reason: "blocked" }],

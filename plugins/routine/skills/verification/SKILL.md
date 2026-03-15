@@ -28,7 +28,7 @@ If DEV_CONTEXT is provided, use it to infer the dev environment setup (it may re
    - **If critical or important issues found** — fix them and re-run the code review (loop back to step 1).
    - **If only minor or no issues** — proceed to step 2.
 
-2. **QA Web Test** (conditional) — Run only when code review passes (no P1/P2) AND a dev URL was resolved AND:
+2. **QA Web Test** (if Web UI verification required) — Run only when code review passes (no P1/P2) AND a dev URL was resolved AND:
    - UI files were changed (`.tsx`, `.jsx`, `.vue`, `.css`, `.scss`, `.html`, templates, components)
    - Backend changes affect data the UI renders (API responses, formatting, rendering logic)
    - Bug fixes where the browser is the best way to visually confirm the fix

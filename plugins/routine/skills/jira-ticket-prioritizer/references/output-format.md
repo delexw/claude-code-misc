@@ -12,8 +12,8 @@ Tickets grouped by dependency layer. Each layer contains a group of related tick
     { "group": [
         {"key": "PROJ-100", "repos": [{"repo": "acme-api", "branch": "proj-100-fix-auth-bug"}]},
         {"key": "PROJ-104", "repos": [{"repo": "acme-web", "branch": "proj-104-update-login-ui"}, {"repo": "acme-api", "branch": "proj-104-add-api-endpoint"}]}
-      ], "relation": "same-epic", "hasFrontend": true },
-    { "group": [{"key": "PROJ-101", "repos": [{"repo": "acme-api", "branch": "proj-101-add-rate-limiting"}]}], "relation": null, "hasFrontend": false }
+      ], "relation": "same-epic", "verification": {"required": true, "reason": "PROJ-104 updates login UI rendered on /login page"} },
+    { "group": [{"key": "PROJ-101", "repos": [{"repo": "acme-api", "branch": "proj-101-add-rate-limiting"}]}], "relation": null, "verification": {"required": false, "reason": "API-only change, no visible UI"} }
   ],
   "skipped": [
     { "key": "PROJ-102", "reason": "depends on PROJ-100 (status: In Progress)" }
@@ -32,7 +32,9 @@ Tickets grouped by dependency layer. Each layer contains a group of related tick
 - ...and so on
 - **layers[N].group** = ticket assignments in this group, ordered by descending priority score. Each entry is `{"key": "TICKET-KEY", "repos": [{"repo": "repo-basename", "branch": "slugified-branch-name"}, ...]}`. A ticket may touch one or more repos. Both `repo` and `branch` are REQUIRED for every entry. The `repo` is the target repository basename inferred from ticket context and the available repo list. The `branch` is a slugified branch name from ticket key + summary (lowercase, hyphens, max 50 chars, e.g. `"ec-123-fix-payment-bug"`). First ticket is the primary ticket.
 - **layers[N].relation** = why these tickets are grouped (e.g. `"same-epic"`, `"same-feature"`, `"same-component"`, or `null` for single-ticket groups)
-- **layers[N].hasFrontend** = whether any ticket in the group involves frontend/UI work (inferred from ticket summary, description, components, labels). Used by the orchestrator to decide whether to launch a dev environment for verification.
+- **layers[N].verification** = object `{"required": boolean, "reason": string}` indicating whether the group's changes should be visually verified via a running dev server.
+  - **required** = `true` only when changes produce **visible, reachable UI** — e.g. a component rendered on an existing page. Set to `false` when: (a) backend/API-only, (b) new component not yet mounted on any page, (c) UI behind a feature flag that is off by default, (d) purely styling tokens or test changes. Inferred semantically from ticket content.
+  - **reason** = short explanation of why `required` is true or false. Used for logging and debugging orchestrator decisions.
 - **skipped** = Tickets with unresolved cross-layer dependencies. These are not processed — the next scheduler run re-evaluates them. Reason includes the dependency ticket key and its current JIRA status.
 - **excluded** = Tickets intentionally omitted (container stories, Done/Closed/Resolved, etc.) with a reason string
 
