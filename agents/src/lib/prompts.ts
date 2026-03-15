@@ -2,7 +2,7 @@ import { join } from "node:path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type ForgeStatus = "success" | "failed";
+export type ForgeStatus = "success" | "partial" | "failed";
 
 export interface WorktreeInfo {
   repoPath: string;

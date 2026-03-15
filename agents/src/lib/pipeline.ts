@@ -85,8 +85,8 @@ export async function mergeAndVerify(
   log: LogFn,
 ): Promise<GroupResult> {
   const keys = ticketKeys(group);
-  const successful = forges.filter((r) => r.status === "success" && r.worktrees.length > 0);
-  const failedKeys = forges.filter((r) => r.status !== "success").map((r) => r.ticketKey);
+  const successful = forges.filter((r) => r.status !== "failed" && r.worktrees.length > 0);
+  const failedKeys = forges.filter((r) => r.status === "failed").map((r) => r.ticketKey);
 
   if (successful.length === 0) {
     log(`GROUP FAILED: no successful forges for ${keys.join(", ")}`);

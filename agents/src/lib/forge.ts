@@ -60,16 +60,18 @@ export async function forgeTicket(
     ticket.repos.map((r) => forgeInRepo(ticket.key, ticketUrl, r, devServerInfo, runner, log)),
   );
 
-  const allOk = results.every((r) => r.ok);
   const worktrees: WorktreeInfo[] = results.flatMap((r) => (r.wt ? [r.wt] : []));
+  const allOk = results.every((r) => r.ok);
+  const noneOk = worktrees.length === 0;
 
-  if (!allOk) {
+  if (noneOk) {
     log(`FORGE FAILED: ${ticket.key}`);
     return { ticketKey: ticket.key, status: "failed", worktrees: [] };
   }
 
-  log(`FORGED: ${ticket.key}`);
-  return { ticketKey: ticket.key, status: "success", worktrees };
+  const status = allOk ? "success" : "partial";
+  log(`FORGED (${status}): ${ticket.key}`);
+  return { ticketKey: ticket.key, status, worktrees };
 }
 
 export async function forgeGroup(
