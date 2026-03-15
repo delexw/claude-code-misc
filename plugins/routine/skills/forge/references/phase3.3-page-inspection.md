@@ -13,14 +13,20 @@ Based on the JIRA ticket analysis from Phase 2, use your best judgement. Run thi
 
 If the ticket has no web-visible impact, skip this phase.
 
+## Discover Application Routes
+
+1. Search the codebase for route configuration files and extract a route map
+2. Save to `SKILL_DIR/references/mugshots/routes.json`
+3. Match the ticket's described page/feature to the most relevant route(s)
+
 ## Find Development URL
 
 1. If ADDITIONAL_CONTEXT includes dev server URLs, use the most relevant one for the ticket's target page
 2. Otherwise, check for a running dev server by probing localhost ports
 3. If no dev server is found, skip this phase and note "Page inspection skipped: no dev server running"
 
-Combine the dev server URL with the relevant page path from the JIRA ticket to form the full URL.
+Combine the dev server URL with the matched route path(s) to form the full URL(s).
 
 ## Run Page Inspector
 
-Invoke `Skill("page-inspector")` with the full page URL and `SKILL_DIR/references/mugshots` as the output directory.
+For each matched URL, invoke `Skill("page-inspector")` with the full page URL and `SKILL_DIR/references/mugshots` as the output directory.
