@@ -12,12 +12,19 @@ function stripCodeFence(text: string): string {
  * Returns the typed value or null if validation fails.
  */
 export function parseJson<T>(text: string, guard: (v: unknown) => v is T): T | null {
-  try {
-    const data: unknown = JSON.parse(stripCodeFence(text));
-    return guard(data) ? data : null;
-  } catch {
-    return null;
+  const cleaned = stripCodeFence(text);
+  // Try full text first, then fall back to extracting the first JSON object.
+  // LLM output often has prose before/after the JSON.
+  for (const candidate of [cleaned, cleaned.match(/\{[\s\S]*\}/)?.[0]]) {
+    if (!candidate) continue;
+    try {
+      const data: unknown = JSON.parse(candidate);
+      if (guard(data)) return data;
+    } catch {
+      // try next candidate
+    }
   }
+  return null;
 }
 
 /**

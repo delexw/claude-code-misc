@@ -304,6 +304,12 @@ export async function processLayers(
     succeeded += result.succeeded.length;
     failed += result.failed.length;
 
+    // If the entire layer failed, stop — later layers depend on this one
+    if (result.succeeded.length === 0) {
+      log(`Layer ${i} failed entirely — halting chain (later layers depend on this)`);
+      break;
+    }
+
     // Carry forward state so the next layer inherits this layer's branches + PR URLs
     layerState = result.layerState;
   }

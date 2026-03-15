@@ -1,4 +1,5 @@
 import { existsSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, basename } from "node:path";
 
 const HOME = process.env.HOME!;
@@ -31,6 +32,21 @@ export function discoverRepos(baseRepos: string[]): Array<{ repo: string; baseRe
     }
   }
   return repos;
+}
+
+/**
+ * Ensure all base repos are checked out on main.
+ * Must run at the start of each scheduler invocation so that
+ * forge worktrees (created via -w from repo HEAD) always start from main.
+ */
+export function resetReposToMain(baseRepos: string[], log: (msg: string) => void): void {
+  for (const repo of baseRepos) {
+    try {
+      execFileSync("git", ["checkout", "main"], { cwd: repo, stdio: "ignore" });
+    } catch {
+      log(`WARN: could not checkout main in ${repo}`);
+    }
+  }
 }
 
 export function repoToSlug(path: string): string {

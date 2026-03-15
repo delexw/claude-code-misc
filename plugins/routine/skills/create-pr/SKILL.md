@@ -64,8 +64,10 @@ Look for `.github/PULL_REQUEST_TEMPLATE.md` in the project root. If found, use i
 ### 6. Create the PR
 
 ```bash
-gh pr create --title "<title>" --body "<body>" --draft
+gh pr create --title "<title>" --body "<body>" --draft [--base "<base_branch>"]
 ```
+
+If a base branch was specified in the instructions (e.g. for stacked PRs), use `--base` to target it instead of the default branch.
 
 Then open it in the browser:
 ```bash

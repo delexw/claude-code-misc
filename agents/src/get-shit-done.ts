@@ -10,7 +10,7 @@ import { mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLogger, makeTimestamp, cleanupOldLogs } from "./lib/logger.js";
-import { parseRepos, discoverRepos } from "./lib/repos.js";
+import { parseRepos, discoverRepos, resetReposToMain } from "./lib/repos.js";
 import { acquireLock } from "./lib/lock.js";
 import { JiraClient } from "./lib/jira.js";
 import { ProcessedTracker } from "./lib/processed-tracker.js";
@@ -91,6 +91,9 @@ async function main() {
   }
 
   const allKeys = allTickets.map((t) => t.key);
+  // Ensure all repos start from main so forge worktrees branch correctly
+  resetReposToMain(baseRepos, log);
+
   const { layers, skipped, excluded } = await prioritizeTickets(
     allKeys,
     baseRepos,
