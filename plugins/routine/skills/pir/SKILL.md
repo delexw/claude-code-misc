@@ -80,6 +80,6 @@ See [step3a-codebase-analysis.md](steps/step3a-codebase-analysis.md)
 See [step3b-generate-nlm.md](steps/step3b-generate-nlm.md)
 — Task subagent. Runs after 3a. Creates NotebookLM notebook, uploads all discovery and codebase reports, generates report, infographic, and slide deck. Returns notebook ID.
 
-### Step 4: Present Results and Clean Up
+### Step 4: Clean Up and Present Results
 See [step4-present-results.md](steps/step4-present-results.md)
-— Displays PIR summary, provides notebook link for interactive exploration, cleans up temporary discovery folders. Preserves the NotebookLM notebook for further queries.
+— Cleans up temporary discovery folders using absolute paths, then displays PIR summary and provides notebook link for interactive exploration. Preserves the NotebookLM notebook for further queries.
