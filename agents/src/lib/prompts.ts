@@ -69,7 +69,7 @@ export function buildMergePrompt(primaryTicket: string, forges: ForgeResult[]): 
     worktrees,
     "",
     "Steps:",
-    `1. Create a merge branch from main named "${primaryTicket}-merge"`,
+    `1. Create a merge branch from main (NOT from a worktree) named "${primaryTicket}-merge"`,
     "   (include a slug from the primary ticket title)",
     "2. Merge ALL worktree changes into the merge branch",
     "   (even if only one worktree — always merge to the merge branch):",
@@ -83,11 +83,16 @@ export function buildMergePrompt(primaryTicket: string, forges: ForgeResult[]): 
 
 // ─── Verify prompt ───────────────────────────────────────────────────────────
 
-export function buildVerifyPrompt(primaryTicket: string, devUrl: string): string {
+export function buildVerifyPrompt(
+  primaryTicket: string,
+  devUrl: string,
+  mergeBranch: string,
+): string {
   return [
     `[GSD: verify ${primaryTicket}] ${AUTONOMY_PREFIX}`,
     "",
-    `Dev servers are running at ${devUrl} (started externally).`,
+    `Dev servers are running at ${devUrl} on merge branch "${mergeBranch}" (started externally).`,
+    `Ensure you are on the merge branch "${mergeBranch}" before verifying.`,
     "",
     `Run: Skill("/verification ${devUrl}")`,
     "",

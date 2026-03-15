@@ -66,7 +66,7 @@ export async function mergeAndVerify(
   if (hasFrontend) {
     log(`VERIFYING: ${primaryTicket}`);
     const { code: verifyCode, stdout: verifyOut } = await runner.run(
-      buildVerifyPrompt(primaryTicket, devServers.devUrl),
+      buildVerifyPrompt(primaryTicket, devServers.devUrl, mergeBranch),
       { repos, taskName: `get-shit-done: verify ${primaryTicket}` },
     );
     runner.writeLog("verify", primaryTicket, verifyOut);
