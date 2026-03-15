@@ -3,22 +3,6 @@ name: forge
 description: "Forge implementation from JIRA tickets using dynamic skill generation. Gathers context into a lazy-loaded skill, then invokes it for execution. Use when given a JIRA ticket URL to process end-to-end."
 argument-hint: JIRA ticket URL and optional context
 allowed-tools: Read, Bash, ExitPlanMode, Write, Edit
-hooks:
-  PreToolUse:
-    - matcher: "Skill"
-      hooks:
-        - type: command
-          command: "s=\"$CLAUDE_SKILL_DIR/.claude/skills/forge/scripts/log-skill-execution.js\"; [ ! -f \"$s\" ] && s=\"$HOME/.claude/skills/forge/scripts/log-skill-execution.js\"; [ -f \"$s\" ] && node \"$s\""
-  PostToolUse:
-    - matcher: "Skill"
-      hooks:
-        - type: command
-          command: "s=\"$CLAUDE_SKILL_DIR/.claude/skills/forge/scripts/log-skill-execution.js\"; [ ! -f \"$s\" ] && s=\"$HOME/.claude/skills/forge/scripts/log-skill-execution.js\"; [ -f \"$s\" ] && node \"$s\""
-  Stop:
-    - hooks:
-        - type: command
-          command: "s=\"$CLAUDE_SKILL_DIR/.claude/skills/forge/scripts/generate-execution-flow.js\"; [ ! -f \"$s\" ] && s=\"$HOME/.claude/skills/forge/scripts/generate-execution-flow.js\"; [ -f \"$s\" ] && node \"$s\""
-          once: true
 ---
 
 # Forge: JIRA Ticket → Dynamic Skill → Implementation
