@@ -3,6 +3,7 @@
  */
 
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
+import { parseJsonRaw } from "./json.js";
 import { AUTONOMY_PREFIX } from "./prompts.js";
 import { resolveRepoName } from "./repos.js";
 
@@ -107,11 +108,7 @@ function toKeyReasonArray(arr: unknown[]): Array<{ key: string; reason: string }
  * Returns null if parsing fails.
  */
 export function parsePrioritizerOutput(raw: string): PrioritizeResult | null {
-  const cleaned = raw
-    .trim()
-    .replace(/^```(?:json)?\s*\n?/i, "")
-    .replace(/\n?```\s*$/i, "");
-  const parsed: unknown = JSON.parse(cleaned);
+  const parsed: unknown = parseJsonRaw(raw);
 
   if (typeof parsed !== "object" || parsed === null) return null;
   if (!("layers" in parsed) || !Array.isArray(parsed.layers) || parsed.layers.length === 0)

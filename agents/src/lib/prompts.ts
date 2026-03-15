@@ -46,8 +46,13 @@ export function buildForgePrompt(
 
 // ─── Merge prompt ────────────────────────────────────────────────────────────
 
-export function buildMergePrompt(primaryTicket: string, worktreePaths: string[]): string {
+export function buildMergePrompt(
+  primaryTicket: string,
+  worktreePaths: string[],
+  baseBranch?: string,
+): string {
   const worktrees = worktreePaths.map((wt) => `  ${wt}`).join("\n");
+  const base = baseBranch ?? "main";
 
   return [
     `[GSD: merge ${primaryTicket}] ${AUTONOMY_PREFIX}`,
@@ -56,7 +61,7 @@ export function buildMergePrompt(primaryTicket: string, worktreePaths: string[])
     worktrees,
     "",
     "Steps:",
-    `1. Create a merge branch from main (NOT from a worktree) named "${primaryTicket}-merge"`,
+    `1. Create a merge branch from "${base}" (NOT from a worktree) named "${primaryTicket}-merge"`,
     "   (include a slug from the primary ticket title)",
     "2. Run: entire enable -f --local --agent claude-code",
     "3. Merge ALL worktree changes into the merge branch",
@@ -101,13 +106,28 @@ export function buildCommitPrompt(ticketKey: string): string {
 
 // ─── PR prompt ───────────────────────────────────────────────────────────────
 
-export function buildPrPrompt(ticketKeys: string[], mergeBranch: string): string {
+export interface PrDependency {
+  baseBranch: string;
+  prUrl: string;
+}
+
+export function buildPrPrompt(
+  ticketKeys: string[],
+  mergeBranch: string,
+  dependency?: PrDependency,
+): string {
   const tickets = ticketKeys.join(", ");
+  const base = dependency?.baseBranch ?? "main";
+  const depNote =
+    dependency
+      ? `\n\nThis is a stacked PR. Set the PR base branch to "${dependency.baseBranch}" (not main). Add to the PR description: "Depends on ${dependency.prUrl} — merge that first."`
+      : "";
 
   return [
     `[GSD: create PR for ${tickets}] ${AUTONOMY_PREFIX}`,
     "",
     `You are on merge branch "${mergeBranch}" with all changes already committed and merged.`,
+    `The base branch is "${base}".${depNote}`,
     `Skill("/create-pr 'create a Draft PR and keep description concise'")`,
   ].join("\n");
 }

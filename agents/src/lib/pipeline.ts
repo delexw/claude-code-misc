@@ -3,7 +3,7 @@ import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
 import type { GroupedLayer, TicketAssignment } from "./prioritizer.js";
-import type { ForgeResult } from "./prompts.js";
+import type { ForgeResult, PrDependency } from "./prompts.js";
 import {
   buildCommitPrompt,
   buildMergePrompt,
@@ -11,6 +11,7 @@ import {
   buildPrPrompt,
 } from "./prompts.js";
 import { filterGroup, ticketKeys } from "./prioritizer.js";
+import { parseJson } from "./json.js";
 import { forgeGroup } from "./forge.js";
 
 /**
@@ -30,9 +31,43 @@ function groupWorktreesByRepo(forges: ForgeResult[]): Map<string, string[]> {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/** Map from repo root path → a string value (branch name, PR URL, etc.). */
+export type RepoMap = Map<string, string>;
+
+/** Combined per-repo state carried between layers. */
+export interface LayerState {
+  branches: RepoMap;
+  prUrls: RepoMap;
+}
+
 interface GroupResult {
   succeeded: string[];
   failed: string[];
+  /** Per-repo state produced by this group (branches + PR URLs). */
+  layerState: LayerState;
+}
+
+// ─── PR output parsing ──────────────────────────────────────────────────────
+
+interface PrOutput {
+  pr_url: string;
+  status: "success";
+}
+
+function isPrOutput(v: unknown): v is PrOutput {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "status" in v &&
+    v.status === "success" &&
+    "pr_url" in v &&
+    typeof v.pr_url === "string"
+  );
+}
+
+/** Extract pr_url from the create-pr skill's JSON output. */
+function parsePrUrl(stdout: string): string {
+  return parseJson(stdout, isPrOutput)?.pr_url ?? "";
 }
 
 // ─── Merge + Verify + PR ─────────────────────────────────────────────────────
@@ -42,6 +77,7 @@ export async function mergeAndVerify(
   group: TicketAssignment[],
   repos: string[],
   hasFrontend: boolean,
+  prevState: LayerState,
   runner: ClaudeRunner,
   devServers: DevServerManager,
   jira: JiraClient,
@@ -54,7 +90,7 @@ export async function mergeAndVerify(
 
   if (successful.length === 0) {
     log(`GROUP FAILED: no successful forges for ${keys.join(", ")}`);
-    return { succeeded: [], failed: keys };
+    return { succeeded: [], failed: keys, layerState: prevState };
   }
 
   const primaryTicket = keys[0];
@@ -82,10 +118,14 @@ export async function mergeAndVerify(
 
   const mergeResults = await Promise.all(
     [...worktreesByRepo.entries()].map(async ([repoRoot, wtPaths]) => {
-      const { code, stdout } = await runner.run(buildMergePrompt(primaryTicket, wtPaths), {
-        cwd: repoRoot,
-        taskName: `get-shit-done: merge ${primaryTicket} in ${repoRoot}`,
-      });
+      const baseBranch = prevState.branches.get(repoRoot);
+      const { code, stdout } = await runner.run(
+        buildMergePrompt(primaryTicket, wtPaths, baseBranch),
+        {
+          cwd: repoRoot,
+          taskName: `get-shit-done: merge ${primaryTicket} in ${repoRoot}`,
+        },
+      );
       runner.writeLog("merge", primaryTicket, stdout);
       const branch = stdout.trim().split("\n").pop()?.trim() || "";
       return { repoRoot, code, branch };
@@ -98,6 +138,7 @@ export async function mergeAndVerify(
     return {
       succeeded: [],
       failed: [...failedKeys, ...successful.map((r) => r.ticketKey)],
+      layerState: prevState,
     };
   }
   for (const r of mergeResults) {
@@ -133,11 +174,17 @@ export async function mergeAndVerify(
 
   // Step 5: Create PRs per repo (continue from forge session for full context)
   const succeededKeys = successful.map((r) => r.ticketKey);
+  const nextPrUrls: RepoMap = new Map(prevState.prUrls);
+
   await Promise.all(
     mergedBranches.map(async (mb) => {
-      log(`CREATING PR: ${primaryTicket} in ${mb.repoRoot}`);
+      const baseBranch = prevState.branches.get(mb.repoRoot);
+      const basePrUrl = prevState.prUrls.get(mb.repoRoot);
+      const dep: PrDependency | undefined =
+        baseBranch ? { baseBranch, prUrl: basePrUrl ?? baseBranch } : undefined;
+      log(`CREATING PR: ${primaryTicket} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`);
       const { code: prCode, stdout: prOut } = await runner.run(
-        buildPrPrompt(succeededKeys, mb.branch),
+        buildPrPrompt(succeededKeys, mb.branch, dep),
         {
           cwd: mb.repoRoot,
           continueSession: true,
@@ -145,7 +192,12 @@ export async function mergeAndVerify(
         },
       );
       runner.writeLog("pr", primaryTicket, prOut);
-      if (prCode !== 0) log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
+      if (prCode !== 0) {
+        log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
+      } else {
+        const prUrl = parsePrUrl(prOut);
+        if (prUrl) nextPrUrls.set(mb.repoRoot, prUrl);
+      }
     }),
   );
 
@@ -160,9 +212,16 @@ export async function mergeAndVerify(
     }),
   );
 
+  // Build updated per-repo state — carry forward, override with new merges + PR URLs
+  const nextBranches: RepoMap = new Map(prevState.branches);
+  for (const mb of mergedBranches) {
+    nextBranches.set(mb.repoRoot, mb.branch);
+  }
+
   return {
     succeeded: successful.map((r) => r.ticketKey),
     failed: failedKeys,
+    layerState: { branches: nextBranches, prUrls: nextPrUrls },
   };
 }
 
@@ -172,6 +231,7 @@ export async function processGroup(
   group: TicketAssignment[],
   repos: string[],
   hasFrontend: boolean,
+  prevState: LayerState,
   runner: ClaudeRunner,
   devServers: DevServerManager,
   jira: JiraClient,
@@ -187,6 +247,7 @@ export async function processGroup(
     group,
     repos,
     hasFrontend,
+    prevState,
     runner,
     devServers,
     jira,
@@ -216,6 +277,9 @@ export async function processLayers(
   let succeeded = 0;
   let failed = 0;
 
+  // Tracks per-repo merge branches + PR URLs — next layer inherits (stacked PRs).
+  let layerState: LayerState = { branches: new Map(), prUrls: new Map() };
+
   /* oxlint-disable no-await-in-loop -- layers are sequential; each depends on the prior layer */
   for (let i = 0; i < layers.length; i++) {
     const layer = layers[i];
@@ -230,6 +294,7 @@ export async function processLayers(
       group,
       repos,
       layer.hasFrontend,
+      layerState,
       runner,
       devServers,
       jira,
@@ -238,6 +303,9 @@ export async function processLayers(
     );
     succeeded += result.succeeded.length;
     failed += result.failed.length;
+
+    // Carry forward state so the next layer inherits this layer's branches + PR URLs
+    layerState = result.layerState;
   }
 
   /* oxlint-enable no-await-in-loop */

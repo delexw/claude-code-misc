@@ -1,12 +1,14 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mergeAndVerify, processLayers } from "./pipeline.js";
+import { mergeAndVerify, processLayers, type LayerState } from "./pipeline.js";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
 import type { ForgeResult } from "./prompts.js";
 import type { GroupedLayer } from "./prioritizer.js";
+
+const NO_BASE: LayerState = { branches: new Map(), prUrls: new Map() };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -85,6 +87,7 @@ void describe("mergeAndVerify", () => {
       ],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       makeDevServers(),
       makeJira(),
@@ -106,6 +109,7 @@ void describe("mergeAndVerify", () => {
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       makeDevServers(),
       makeJira(),
@@ -133,6 +137,7 @@ void describe("mergeAndVerify", () => {
       ],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       makeDevServers(),
       makeJira(),
@@ -170,6 +175,7 @@ void describe("mergeAndVerify", () => {
       ],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       makeDevServers(),
       makeJira(),
@@ -200,6 +206,7 @@ void describe("mergeAndVerify", () => {
       ],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       makeDevServers(),
       makeJira(),
@@ -238,6 +245,7 @@ void describe("mergeAndVerify", () => {
       ],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       makeDevServers(),
       jira,
@@ -265,6 +273,7 @@ void describe("mergeAndVerify", () => {
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       false,
+      NO_BASE,
       runner,
       makeDevServers(),
       makeJira(),
@@ -301,6 +310,7 @@ void describe("mergeAndVerify", () => {
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       devServers,
       makeJira(),
@@ -335,6 +345,7 @@ void describe("mergeAndVerify", () => {
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       false,
+      NO_BASE,
       runner,
       devServers,
       makeJira(),
@@ -365,6 +376,7 @@ void describe("mergeAndVerify", () => {
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       makeDevServers(),
       jira,
@@ -389,6 +401,7 @@ void describe("mergeAndVerify", () => {
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       makeDevServers(),
       makeJira(),
@@ -413,6 +426,7 @@ void describe("mergeAndVerify", () => {
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
+      NO_BASE,
       runner,
       makeDevServers(),
       makeJira(),
@@ -644,5 +658,118 @@ void describe("processLayers", () => {
     const layerLog = logs.find((l) => l.includes("Layer 0"));
     assert.ok(layerLog);
     assert.ok(!layerLog.includes("("));
+  });
+
+  void it("threads baseBranch and PR URL from layer 0 into layer 1 (stacked chain)", async () => {
+    const layers: GroupedLayer[] = [
+      {
+        group: [{ key: "EC-10", repos: [{ repoPath: "/repo", branch: "ec-10-auth" }] }],
+        relation: null,
+        hasFrontend: false,
+      },
+      {
+        group: [{ key: "EC-20", repos: [{ repoPath: "/repo", branch: "ec-20-rate-limit" }] }],
+        relation: null,
+        hasFrontend: false,
+      },
+    ];
+
+    const layer0PrJson = JSON.stringify({
+      pr_url: "https://github.com/org/repo/pull/42",
+      pr_number: 42,
+      title: "[EC-10]: Fix auth",
+      status: "success",
+    });
+
+    // Capture every prompt+taskName pair
+    const calls: Array<{ prompt: string; taskName: string }> = [];
+    const runner = {
+      run: async (prompt: string, opts: { taskName: string }) => {
+        calls.push({ prompt, taskName: opts.taskName });
+        if (opts.taskName.includes("forge")) {
+          return { code: 0, stdout: "" };
+        }
+        if (opts.taskName.includes("merge") && opts.taskName.includes("EC-10")) {
+          return { code: 0, stdout: "ec-10-merge" };
+        }
+        if (opts.taskName.includes("merge") && opts.taskName.includes("EC-20")) {
+          return { code: 0, stdout: "ec-20-merge" };
+        }
+        // Layer 0 PR returns JSON with pr_url
+        if (opts.taskName.includes("pr") && opts.taskName.includes("EC-10")) {
+          return { code: 0, stdout: layer0PrJson };
+        }
+        return { code: 0, stdout: "ok" };
+      },
+      writeLog: () => "/fake",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
+    } as unknown as ClaudeRunner;
+
+    const { log } = collectLogs();
+
+    await processLayers(
+      layers,
+      new Set(["EC-10", "EC-20"]),
+      new Set(),
+      new Set(),
+      ["/repo"],
+      runner,
+      makeDevServers(),
+      makeJira(),
+      makeTracker(),
+      log,
+    );
+
+    // --- Layer 0: merge should branch from "main" (default) ---
+    const layer0Merge = calls.find(
+      (c) => c.taskName.includes("merge") && c.taskName.includes("EC-10"),
+    );
+    assert.ok(layer0Merge, "layer 0 merge call must exist");
+    assert.ok(
+      layer0Merge.prompt.includes('from "main"'),
+      `layer 0 merge should branch from main, got: ${layer0Merge.prompt}`,
+    );
+
+    // --- Layer 1: merge should branch from "ec-10-merge" (layer 0's output) ---
+    const layer1Merge = calls.find(
+      (c) => c.taskName.includes("merge") && c.taskName.includes("EC-20"),
+    );
+    assert.ok(layer1Merge, "layer 1 merge call must exist");
+    assert.ok(
+      layer1Merge.prompt.includes('from "ec-10-merge"'),
+      `layer 1 merge should branch from ec-10-merge, got: ${layer1Merge.prompt}`,
+    );
+
+    // --- Layer 0: PR should target main (no stacked PR note) ---
+    const layer0Pr = calls.find(
+      (c) => c.taskName.includes("pr") && c.taskName.includes("EC-10"),
+    );
+    assert.ok(layer0Pr, "layer 0 PR call must exist");
+    assert.ok(
+      !layer0Pr.prompt.includes("stacked PR"),
+      "layer 0 PR should NOT be a stacked PR",
+    );
+    assert.ok(
+      layer0Pr.prompt.includes('"main"'),
+      "layer 0 PR base branch should be main",
+    );
+
+    // --- Layer 1: PR should reference layer 0's PR URL ---
+    const layer1Pr = calls.find(
+      (c) => c.taskName.includes("pr") && c.taskName.includes("EC-20"),
+    );
+    assert.ok(layer1Pr, "layer 1 PR call must exist");
+    assert.ok(
+      layer1Pr.prompt.includes("stacked PR"),
+      "layer 1 PR should be marked as stacked",
+    );
+    assert.ok(
+      layer1Pr.prompt.includes("ec-10-merge"),
+      "layer 1 PR should reference ec-10-merge as base branch",
+    );
+    assert.ok(
+      layer1Pr.prompt.includes("https://github.com/org/repo/pull/42"),
+      "layer 1 PR should include layer 0's PR URL in dependency note",
+    );
   });
 });

@@ -74,7 +74,28 @@ gh pr view --web
 
 ### 7. Report result
 
-Show the PR URL and a brief summary of what was included.
+Return ONLY this JSON (no other text before or after):
+
+```json
+{
+  "pr_url": "<full GitHub PR URL>",
+  "pr_number": <number>,
+  "title": "<PR title>",
+  "status": "success"
+}
+```
+
+On failure:
+
+```json
+{
+  "pr_url": "",
+  "pr_number": 0,
+  "title": "",
+  "status": "failed",
+  "error_message": "<what went wrong>"
+}
+```
 
 ## Error handling
 
