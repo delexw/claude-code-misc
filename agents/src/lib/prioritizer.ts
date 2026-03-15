@@ -22,24 +22,59 @@ export interface SprintTicket {
   status: string;
 }
 
+function toKeyReasonArray(arr: unknown[]): Array<{ key: string; reason: string }> {
+  return arr.filter(
+    (item): item is { key: string; reason: string } =>
+      typeof item === "object" &&
+      item !== null &&
+      "key" in item &&
+      typeof item.key === "string" &&
+      "reason" in item &&
+      typeof item.reason === "string",
+  );
+}
+
 /**
  * Parse raw prioritizer JSON output into a typed PrioritizeResult.
  * Handles both new grouped format and legacy array-of-arrays format.
  * Returns null if parsing fails.
  */
 export function parsePrioritizerOutput(raw: string): PrioritizeResult | null {
-  const cleaned = raw.trim().replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
-  const parsed = JSON.parse(cleaned);
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*\n?/i, "")
+    .replace(/\n?```\s*$/i, "");
+  const parsed: unknown = JSON.parse(cleaned);
 
-  if (!Array.isArray(parsed.layers) || parsed.layers.length === 0) return null;
+  if (typeof parsed !== "object" || parsed === null) return null;
+  if (!("layers" in parsed) || !Array.isArray(parsed.layers) || parsed.layers.length === 0)
+    return null;
 
-  const layers: GroupedLayer[] = parsed.layers.map((l: GroupedLayer | string[]) => {
-    if (Array.isArray(l)) return { group: l, relation: null, hasFrontend: true };
-    return { group: l.group, relation: l.relation ?? null, hasFrontend: l.hasFrontend ?? true };
+  const layers: GroupedLayer[] = parsed.layers.map((l: unknown) => {
+    if (Array.isArray(l)) {
+      return {
+        group: l.filter((x): x is string => typeof x === "string"),
+        relation: null,
+        hasFrontend: true,
+      };
+    }
+    if (typeof l === "object" && l !== null) {
+      const group =
+        "group" in l && Array.isArray(l.group)
+          ? l.group.filter((x): x is string => typeof x === "string")
+          : [];
+      const relation = "relation" in l && typeof l.relation === "string" ? l.relation : null;
+      const hasFrontend =
+        "hasFrontend" in l && typeof l.hasFrontend === "boolean" ? l.hasFrontend : true;
+      return { group, relation, hasFrontend };
+    }
+    return { group: [], relation: null, hasFrontend: true };
   });
 
-  const skipped = Array.isArray(parsed.skipped) ? parsed.skipped : [];
-  const excluded = Array.isArray(parsed.excluded) ? parsed.excluded : [];
+  const skipped =
+    "skipped" in parsed && Array.isArray(parsed.skipped) ? toKeyReasonArray(parsed.skipped) : [];
+  const excluded =
+    "excluded" in parsed && Array.isArray(parsed.excluded) ? toKeyReasonArray(parsed.excluded) : [];
 
   return { layers, skipped, excluded };
 }
@@ -78,9 +113,7 @@ export function filterGroup(
   skippedKeys: Set<string>,
   excludedKeys: Set<string>,
 ): string[] {
-  return group.filter((t) =>
-    unprocessed.has(t) && !skippedKeys.has(t) && !excludedKeys.has(t),
-  );
+  return group.filter((t) => unprocessed.has(t) && !skippedKeys.has(t) && !excludedKeys.has(t));
 }
 
 // ─── Prioritize via Claude ──────────────────────────────────────────────────
@@ -120,7 +153,7 @@ export async function prioritizeTickets(
         return result;
       }
     } catch (err) {
-      log(`WARN: Prioritizer parse failed: ${(err as Error).message}`);
+      log(`WARN: Prioritizer parse failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   } else {
     log(`WARN: Prioritizer exited with code ${code}`);
@@ -131,12 +164,8 @@ export async function prioritizeTickets(
 }
 
 function logPrioritizeResult(result: PrioritizeResult, log: LogFn): void {
-  const summary = result.layers
-    .map((l, i) => `L${i}:[${l.group.join(",")}]`)
-    .join(" ");
+  const summary = result.layers.map((l, i) => `L${i}:[${l.group.join(",")}]`).join(" ");
   log(`PRIORITIZED: ${result.layers.length} layer(s) — ${summary}`);
-  if (result.skipped.length > 0)
-    log(`SKIPPED: ${result.skipped.map((s) => s.key).join(", ")}`);
-  if (result.excluded.length > 0)
-    log(`EXCLUDED: ${result.excluded.map((e) => e.key).join(", ")}`);
+  if (result.skipped.length > 0) log(`SKIPPED: ${result.skipped.map((s) => s.key).join(", ")}`);
+  if (result.excluded.length > 0) log(`EXCLUDED: ${result.excluded.map((e) => e.key).join(", ")}`);
 }

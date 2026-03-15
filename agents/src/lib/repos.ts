@@ -17,9 +17,7 @@ export function parseRepos(envVar: string): string[] {
 /**
  * Expand repos to include git worktree directories.
  */
-export function discoverRepos(
-  baseRepos: string[],
-): Array<{ repo: string; baseRepo: string }> {
+export function discoverRepos(baseRepos: string[]): Array<{ repo: string; baseRepo: string }> {
   const repos: Array<{ repo: string; baseRepo: string }> = [];
   for (const repo of baseRepos) {
     repos.push({ repo, baseRepo: repo });

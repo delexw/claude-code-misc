@@ -6,11 +6,11 @@ import { ClaudeRunner } from "./claude-runner.js";
 
 const TMP_DIR = join(import.meta.dirname, ".test-tmp-claude-runner");
 
-describe("ClaudeRunner", () => {
-  describe("writeLog", () => {
+void describe("ClaudeRunner", () => {
+  void describe("writeLog", () => {
     const runner = new ClaudeRunner("/cwd", TMP_DIR, "/dev/null", "2026-03-15_10_00_00");
 
-    it("writes content to log file with correct name", () => {
+    void it("writes content to log file with correct name", () => {
       mkdirSync(TMP_DIR, { recursive: true });
       try {
         const path = runner.writeLog("task", "EC-123", "forge output here");
@@ -21,7 +21,7 @@ describe("ClaudeRunner", () => {
       }
     });
 
-    it("returns the full path to the log file", () => {
+    void it("returns the full path to the log file", () => {
       mkdirSync(TMP_DIR, { recursive: true });
       try {
         const path = runner.writeLog("merge", "EC-456", "merge output");
@@ -31,7 +31,7 @@ describe("ClaudeRunner", () => {
       }
     });
 
-    it("uses the timestamp from constructor", () => {
+    void it("uses the timestamp from constructor", () => {
       const runner2 = new ClaudeRunner("/cwd", TMP_DIR, "/dev/null", "custom_ts");
       mkdirSync(TMP_DIR, { recursive: true });
       try {

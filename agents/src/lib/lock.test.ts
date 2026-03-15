@@ -4,16 +4,36 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdtempSync } from
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
-import { acquireLock, registerChildPid, unregisterChildPid, _resetForTest } from "./lock.js";
+import {
+  acquireLock,
+  registerChildPid,
+  unregisterChildPid,
+  _resetForTest,
+  isLockData,
+} from "./lock.js";
+import { parseJson } from "./json.js";
 
-function readLockData(lockFile: string) {
-  return JSON.parse(readFileSync(lockFile, "utf-8"));
+interface LockData {
+  pid: number;
+  children: number[];
+}
+function readLockData(lockFile: string): LockData {
+  const data = parseJson(readFileSync(lockFile, "utf-8"), isLockData);
+  if (!data) throw new Error("Invalid lock data");
+  return data;
 }
 
 /** Spawn a long-lived child process and return its PID */
 function spawnSleeper(): { pid: number; kill: () => void } {
   const child = spawn("sleep", ["300"], { stdio: "ignore" });
-  return { pid: child.pid!, kill: () => { try { process.kill(child.pid!, "SIGTERM"); } catch {} } };
+  return {
+    pid: child.pid!,
+    kill: () => {
+      try {
+        process.kill(child.pid!, "SIGTERM");
+      } catch {}
+    },
+  };
 }
 
 function waitForDeath(pid: number, timeoutMs = 3000): Promise<boolean> {
@@ -32,7 +52,7 @@ function waitForDeath(pid: number, timeoutMs = 3000): Promise<boolean> {
   });
 }
 
-describe("lock", () => {
+void describe("lock", () => {
   let tmpDir: string;
   let lockFile: string;
   const sleepers: Array<{ kill: () => void }> = [];
@@ -44,12 +64,14 @@ describe("lock", () => {
   });
 
   afterEach(() => {
-    try { unlinkSync(lockFile); } catch {}
+    try {
+      unlinkSync(lockFile);
+    } catch {}
     sleepers.forEach((s) => s.kill());
     sleepers.length = 0;
   });
 
-  it("acquires lock and writes pid to file", () => {
+  void it("acquires lock and writes pid to file", () => {
     const result = acquireLock(lockFile);
     assert.equal(result, true);
     assert.equal(existsSync(lockFile), true);
@@ -59,13 +81,13 @@ describe("lock", () => {
     assert.deepEqual(data.children, []);
   });
 
-  it("rejects second acquire when first is alive", () => {
+  void it("rejects second acquire when first is alive", () => {
     acquireLock(lockFile);
     const second = acquireLock(lockFile);
     assert.equal(second, false);
   });
 
-  it("reclaims stale lock from dead process", () => {
+  void it("reclaims stale lock from dead process", () => {
     writeFileSync(lockFile, JSON.stringify({ pid: 999999, children: [] }));
 
     const result = acquireLock(lockFile);
@@ -75,7 +97,7 @@ describe("lock", () => {
     assert.equal(data.pid, process.pid);
   });
 
-  it("registerChildPid adds child to lock file", () => {
+  void it("registerChildPid adds child to lock file", () => {
     acquireLock(lockFile);
 
     const sleeper = spawnSleeper();
@@ -87,7 +109,7 @@ describe("lock", () => {
     assert.ok(data.children.includes(sleeper.pid));
   });
 
-  it("unregisterChildPid removes child from lock file", () => {
+  void it("unregisterChildPid removes child from lock file", () => {
     acquireLock(lockFile);
 
     const sleeper = spawnSleeper();
@@ -100,7 +122,7 @@ describe("lock", () => {
     assert.ok(!data.children.includes(sleeper.pid));
   });
 
-  it("tracks multiple children correctly", () => {
+  void it("tracks multiple children correctly", () => {
     acquireLock(lockFile);
 
     const s1 = spawnSleeper();
@@ -122,7 +144,7 @@ describe("lock", () => {
     assert.ok(data.children.includes(s2.pid));
   });
 
-  it("kills orphaned children when reclaiming stale lock", async () => {
+  void it("kills orphaned children when reclaiming stale lock", async () => {
     const sleeper = spawnSleeper();
     sleepers.push(sleeper);
 

@@ -18,7 +18,17 @@ export const AUTONOMY_PREFIX =
 export function extractWorktreePath(stdout: string): string {
   try {
     const match = stdout.match(/\{[^{}]*"worktree_path"[^{}]*\}/);
-    if (match) return JSON.parse(match[0]).worktree_path || "";
+    if (match) {
+      const parsed: unknown = JSON.parse(match[0]);
+      if (
+        typeof parsed === "object" &&
+        parsed !== null &&
+        "worktree_path" in parsed &&
+        typeof parsed.worktree_path === "string"
+      ) {
+        return parsed.worktree_path;
+      }
+    }
   } catch {
     // ignore parse errors
   }
@@ -34,15 +44,13 @@ export function buildForgePrompt(
   devServerInfo: string,
 ): string {
   const repoList = repos.join("\n");
-  const devCtx = devServerInfo
-    ? `\nDev servers are already running: ${devServerInfo}`
-    : "";
+  const devCtx = devServerInfo ? `\nDev servers are already running: ${devServerInfo}` : "";
 
   return [
     `[GSD: forge ${ticketKey}] ${AUTONOMY_PREFIX}`,
     "",
     `Invoke Skill("/forge ${ticketUrl} 'Find the correct repo from:`,
-    `${repoList}`,
+    repoList,
     `Multiple repos are possible.${devCtx}'")`,
     "",
     "Return the JSON output from forge ONLY without code fence.",
@@ -51,13 +59,8 @@ export function buildForgePrompt(
 
 // ─── Merge prompt ────────────────────────────────────────────────────────────
 
-export function buildMergePrompt(
-  primaryTicket: string,
-  forges: ForgeResult[],
-): string {
-  const worktrees = forges
-    .map((r) => `  ${r.ticketKey}: ${r.worktreePath}`)
-    .join("\n");
+export function buildMergePrompt(primaryTicket: string, forges: ForgeResult[]): string {
+  const worktrees = forges.map((r) => `  ${r.ticketKey}: ${r.worktreePath}`).join("\n");
 
   return [
     `[GSD: merge ${primaryTicket}] ${AUTONOMY_PREFIX}`,
@@ -80,10 +83,7 @@ export function buildMergePrompt(
 
 // ─── Verify prompt ───────────────────────────────────────────────────────────
 
-export function buildVerifyPrompt(
-  primaryTicket: string,
-  devUrl: string,
-): string {
+export function buildVerifyPrompt(primaryTicket: string, devUrl: string): string {
   return [
     `[GSD: verify ${primaryTicket}] ${AUTONOMY_PREFIX}`,
     "",
@@ -106,9 +106,5 @@ export function buildPrPrompt(forges: ForgeResult[]): string {
     )
     .join("\n");
 
-  return [
-    `[GSD: create PRs] ${AUTONOMY_PREFIX}`,
-    "",
-    steps,
-  ].join("\n");
+  return [`[GSD: create PRs] ${AUTONOMY_PREFIX}`, "", steps].join("\n");
 }

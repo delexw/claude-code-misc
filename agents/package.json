@@ -1,15 +1,21 @@
 {
   "name": "claude-scheduler",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsup",
     "install": "tsx build.ts",
-    "uninstall": "tsx build.ts --uninstall"
+    "uninstall": "tsx build.ts --uninstall",
+    "lint": "oxlint",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "devDependencies": {
     "@types/node": "^25.4.0",
+    "oxfmt": "^0.40.0",
+    "oxlint": "^1.55.0",
+    "oxlint-tsgolint": "^0.16.0",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"

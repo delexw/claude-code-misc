@@ -2,6 +2,7 @@ import { readFileSync, mkdirSync, openSync } from "node:fs";
 import { join } from "node:path";
 import { createConnection } from "node:net";
 import { spawn, execSync, type ChildProcess } from "node:child_process";
+import { parseJson } from "./json.js";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,17 @@ export interface ServiceConfig {
 interface BootstrapConfig {
   devUrl: string;
   services: ServiceConfig[];
+}
+
+function isBootstrapConfig(v: unknown): v is BootstrapConfig {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "devUrl" in v &&
+    typeof v.devUrl === "string" &&
+    "services" in v &&
+    Array.isArray(v.services)
+  );
 }
 
 interface RunningServer {
@@ -44,13 +56,14 @@ export class DevServerManager {
   // ─── Config ──────────────────────────────────────────────────────────────
 
   loadConfig(): BootstrapConfig {
-    const raw: BootstrapConfig = JSON.parse(readFileSync(this.configPath, "utf-8"));
+    const raw = parseJson(readFileSync(this.configPath, "utf-8"), isBootstrapConfig);
+    if (!raw) throw new Error(`Invalid bootstrap config: ${this.configPath}`);
     return {
       devUrl: raw.devUrl,
-      services: raw.services.map((s) => ({
-        ...s,
-        cwd: s.cwd.replace("~", this.home),
-      })),
+      services: raw.services.map((s) => {
+        s.cwd = s.cwd.replace("~", this.home);
+        return s;
+      }),
     };
   }
 
@@ -78,11 +91,14 @@ export class DevServerManager {
     const toCheck = this.running.filter((s) => s.config.port > 0);
     if (toCheck.length === 0) return;
 
-    this.log(`Waiting for ${toCheck.length} server(s) to be ready (timeout: ${timeoutMs / 1000}s)...`);
+    this.log(
+      `Waiting for ${toCheck.length} server(s) to be ready (timeout: ${timeoutMs / 1000}s)...`,
+    );
     const deadline = Date.now() + timeoutMs;
     const pending = new Set(toCheck.map((s) => s.config.name));
 
-    while (pending.size > 0 && Date.now() < deadline) {
+    const poll = async (): Promise<void> => {
+      if (pending.size === 0 || Date.now() >= deadline) return;
       const checks = toCheck
         .filter((s) => pending.has(s.config.name))
         .map(async (s) => {
@@ -93,8 +109,12 @@ export class DevServerManager {
           }
         });
       await Promise.all(checks);
-      if (pending.size > 0) await this.sleep(pollMs);
-    }
+      if (pending.size > 0) {
+        await this.sleep(pollMs);
+        await poll();
+      }
+    };
+    await poll();
 
     if (pending.size > 0) {
       const names = [...pending].join(", ");
@@ -105,9 +125,18 @@ export class DevServerManager {
   private isPortOpen(port: number): Promise<boolean> {
     return new Promise((resolve) => {
       const socket = createConnection({ port, host: "127.0.0.1" });
-      socket.once("connect", () => { socket.destroy(); resolve(true); });
-      socket.once("error", () => { socket.destroy(); resolve(false); });
-      socket.setTimeout(1000, () => { socket.destroy(); resolve(false); });
+      socket.once("connect", () => {
+        socket.destroy();
+        resolve(true);
+      });
+      socket.once("error", () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.setTimeout(1000, () => {
+        socket.destroy();
+        resolve(false);
+      });
     });
   }
 
@@ -134,7 +163,7 @@ export class DevServerManager {
     this.log(`RESTARTING ${toRestart.length} server(s) on branch: ${mergeBranch}`);
 
     // Kill only the non-fixed-branch servers
-    for (const server of [...this.running]) {
+    for (const server of Array.from(this.running)) {
       if (!server.config.branchFixed) {
         this.killServer(server);
         this.running.splice(this.running.indexOf(server), 1);
@@ -148,7 +177,9 @@ export class DevServerManager {
         execSync(`git checkout ${mergeBranch}`, { cwd: svc.cwd, stdio: "pipe" });
         this.log(`  Checked out ${mergeBranch} in ${name}`);
       } catch (e: unknown) {
-        this.log(`  WARN: git checkout failed for ${name}: ${(e as Error).message}`);
+        this.log(
+          `  WARN: git checkout failed for ${name}: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
       this.spawnService(svc);
     }
@@ -164,16 +195,12 @@ export class DevServerManager {
     const fd = openSync(logPath, "w");
     const useShell = svc.cmd.includes("|");
 
-    const child = spawn(
-      useShell ? "/bin/bash" : svc.cmd,
-      useShell ? ["-c", svc.cmd] : [],
-      {
-        cwd: svc.cwd,
-        detached: true,
-        stdio: ["ignore", fd, fd],
-        env: { ...process.env, OBJC_DISABLE_INITIALIZE_FORK_SAFETY: "YES" },
-      },
-    );
+    const child = spawn(useShell ? "/bin/bash" : svc.cmd, useShell ? ["-c", svc.cmd] : [], {
+      cwd: svc.cwd,
+      detached: true,
+      stdio: ["ignore", fd, fd],
+      env: { ...process.env, OBJC_DISABLE_INITIALIZE_FORK_SAFETY: "YES" },
+    });
     child.unref();
     this.running.push({ config: svc, process: child });
     this.log(`  Started ${name} (PID: ${child.pid}) -> ${logPath}`);
@@ -190,5 +217,4 @@ export class DevServerManager {
       }
     }
   }
-
 }

@@ -9,10 +9,9 @@ function scheduleBlock(config: AgentConfig): string {
   if (!schedule) return "";
 
   if (schedule.type === "interval") {
-    return [
-      "    <key>StartInterval</key>",
-      `    <integer>${schedule.seconds}</integer>`,
-    ].join("\n");
+    return ["    <key>StartInterval</key>", `    <integer>${schedule.seconds}</integer>`].join(
+      "\n",
+    );
   }
 
   const entries = [
@@ -23,40 +22,28 @@ function scheduleBlock(config: AgentConfig): string {
   ];
 
   if ("weekday" in schedule && schedule.weekday !== undefined) {
-    entries.push(
-      "        <key>Weekday</key>",
-      `        <integer>${schedule.weekday}</integer>`,
-    );
+    entries.push("        <key>Weekday</key>", `        <integer>${schedule.weekday}</integer>`);
   }
 
-  return [
-    "    <key>StartCalendarInterval</key>",
-    "    <dict>",
-    ...entries,
-    "    </dict>",
-  ].join("\n");
+  return ["    <key>StartCalendarInterval</key>", "    <dict>", ...entries, "    </dict>"].join(
+    "\n",
+  );
 }
 
 function envVarsBlock(envVars: Record<string, string>): string {
   const entries = Object.entries(envVars)
-    .sort(([a], [b]) => a.localeCompare(b))
+    .toSorted(([a], [b]) => a.localeCompare(b))
     .flatMap(([k, v]) => [
       `        <key>${escapeXml(k)}</key>`,
       `        <string>${escapeXml(v)}</string>`,
     ]);
 
-  return [
-    "    <key>EnvironmentVariables</key>",
-    "    <dict>",
-    ...entries,
-    "    </dict>",
-  ].join("\n");
+  return ["    <key>EnvironmentVariables</key>", "    <dict>", ...entries, "    </dict>"].join(
+    "\n",
+  );
 }
 
-export function generatePlist(
-  config: AgentConfig,
-  home: string,
-): string {
+export function generatePlist(config: AgentConfig, home: string): string {
   const envrcPath = `${home}/.claude/scheduler/.envrc`;
   const nodePath = `${home}/.asdf/shims/node`;
   const scriptPath = `${home}/.claude/scheduler/${config.name}.mjs`;
@@ -78,16 +65,10 @@ export function generatePlist(
   }
 
   // Label
-  sections.push(
-    "    <key>Label</key>",
-    `    <string>${escapeXml(config.label)}</string>`,
-  );
+  sections.push("    <key>Label</key>", `    <string>${escapeXml(config.label)}</string>`);
 
   // ProcessType
-  sections.push(
-    "    <key>ProcessType</key>",
-    "    <string>Interactive</string>",
-  );
+  sections.push("    <key>ProcessType</key>", "    <string>Interactive</string>");
 
   // ProgramArguments
   sections.push(
@@ -101,10 +82,7 @@ export function generatePlist(
   );
 
   // RunAtLoad
-  sections.push(
-    "    <key>RunAtLoad</key>",
-    `    <${runAtLoad}/>`,
-  );
+  sections.push("    <key>RunAtLoad</key>", `    <${runAtLoad}/>`);
 
   // StandardErrorPath / StandardOutPath
   sections.push(
@@ -121,10 +99,7 @@ export function generatePlist(
   }
 
   // WorkingDirectory
-  sections.push(
-    "    <key>WorkingDirectory</key>",
-    `    <string>${home}</string>`,
-  );
+  sections.push("    <key>WorkingDirectory</key>", `    <string>${home}</string>`);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

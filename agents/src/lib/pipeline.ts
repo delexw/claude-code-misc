@@ -4,11 +4,7 @@ import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
 import type { GroupedLayer } from "./prioritizer.js";
 import type { ForgeResult } from "./prompts.js";
-import {
-  buildMergePrompt,
-  buildVerifyPrompt,
-  buildPrPrompt,
-} from "./prompts.js";
+import { buildMergePrompt, buildVerifyPrompt, buildPrPrompt } from "./prompts.js";
 import { filterGroup } from "./prioritizer.js";
 import { forgeGroup } from "./forge.js";
 
@@ -32,12 +28,8 @@ export async function mergeAndVerify(
   tracker: ProcessedTracker,
   log: LogFn,
 ): Promise<GroupResult> {
-  const successful = forges.filter(
-    (r) => r.status === "success" && r.worktreePath,
-  );
-  const failedKeys = forges
-    .filter((r) => r.status !== "success")
-    .map((r) => r.ticketKey);
+  const successful = forges.filter((r) => r.status === "success" && r.worktreePath);
+  const failedKeys = forges.filter((r) => r.status !== "success").map((r) => r.ticketKey);
 
   if (successful.length === 0) {
     log(`GROUP FAILED: no successful forges for ${group.join(", ")}`);
@@ -86,10 +78,10 @@ export async function mergeAndVerify(
 
   // Step 4: Create PRs
   log(`CREATING PRs: ${primaryTicket}`);
-  const { code: prCode, stdout: prOut } = await runner.run(
-    buildPrPrompt(successful),
-    { repos, taskName: `get-shit-done: pr ${primaryTicket}` },
-  );
+  const { code: prCode, stdout: prOut } = await runner.run(buildPrPrompt(successful), {
+    repos,
+    taskName: `get-shit-done: pr ${primaryTicket}`,
+  });
   runner.writeLog("pr", primaryTicket, prOut);
 
   if (prCode !== 0) {
@@ -97,12 +89,15 @@ export async function mergeAndVerify(
   }
 
   // Step 5: Update JIRA
-  for (const r of successful) {
-    log(`SUCCESS: ${r.ticketKey}`);
-    const moved = await jira.moveTicket(r.ticketKey, "In Progress");
-    if (!moved) log(`WARN: Could not move ${r.ticketKey} to In Progress`);
-    tracker.mark(r.ticketKey);
-  }
+  await Promise.all(
+    successful.map(async (r) => {
+      log(`SUCCESS: ${r.ticketKey}`);
+      const moved = await jira.moveTicket(r.ticketKey, "In Progress");
+      if (!moved) log(`WARN: Could not move ${r.ticketKey} to In Progress`);
+      tracker.mark(r.ticketKey);
+      return r;
+    }),
+  );
 
   return {
     succeeded: successful.map((r) => r.ticketKey),
@@ -126,7 +121,17 @@ export async function processGroup(
 
   const devServerInfo = hasFrontend ? devServers.devUrl : "";
   const forgeResults = await forgeGroup(group, repos, devServerInfo, runner, jira, log);
-  const result = await mergeAndVerify(forgeResults, group, repos, hasFrontend, runner, devServers, jira, tracker, log);
+  const result = await mergeAndVerify(
+    forgeResults,
+    group,
+    repos,
+    hasFrontend,
+    runner,
+    devServers,
+    jira,
+    tracker,
+    log,
+  );
 
   if (hasFrontend) devServers.stopAll();
 
@@ -150,24 +155,29 @@ export async function processLayers(
   let succeeded = 0;
   let failed = 0;
 
+  /* oxlint-disable no-await-in-loop -- layers are sequential; each depends on the prior layer */
   for (let i = 0; i < layers.length; i++) {
     const layer = layers[i];
-    const group = filterGroup(
-      layer.group,
-      unprocessedSet,
-      skippedKeys,
-      excludedKeys,
-    );
+    const group = filterGroup(layer.group, unprocessedSet, skippedKeys, excludedKeys);
     if (group.length === 0) continue;
 
-    log(
-      `Layer ${i}: [${group.join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}`,
-    );
+    log(`Layer ${i}: [${group.join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}`);
 
-    const result = await processGroup(group, repos, layer.hasFrontend, runner, devServers, jira, tracker, log);
+    const result = await processGroup(
+      group,
+      repos,
+      layer.hasFrontend,
+      runner,
+      devServers,
+      jira,
+      tracker,
+      log,
+    );
     succeeded += result.succeeded.length;
     failed += result.failed.length;
   }
+
+  /* oxlint-enable no-await-in-loop */
 
   return { succeeded, failed };
 }

@@ -1,13 +1,25 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { parseJson } from "./json.js";
 
 interface LockData {
   pid: number;
   children: number[];
 }
 
+export function isLockData(v: unknown): v is LockData {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "pid" in v &&
+    typeof v.pid === "number" &&
+    "children" in v &&
+    Array.isArray(v.children)
+  );
+}
+
 function readLock(lockFile: string): LockData | null {
   try {
-    return JSON.parse(readFileSync(lockFile, "utf-8"));
+    return parseJson(readFileSync(lockFile, "utf-8"), isLockData);
   } catch {
     return null;
   }

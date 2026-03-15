@@ -14,17 +14,22 @@ function makeRunner(response: { code: number; stdout: string }): ClaudeRunner {
   return {
     run: async () => response,
     writeLog: () => "/fake/log",
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
   } as unknown as ClaudeRunner;
 }
 
 // ─── prioritizeTickets ──────────────────────────────────────────────────────
 
-describe("prioritizeTickets", () => {
-  it("returns fallback for single ticket without calling runner", async () => {
+void describe("prioritizeTickets", () => {
+  void it("returns fallback for single ticket without calling runner", async () => {
     let called = false;
     const runner = {
-      run: async () => { called = true; return { code: 0, stdout: "" }; },
+      run: async () => {
+        called = true;
+        return { code: 0, stdout: "" };
+      },
       writeLog: () => "/fake",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as ClaudeRunner;
     const { log } = collectLogs();
 
@@ -35,11 +40,15 @@ describe("prioritizeTickets", () => {
     assert.deepEqual(result.layers[0].group, ["EC-1"]);
   });
 
-  it("returns fallback for empty tickets without calling runner", async () => {
+  void it("returns fallback for empty tickets without calling runner", async () => {
     let called = false;
     const runner = {
-      run: async () => { called = true; return { code: 0, stdout: "" }; },
+      run: async () => {
+        called = true;
+        return { code: 0, stdout: "" };
+      },
       writeLog: () => "/fake",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as ClaudeRunner;
     const { log } = collectLogs();
 
@@ -49,7 +58,7 @@ describe("prioritizeTickets", () => {
     assert.deepEqual(result.layers[0].group, []);
   });
 
-  it("parses successful prioritizer output", async () => {
+  void it("parses successful prioritizer output", async () => {
     const output = JSON.stringify({
       layers: [
         { group: ["EC-1", "EC-2"], relation: "same-epic", hasFrontend: true },
@@ -63,7 +72,9 @@ describe("prioritizeTickets", () => {
 
     const result = await prioritizeTickets(
       ["EC-1", "EC-2", "EC-3", "EC-4", "EC-5"],
-      runner, "/dir", log,
+      runner,
+      "/dir",
+      log,
     );
 
     assert.equal(result.layers.length, 2);
@@ -72,7 +83,7 @@ describe("prioritizeTickets", () => {
     assert.equal(result.excluded.length, 1);
   });
 
-  it("falls back on non-zero exit code", async () => {
+  void it("falls back on non-zero exit code", async () => {
     const runner = makeRunner({ code: 1, stdout: "" });
     const { logs, log } = collectLogs();
 
@@ -83,7 +94,7 @@ describe("prioritizeTickets", () => {
     assert.ok(logs.some((l) => l.includes("Falling back")));
   });
 
-  it("falls back on invalid JSON output", async () => {
+  void it("falls back on invalid JSON output", async () => {
     const runner = makeRunner({ code: 0, stdout: "not json" });
     const { logs, log } = collectLogs();
 
@@ -93,7 +104,7 @@ describe("prioritizeTickets", () => {
     assert.ok(logs.some((l) => l.includes("parse failed")));
   });
 
-  it("falls back when output has empty layers", async () => {
+  void it("falls back when output has empty layers", async () => {
     const output = JSON.stringify({ layers: [], skipped: [], excluded: [] });
     const runner = makeRunner({ code: 0, stdout: output });
     const { log } = collectLogs();
@@ -103,7 +114,7 @@ describe("prioritizeTickets", () => {
     assert.deepEqual(result.layers[0].group, ["EC-1", "EC-2"]);
   });
 
-  it("logs prioritization summary on success", async () => {
+  void it("logs prioritization summary on success", async () => {
     const output = JSON.stringify({
       layers: [{ group: ["EC-1"], relation: null, hasFrontend: true }],
       skipped: [],
@@ -117,7 +128,7 @@ describe("prioritizeTickets", () => {
     assert.ok(logs.some((l) => l.includes("PRIORITIZED: 1 layer(s)")));
   });
 
-  it("logs skipped and excluded tickets", async () => {
+  void it("logs skipped and excluded tickets", async () => {
     const output = JSON.stringify({
       layers: [{ group: ["EC-1"], relation: null, hasFrontend: true }],
       skipped: [{ key: "EC-2", reason: "blocked" }],
@@ -132,7 +143,7 @@ describe("prioritizeTickets", () => {
     assert.ok(logs.some((l) => l.includes("EXCLUDED: EC-3")));
   });
 
-  it("passes correct options to runner", async () => {
+  void it("passes correct options to runner", async () => {
     let capturedOpts: Record<string, unknown> = {};
     const runner = {
       run: async (_prompt: string, opts: Record<string, unknown>) => {
@@ -140,6 +151,7 @@ describe("prioritizeTickets", () => {
         return { code: 1, stdout: "" };
       },
       writeLog: () => "/fake",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as ClaudeRunner;
     const { log } = collectLogs();
 
@@ -147,10 +159,11 @@ describe("prioritizeTickets", () => {
 
     assert.equal(capturedOpts.cwd, "/my/dir");
     assert.equal(capturedOpts.model, "opus");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test assertion on captured mock data
     assert.ok((capturedOpts.taskName as string).includes("prioritizing 2 tickets"));
   });
 
-  it("includes ticket list in prompt", async () => {
+  void it("includes ticket list in prompt", async () => {
     let capturedPrompt = "";
     const runner = {
       run: async (prompt: string) => {
@@ -158,6 +171,7 @@ describe("prioritizeTickets", () => {
         return { code: 1, stdout: "" };
       },
       writeLog: () => "/fake",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as ClaudeRunner;
     const { log } = collectLogs();
 

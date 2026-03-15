@@ -10,7 +10,12 @@ export class JiraClient {
 
   async getActiveSprint(): Promise<string | null> {
     const { ok, stdout } = await exec(this.cli, [
-      "sprint", "list", "--state", "active", "--plain", "--no-headers",
+      "sprint",
+      "list",
+      "--state",
+      "active",
+      "--plain",
+      "--no-headers",
     ]);
     if (!ok) return null;
     const line = stdout.split("\n").find((l) => l.includes(this.sprintPrefix));
@@ -21,10 +26,18 @@ export class JiraClient {
   async fetchSprintTickets(sprint: string): Promise<Array<{ key: string; status: string }>> {
     const jql = `assignee = '${this.assignee}' AND sprint = '${sprint}'`;
     const { ok, stdout } = await exec(this.cli, [
-      "issue", "list", "-q", jql, "--plain", "--no-headers", "--columns", "KEY,STATUS",
+      "issue",
+      "list",
+      "-q",
+      jql,
+      "--plain",
+      "--no-headers",
+      "--columns",
+      "KEY,STATUS",
     ]);
     if (!ok || !stdout) return [];
-    return stdout.split("\n")
+    return stdout
+      .split("\n")
       .map((l) => {
         const parts = l.split("\t").map((p) => p.trim());
         return { key: parts[0], status: parts[1] || "" };

@@ -136,10 +136,11 @@ async function main() {
 
   // Step 1: Spawn Claude with /release-notes to get release notes
   log("Fetching release notes via Claude /release-notes...");
-  const { code: rnExitCode, stdout: releaseNotes } = await spawnClaude(
-    ["-p", "/release-notes"],
-    { cwd: SCRIPT_DIR, taskName: "jsonl-compat-checker-fetch", timeoutMs: 2 * 60 * 1000 },
-  );
+  const { code: rnExitCode, stdout: releaseNotes } = await spawnClaude(["-p", "/release-notes"], {
+    cwd: SCRIPT_DIR,
+    taskName: "jsonl-compat-checker-fetch",
+    timeoutMs: 2 * 60 * 1000,
+  });
 
   if (rnExitCode !== 0 || !releaseNotes.trim()) {
     log(`ERROR: Failed to fetch release notes (exit code: ${rnExitCode})`);
@@ -157,15 +158,14 @@ async function main() {
   const fullPrompt = `${PROMPT}\n\nThe release notes are saved at: ${tmpFile}\nRead that file first, then proceed with the analysis.`;
 
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
-    [
-      "--permission-mode", "acceptEdits",
-      "-p", fullPrompt,
-    ],
+    ["--permission-mode", "acceptEdits", "-p", fullPrompt],
     { cwd: SCRIPT_DIR, taskName: "jsonl-compat-checker", timeoutMs: 10 * 60 * 1000 },
   );
 
   // Cleanup temp file
-  try { unlinkSync(tmpFile); } catch {}
+  try {
+    unlinkSync(tmpFile);
+  } catch {}
 
   log(`Claude CLI exited with code: ${exitCode}`);
   log("--- Response ---");
@@ -175,7 +175,7 @@ async function main() {
   cleanupOldLogs(LOG_DIR, ["jsonl-compat-checker-"], 30);
 }
 
-main().catch((err) => {
-  log(`FATAL: ${err.message}`);
+main().catch((err: unknown) => {
+  log(`FATAL: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });

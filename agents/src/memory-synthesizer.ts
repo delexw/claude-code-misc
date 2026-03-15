@@ -62,7 +62,15 @@ function discoverMemoryFiles(): MemoryFileInfo[] {
       }
     }
 
-    files.push({ repo, repoName: basename(repo), slug, memoryDir, memoryFile, memoryContent, topicFiles });
+    files.push({
+      repo,
+      repoName: basename(repo),
+      slug,
+      memoryDir,
+      memoryFile,
+      memoryContent,
+      topicFiles,
+    });
   }
   return files;
 }
@@ -81,7 +89,9 @@ async function main() {
 
   log(`Found ${memoryFiles.length} project memory file(s):`);
   for (const f of memoryFiles) {
-    log(`  - ${f.repoName}: ${f.memoryFile} (${f.memoryContent.split("\n").length} lines, ${f.topicFiles.length} topic files)`);
+    log(
+      `  - ${f.repoName}: ${f.memoryFile} (${f.memoryContent.split("\n").length} lines, ${f.topicFiles.length} topic files)`,
+    );
   }
 
   const suffix = randomBytes(3).toString("hex");
@@ -107,9 +117,12 @@ async function main() {
       copyFileSync(topic.path, join(projectRefDir, topic.name));
     }
 
-    const topicList = f.topicFiles.length > 0
-      ? f.topicFiles.map((t) => `    - [${t.name}](references/${f.repoName}/${t.name})`).join("\n")
-      : "    - (no topic files)";
+    const topicList =
+      f.topicFiles.length > 0
+        ? f.topicFiles
+            .map((t) => `    - [${t.name}](references/${f.repoName}/${t.name})`)
+            .join("\n")
+        : "    - (no topic files)";
     memoryRefLinks.push(
       `  - **${f.repoName}**: [MEMORY.md](references/${f.repoName}/MEMORY.md) → \`${f.memoryDir}/\`\n${topicList}`,
     );
@@ -182,14 +195,16 @@ When removing a promoted entry:
     rmSync(skillDir, { recursive: true, force: true });
     log(`Cleaned up skill directory: ${skillDir}`);
   } catch (err: unknown) {
-    log(`WARN: Failed to clean up skill directory: ${(err as Error).message}`);
+    log(
+      `WARN: Failed to clean up skill directory: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   log("=== Memory Synthesizer finished ===");
   cleanupOldLogs(LOG_DIR, ["memory-synthesizer-"], 30);
 }
 
-main().catch((err) => {
-  log(`FATAL: ${err.message}`);
+main().catch((err: unknown) => {
+  log(`FATAL: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });

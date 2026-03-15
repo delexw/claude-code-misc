@@ -30,21 +30,19 @@ async function main() {
 
   // Fetch latest from remote main for each repo
   log("Fetching latest remote main for all repos...");
-  for (const repo of REPOS) {
-    const repoName = basename(repo);
-    const { ok } = await exec("git", ["fetch", "origin", "main"], { cwd: repo });
-    log(ok ? `  Fetched: ${repoName}` : `  WARN: Failed to fetch ${repoName}`);
-  }
+  await Promise.all(
+    REPOS.map(async (repo) => {
+      const repoName = basename(repo);
+      const { ok } = await exec("git", ["fetch", "origin", "main"], { cwd: repo });
+      log(ok ? `  Fetched: ${repoName}` : `  WARN: Failed to fetch ${repoName}`);
+    }),
+  );
 
   const prompt = `/pir 'the past 24 hours' ${DOMAIN}:${ZONE_ID}`;
   log("Invoking Claude CLI...");
 
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
-    [
-      "--permission-mode", "acceptEdits",
-      "--add-dir", ...REPOS,
-      "-p", prompt,
-    ],
+    ["--permission-mode", "acceptEdits", "--add-dir", ...REPOS, "-p", prompt],
     { cwd: SCRIPT_DIR, taskName: "pir-analyzer", timeoutMs: 24 * 60 * 60 * 1000 },
   );
 
@@ -56,7 +54,7 @@ async function main() {
   cleanupOldLogs(LOG_DIR, ["pir-analyzer-"], 30);
 }
 
-main().catch((err) => {
-  log(`FATAL: ${err.message}`);
+main().catch((err: unknown) => {
+  log(`FATAL: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });

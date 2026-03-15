@@ -17,11 +17,7 @@ export function createLogger(logDir: string, logFile: string) {
   return { log, logFile };
 }
 
-export function cleanupOldLogs(
-  logDir: string,
-  prefixes: string[],
-  retentionDays: number,
-): void {
+export function cleanupOldLogs(logDir: string, prefixes: string[], retentionDays: number): void {
   const cutoff = Date.now() - retentionDays * 86_400_000;
   for (const prefix of prefixes) {
     try {

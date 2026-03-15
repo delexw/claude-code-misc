@@ -48,62 +48,89 @@ async function main() {
   const REPOS = BASE_REPOS.filter((r) => existsSync(r));
   log(`Scanning ${REPOS.length} base repo(s) (worktrees skipped — shared checkpoint branch)`);
 
-  for (const repo of REPOS) {
-    const baseRepo = repo;
-    const repoName = basename(repo);
-    const baseRepoName = basename(baseRepo);
-    const baseRepoSlugStr = repoToSlug(baseRepo);
-    const processedFile = join(STATE_DIR, `${repoName}.processed`);
-    const memoryDir = join(PROJECTS_DIR, baseRepoSlugStr, "memory");
-    const memoryFile = join(memoryDir, "MEMORY.md");
+  // Discover unprocessed sessions across all repos in parallel
+  const repoDiscoveries = await Promise.all(
+    REPOS.map(async (repo) => {
+      const baseRepo = repo;
+      const repoName = basename(repo);
+      const baseRepoName = basename(baseRepo);
+      const baseRepoSlugStr = repoToSlug(baseRepo);
+      const processedFile = join(STATE_DIR, `${repoName}.processed`);
+      const memoryDir = join(PROJECTS_DIR, baseRepoSlugStr, "memory");
+      const memoryFile = join(memoryDir, "MEMORY.md");
 
-    log(`--- Checking repo: ${repoName} (memory -> ${baseRepoName}) ---`);
+      log(`--- Checking repo: ${repoName} (memory -> ${baseRepoName}) ---`);
 
-    if (!existsSync(repo)) {
-      log(`SKIP: Repository directory does not exist: ${repo}`);
-      continue;
-    }
+      if (!existsSync(repo)) {
+        log(`SKIP: Repository directory does not exist: ${repo}`);
+        return null;
+      }
 
-    const { ok: branchOk, stdout: branchOut } = await exec(
-      "git", ["branch", "-a", "--list", `*${CHECKPOINT_BRANCH}*`], { cwd: repo },
-    );
-    if (!branchOk || !branchOut) {
-      log(`SKIP: Branch '${CHECKPOINT_BRANCH}' not found in ${repoName}`);
-      continue;
-    }
+      const { ok: branchOk, stdout: branchOut } = await exec(
+        "git",
+        ["branch", "-a", "--list", `*${CHECKPOINT_BRANCH}*`],
+        { cwd: repo },
+      );
+      if (!branchOk || !branchOut) {
+        log(`SKIP: Branch '${CHECKPOINT_BRANCH}' not found in ${repoName}`);
+        return null;
+      }
 
-    if (!existsSync(processedFile)) writeFileSync(processedFile, "");
+      if (!existsSync(processedFile)) writeFileSync(processedFile, "");
 
-    const { ok: lsOk, stdout: lsOut } = await exec(
-      "git", ["ls-tree", "-r", "--name-only", CHECKPOINT_BRANCH], { cwd: repo },
-    );
-    if (!lsOk || !lsOut) {
-      log(`SKIP: No checkpoint sessions found in ${repoName}`);
-      continue;
-    }
+      const { ok: lsOk, stdout: lsOut } = await exec(
+        "git",
+        ["ls-tree", "-r", "--name-only", CHECKPOINT_BRANCH],
+        { cwd: repo },
+      );
+      if (!lsOk || !lsOut) {
+        log(`SKIP: No checkpoint sessions found in ${repoName}`);
+        return null;
+      }
 
-    const allSessions = lsOut
-      .split("\n")
-      .filter((f) => f.endsWith("metadata.json") && !/\/[0-9]+\/metadata\.json$/.test(f))
-      .map((f) => f.replace(/\/metadata\.json$/, ""))
-      .sort();
+      const allSessions = lsOut
+        .split("\n")
+        .filter((f) => f.endsWith("metadata.json") && !/\/[0-9]+\/metadata\.json$/.test(f))
+        .map((f) => f.replace(/\/metadata\.json$/, ""))
+        .toSorted();
 
-    if (allSessions.length === 0) {
-      log(`SKIP: No checkpoint sessions found in ${repoName}`);
-      continue;
-    }
+      if (allSessions.length === 0) {
+        log(`SKIP: No checkpoint sessions found in ${repoName}`);
+        return null;
+      }
 
-    const processedSet = new Set(
-      readFileSync(processedFile, "utf-8").split("\n").filter(Boolean),
-    );
-    const unprocessed = allSessions.filter((s) => !processedSet.has(s));
+      const processedSet = new Set(
+        readFileSync(processedFile, "utf-8").split("\n").filter(Boolean),
+      );
+      const unprocessed = allSessions.filter((s) => !processedSet.has(s));
 
-    if (unprocessed.length === 0) {
-      log(`All ${repoName} sessions already processed.`);
-      continue;
-    }
+      if (unprocessed.length === 0) {
+        log(`All ${repoName} sessions already processed.`);
+        return null;
+      }
 
-    log(`Found ${unprocessed.length} unprocessed session(s) in ${repoName}`);
+      log(`Found ${unprocessed.length} unprocessed session(s) in ${repoName}`);
+
+      return {
+        repo,
+        baseRepo,
+        repoName,
+        baseRepoName,
+        baseRepoSlugStr,
+        processedFile,
+        memoryDir,
+        memoryFile,
+        unprocessed,
+      };
+    }),
+  );
+
+  // Process each repo sequentially (Claude invocations are intentionally serial)
+  /* oxlint-disable no-await-in-loop -- repos processed one at a time to limit concurrent Claude instances */
+  for (const discovery of repoDiscoveries) {
+    if (!discovery) continue;
+    const { repo, repoName, baseRepoName, processedFile, memoryDir, memoryFile, unprocessed } =
+      discovery;
 
     const suffix = randomBytes(3).toString("hex");
     const skillName = `checkpoint-learner-${repoName}-${suffix}`;
@@ -126,55 +153,90 @@ async function main() {
       }
     }
 
+    // Gather session data in parallel (git reads are independent per session)
+    const sessionResults = await Promise.all(
+      unprocessed.map(async (sessionPath) => {
+        const { stdout: sessionMeta } = await exec(
+          "git",
+          ["show", `${CHECKPOINT_BRANCH}:${sessionPath}/metadata.json`],
+          { cwd: repo },
+        );
+        const branchMatch = (sessionMeta || "{}").match(/"branch"\s*:\s*"([^"]*)"/);
+        const branchName = branchMatch ? branchMatch[1] : "unknown";
+
+        const { ok: promptsOk, stdout: promptsOut } = await exec(
+          "git",
+          ["ls-tree", "-r", "--name-only", CHECKPOINT_BRANCH, "--", sessionPath],
+          { cwd: repo },
+        );
+
+        const promptFiles =
+          promptsOk && promptsOut
+            ? promptsOut
+                .split("\n")
+                .filter((f) => f.endsWith("/prompt.txt"))
+                .toSorted()
+            : [];
+
+        if (promptFiles.length === 0) {
+          return {
+            sessionPath,
+            branchName,
+            promptFiles,
+            turns: [] as { turnNum: string; promptText: string | undefined; contextText: string }[],
+            empty: true,
+          };
+        }
+
+        // Gather all turn data in parallel within this session
+        const turns = await Promise.all(
+          promptFiles.map(async (promptFile) => {
+            const turnMatch = promptFile.match(/\/(\d+)\/prompt\.txt/);
+            const turnNum = turnMatch ? turnMatch[1] : "?";
+
+            const { stdout: promptText } = await exec(
+              "git",
+              ["show", `${CHECKPOINT_BRANCH}:${promptFile}`],
+              { cwd: repo },
+            );
+
+            const contextFile = promptFile.replace(/prompt\.txt$/, "context.md");
+            const { ok: ctxOk, stdout: ctxRaw } = await exec(
+              "git",
+              ["show", `${CHECKPOINT_BRANCH}:${contextFile}`],
+              { cwd: repo },
+            );
+            const contextText = ctxOk && ctxRaw ? ctxRaw.split("\n").slice(0, 100).join("\n") : "";
+
+            return { turnNum, promptText, contextText };
+          }),
+        );
+
+        return { sessionPath, branchName, promptFiles, turns, empty: false };
+      }),
+    );
+
+    // Process gathered results sequentially (file writes, batch limiting)
     const sessionIdsBatch: string[] = [];
     let sessionCount = 0;
 
-    for (const sessionPath of unprocessed) {
-      const { stdout: sessionMeta } = await exec(
-        "git", ["show", `${CHECKPOINT_BRANCH}:${sessionPath}/metadata.json`], { cwd: repo },
-      );
-      const branchMatch = (sessionMeta || "{}").match(/"branch"\s*:\s*"([^"]*)"/);
-      const branchName = branchMatch ? branchMatch[1] : "unknown";
-
-      const { ok: promptsOk, stdout: promptsOut } = await exec(
-        "git", ["ls-tree", "-r", "--name-only", CHECKPOINT_BRANCH, "--", sessionPath], { cwd: repo },
-      );
-
-      const promptFiles = promptsOk && promptsOut
-        ? promptsOut.split("\n").filter((f) => f.endsWith("/prompt.txt")).sort()
-        : [];
-
-      if (promptFiles.length === 0) {
-        appendFileSync(processedFile, sessionPath + "\n");
+    for (const result of sessionResults) {
+      if (result.empty) {
+        appendFileSync(processedFile, result.sessionPath + "\n");
         continue;
       }
 
       sessionCount++;
       const sessionFile = join(skillRefDir, `session-${sessionCount}.md`);
-      let content = `# Session: ${sessionPath} (branch: ${branchName})\n`;
+      let content = `# Session: ${result.sessionPath} (branch: ${result.branchName})\n`;
 
-      for (const promptFile of promptFiles) {
-        const turnMatch = promptFile.match(/\/(\d+)\/prompt\.txt/);
-        const turnNum = turnMatch ? turnMatch[1] : "?";
-
-        const { stdout: promptText } = await exec(
-          "git", ["show", `${CHECKPOINT_BRANCH}:${promptFile}`], { cwd: repo },
-        );
-
-        const contextFile = promptFile.replace(/prompt\.txt$/, "context.md");
-        const { ok: ctxOk, stdout: ctxRaw } = await exec(
-          "git", ["show", `${CHECKPOINT_BRANCH}:${contextFile}`], { cwd: repo },
-        );
-        const contextText = ctxOk && ctxRaw
-          ? ctxRaw.split("\n").slice(0, 100).join("\n")
-          : "";
-
+      for (const { turnNum, promptText, contextText } of result.turns) {
         if (promptText) content += `\n## Turn ${turnNum} prompt\n${promptText}\n`;
         if (contextText) content += `\n## Turn ${turnNum} context (truncated)\n${contextText}\n`;
       }
 
       writeFileSync(sessionFile, content);
-      sessionIdsBatch.push(sessionPath);
+      sessionIdsBatch.push(result.sessionPath);
 
       if (sessionIdsBatch.length >= 5) break;
     }
@@ -185,13 +247,15 @@ async function main() {
       continue;
     }
 
-    const sessionLinks = Array.from({ length: sessionCount }, (_, i) =>
-      `  - [Session ${i + 1}](references/session-${i + 1}.md)`,
+    const sessionLinks = Array.from(
+      { length: sessionCount },
+      (_, i) => `  - [Session ${i + 1}](references/session-${i + 1}.md)`,
     ).join("\n");
 
-    const existingTopicLinks = existingTopicFiles.length > 0
-      ? existingTopicFiles.map((f) => `  - [${f}](references/topic-${f})`).join("\n")
-      : "  - (none)";
+    const existingTopicLinks =
+      existingTopicFiles.length > 0
+        ? existingTopicFiles.map((f) => `  - [${f}](references/topic-${f})`).join("\n")
+        : "  - (none)";
 
     const skillMd = `---
 name: checkpoint-learner-${repoName}
@@ -311,19 +375,22 @@ and replace the inline content with index links. Only include sections that have
       rmSync(skillDir, { recursive: true, force: true });
       log(`Cleaned up skill directory: ${skillDir}`);
     } catch (err: unknown) {
-      log(`WARN: Failed to clean up skill directory: ${(err as Error).message}`);
+      log(
+        `WARN: Failed to clean up skill directory: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     for (const sid of sessionIdsBatch) appendFileSync(processedFile, sid + "\n");
     totalNew += sessionIdsBatch.length;
     log(`Marked ${sessionIdsBatch.length} session(s) as processed for ${repoName}`);
   }
+  /* oxlint-enable no-await-in-loop */
 
   log(`=== Checkpoint Learner finished (processed ${totalNew} new sessions) ===`);
   cleanupOldLogs(LOG_DIR, ["checkpoint-learner-"], 30);
 }
 
-main().catch((err) => {
-  log(`FATAL: ${err.message}`);
+main().catch((err: unknown) => {
+  log(`FATAL: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });

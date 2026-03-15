@@ -25,7 +25,7 @@ import { generatePlist, plistLabel } from "./plist/generate.js";
 const HOME = process.env.HOME!;
 const INSTALL_DIR = join(HOME, ".claude/scheduler");
 const LAUNCH_AGENTS_DIR = join(HOME, "Library/LaunchAgents");
-const DIST_DIR = join(import.meta.dirname!, "dist");
+const DIST_DIR = join(import.meta.dirname, "dist");
 const uid = execSync("id -u").toString().trim();
 
 const args = process.argv.slice(2);
@@ -61,7 +61,7 @@ if (uninstall) {
 // ─── Build ──────────────────────────────────────────────────────────────────
 
 console.log("Step 1: Building TypeScript...\n");
-execSync("npx tsup", { stdio: "inherit", cwd: import.meta.dirname! });
+execSync("npx tsup", { stdio: "inherit", cwd: import.meta.dirname });
 
 // ─── Generate plists ────────────────────────────────────────────────────────
 
@@ -92,7 +92,7 @@ for (const file of readdirSync(DIST_DIR)) {
 }
 
 // Copy .envrc.example for reference
-const envrcExample = join(import.meta.dirname!, ".envrc.example");
+const envrcExample = join(import.meta.dirname, ".envrc.example");
 if (existsSync(envrcExample)) {
   copyFileSync(envrcExample, join(INSTALL_DIR, ".envrc.example"));
 }

@@ -21,10 +21,7 @@ export class ClaudeRunner {
     private readonly timestamp: string,
   ) {}
 
-  async run(
-    prompt: string,
-    opts: RunOpts,
-  ): Promise<{ code: number; stdout: string }> {
+  async run(prompt: string, opts: RunOpts): Promise<{ code: number; stdout: string }> {
     const args = [
       ...(opts.model ? ["--model", opts.model] : []),
       ...(opts.effort ? ["--effort", opts.effort] : []),

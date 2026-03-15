@@ -20,14 +20,13 @@ export async function exec(
       timeout: 30_000,
       ...opts,
     } as Parameters<typeof execFileAsync>[2]);
-    return { ok: true, stdout: stdout.trim() };
+    return { ok: true, stdout: String(stdout).trim() };
   } catch (err: unknown) {
-    const e = err as { stdout?: string; stderr?: string; code?: string | number | null };
-    return {
-      ok: false,
-      stdout: (e.stdout || "").trim(),
-      stderr: (e.stderr || "").trim(),
-      code: e.code,
-    };
+    const e = typeof err === "object" && err !== null ? err : {};
+    const stdout = "stdout" in e && typeof e.stdout === "string" ? e.stdout : "";
+    const stderr = "stderr" in e && typeof e.stderr === "string" ? e.stderr : "";
+    const code =
+      "code" in e && (typeof e.code === "string" || typeof e.code === "number") ? e.code : null;
+    return { ok: false, stdout: stdout.trim(), stderr: stderr.trim(), code };
   }
 }

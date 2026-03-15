@@ -31,10 +31,7 @@ interface SpawnClaudeResult {
   stdout: string;
 }
 
-export function spawnClaude(
-  args: string[],
-  opts: SpawnClaudeOptions,
-): Promise<SpawnClaudeResult> {
+export function spawnClaude(args: string[], opts: SpawnClaudeOptions): Promise<SpawnClaudeResult> {
   const { cwd, taskName, timeoutMs = 30 * 60 * 1000, stderrToLog } = opts;
 
   return new Promise((resolve) => {
@@ -80,4 +77,3 @@ export function spawnClaude(
     });
   });
 }
-

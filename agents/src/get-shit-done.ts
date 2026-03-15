@@ -29,10 +29,7 @@ const TIMESTAMP = makeTimestamp();
 
 mkdirSync(STATE_DIR, { recursive: true });
 
-const { log, logFile } = createLogger(
-  LOG_DIR,
-  join(LOG_DIR, `get-shit-done-${TIMESTAMP}.log`),
-);
+const { log, logFile } = createLogger(LOG_DIR, join(LOG_DIR, `get-shit-done-${TIMESTAMP}.log`));
 
 const jira = new JiraClient(
   process.env.JIRA_CLI || "/opt/homebrew/bin/jira",
@@ -112,13 +109,11 @@ async function main() {
     log,
   );
 
-  log(
-    `=== Summary: processed=${succeeded} skipped=${skippedCount} failed=${failed} ===`,
-  );
+  log(`=== Summary: processed=${succeeded} skipped=${skippedCount} failed=${failed} ===`);
   cleanupOldLogs(LOG_DIR, ["get-shit-done-", "task-", "group-", "merge-", "verify-", "pr-"], 7);
 }
 
-main().catch((err) => {
-  log(`FATAL: ${err.message}`);
+main().catch((err: unknown) => {
+  log(`FATAL: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });
