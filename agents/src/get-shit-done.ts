@@ -91,7 +91,13 @@ async function main() {
   }
 
   const allKeys = allTickets.map((t) => t.key);
-  const { layers, skipped, excluded } = await prioritizeTickets(allKeys, runner, SCRIPT_DIR, log);
+  const { layers, skipped, excluded } = await prioritizeTickets(
+    allKeys,
+    baseRepos,
+    runner,
+    SCRIPT_DIR,
+    log,
+  );
 
   for (const s of skipped) log(`INFO: skipping ${s.key} — ${s.reason}`);
   for (const e of excluded) log(`INFO: excluded ${e.key} — ${e.reason}`);

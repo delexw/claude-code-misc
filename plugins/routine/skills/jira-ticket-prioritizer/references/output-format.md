@@ -9,8 +9,11 @@ Tickets grouped by dependency layer. Each layer contains a group of related tick
 ```json
 {
   "layers": [
-    { "group": ["PROJ-100", "PROJ-104"], "relation": "same-epic", "hasFrontend": true },
-    { "group": ["PROJ-101"], "relation": null, "hasFrontend": false }
+    { "group": [
+        {"key": "PROJ-100", "repos": [{"repo": "acme-api", "branch": "proj-100-fix-auth-bug"}]},
+        {"key": "PROJ-104", "repos": [{"repo": "acme-web", "branch": "proj-104-update-login-ui"}, {"repo": "acme-api", "branch": "proj-104-add-api-endpoint"}]}
+      ], "relation": "same-epic", "hasFrontend": true },
+    { "group": [{"key": "PROJ-101", "repos": [{"repo": "acme-api", "branch": "proj-101-add-rate-limiting"}]}], "relation": null, "hasFrontend": false }
   ],
   "skipped": [
     { "key": "PROJ-102", "reason": "depends on PROJ-100 (status: In Progress)" }
@@ -27,7 +30,7 @@ Tickets grouped by dependency layer. Each layer contains a group of related tick
 - **layers[0]** = Layer 0 (no blockers — work on these first)
 - **layers[1]** = Layer 1 (depends on layer 0 being done)
 - ...and so on
-- **layers[N].group** = ticket keys in this group, ordered by descending priority score. First ticket is the primary ticket.
+- **layers[N].group** = ticket assignments in this group, ordered by descending priority score. Each entry is `{"key": "TICKET-KEY", "repos": [{"repo": "repo-basename", "branch": "slugified-branch-name"}, ...]}`. A ticket may touch one or more repos. Both `repo` and `branch` are REQUIRED for every entry. The `repo` is the target repository basename inferred from ticket context and the available repo list. The `branch` is a slugified branch name from ticket key + summary (lowercase, hyphens, max 50 chars, e.g. `"ec-123-fix-payment-bug"`). First ticket is the primary ticket.
 - **layers[N].relation** = why these tickets are grouped (e.g. `"same-epic"`, `"same-feature"`, `"same-component"`, or `null` for single-ticket groups)
 - **layers[N].hasFrontend** = whether any ticket in the group involves frontend/UI work (inferred from ticket summary, description, components, labels). Used by the orchestrator to decide whether to launch a dev environment for verification.
 - **skipped** = Tickets with unresolved cross-layer dependencies. These are not processed — the next scheduler run re-evaluates them. Reason includes the dependency ticket key and its current JIRA status.

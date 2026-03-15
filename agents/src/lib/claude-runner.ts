@@ -11,6 +11,7 @@ interface RunOpts {
   cwd?: string;
   model?: string;
   effort?: string;
+  worktree?: string;
 }
 
 export class ClaudeRunner {
@@ -25,10 +26,11 @@ export class ClaudeRunner {
     const args = [
       ...(opts.model ? ["--model", opts.model] : []),
       ...(opts.effort ? ["--effort", opts.effort] : []),
+      ...(opts.worktree ? ["-w", opts.worktree] : []),
       "--permission-mode",
       "acceptEdits",
     ];
-    if (opts.repos) args.push("--add-dir", ...opts.repos);
+    if (!opts.worktree && opts.repos) args.push("--add-dir", ...opts.repos);
     args.push("-p", prompt);
 
     return spawnClaude(args, {

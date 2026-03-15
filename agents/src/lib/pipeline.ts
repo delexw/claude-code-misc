@@ -2,11 +2,26 @@ import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
-import type { GroupedLayer } from "./prioritizer.js";
+import type { GroupedLayer, TicketAssignment } from "./prioritizer.js";
 import type { ForgeResult } from "./prompts.js";
 import { buildMergePrompt, buildVerifyPrompt, buildPrPrompt } from "./prompts.js";
-import { filterGroup } from "./prioritizer.js";
+import { filterGroup, ticketKeys } from "./prioritizer.js";
 import { forgeGroup } from "./forge.js";
+
+/**
+ * Group worktree infos by their repo root path.
+ */
+function groupWorktreesByRepo(forges: ForgeResult[]): Map<string, string[]> {
+  const byRepo = new Map<string, string[]>();
+  for (const forge of forges) {
+    for (const wt of forge.worktrees) {
+      const paths = byRepo.get(wt.repoPath) ?? [];
+      paths.push(wt.worktreePath);
+      byRepo.set(wt.repoPath, paths);
+    }
+  }
+  return byRepo;
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -19,7 +34,7 @@ interface GroupResult {
 
 export async function mergeAndVerify(
   forges: ForgeResult[],
-  group: string[],
+  group: TicketAssignment[],
   repos: string[],
   hasFrontend: boolean,
   runner: ClaudeRunner,
@@ -28,37 +43,51 @@ export async function mergeAndVerify(
   tracker: ProcessedTracker,
   log: LogFn,
 ): Promise<GroupResult> {
-  const successful = forges.filter((r) => r.status === "success" && r.worktreePath);
+  const keys = ticketKeys(group);
+  const successful = forges.filter((r) => r.status === "success" && r.worktrees.length > 0);
   const failedKeys = forges.filter((r) => r.status !== "success").map((r) => r.ticketKey);
 
   if (successful.length === 0) {
-    log(`GROUP FAILED: no successful forges for ${group.join(", ")}`);
-    return { succeeded: [], failed: group };
+    log(`GROUP FAILED: no successful forges for ${keys.join(", ")}`);
+    return { succeeded: [], failed: keys };
   }
 
-  const primaryTicket = group[0];
+  const primaryTicket = keys[0];
 
-  // Step 1: Merge
-  log(`MERGING: ${primaryTicket} (${successful.length} ticket(s))`);
-  const { code: mergeCode, stdout: mergeOut } = await runner.run(
-    buildMergePrompt(primaryTicket, successful),
-    { repos, taskName: `get-shit-done: merge ${primaryTicket}` },
+  // Step 1: Merge per repo in parallel
+  const worktreesByRepo = groupWorktreesByRepo(successful);
+  log(`MERGING: ${primaryTicket} across ${worktreesByRepo.size} repo(s)`);
+
+  const mergeResults = await Promise.all(
+    [...worktreesByRepo.entries()].map(async ([repoRoot, wtPaths]) => {
+      const { code, stdout } = await runner.run(buildMergePrompt(primaryTicket, wtPaths), {
+        cwd: repoRoot,
+        taskName: `get-shit-done: merge ${primaryTicket} in ${repoRoot}`,
+      });
+      runner.writeLog("merge", primaryTicket, stdout);
+      const branch = stdout.trim().split("\n").pop()?.trim() || "";
+      return { repoRoot, code, branch };
+    }),
   );
-  runner.writeLog("merge", primaryTicket, mergeOut);
 
-  if (mergeCode !== 0) {
-    log(`MERGE FAILED: ${primaryTicket} (exit code: ${mergeCode})`);
+  const mergedBranches = mergeResults.filter((r) => r.code === 0 && r.branch);
+  if (mergedBranches.length === 0) {
+    log(`MERGE FAILED: ${primaryTicket} — all repos failed or produced empty branch names`);
     return {
       succeeded: [],
       failed: [...failedKeys, ...successful.map((r) => r.ticketKey)],
     };
   }
+  for (const r of mergeResults) {
+    if (r.code !== 0) log(`MERGE FAILED: ${primaryTicket} in ${r.repoRoot}`);
+    else if (!r.branch) log(`MERGE WARN: ${primaryTicket} in ${r.repoRoot} — empty branch name`);
+  }
 
-  // Step 2: Restart servers on merge branch
-  const mergeBranch = mergeOut.trim().split("\n").pop()?.trim() || "";
+  // Step 2: Restart servers on first merge branch
+  const mergeBranch = mergedBranches[0].branch;
   log(`MERGE BRANCH: ${mergeBranch}`);
 
-  if (hasFrontend && mergeBranch) {
+  if (hasFrontend) {
     await devServers.restartOnBranch(mergeBranch);
   }
 
@@ -108,7 +137,7 @@ export async function mergeAndVerify(
 // ─── Group processing (forge → merge → verify → PR) ─────────────────────────
 
 export async function processGroup(
-  group: string[],
+  group: TicketAssignment[],
   repos: string[],
   hasFrontend: boolean,
   runner: ClaudeRunner,
@@ -120,7 +149,7 @@ export async function processGroup(
   if (hasFrontend) await devServers.startAll();
 
   const devServerInfo = hasFrontend ? devServers.devUrl : "";
-  const forgeResults = await forgeGroup(group, repos, devServerInfo, runner, jira, log);
+  const forgeResults = await forgeGroup(group, devServerInfo, runner, jira, log);
   const result = await mergeAndVerify(
     forgeResults,
     group,
@@ -161,7 +190,9 @@ export async function processLayers(
     const group = filterGroup(layer.group, unprocessedSet, skippedKeys, excludedKeys);
     if (group.length === 0) continue;
 
-    log(`Layer ${i}: [${group.join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}`);
+    log(
+      `Layer ${i}: [${ticketKeys(group).join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}`,
+    );
 
     const result = await processGroup(
       group,

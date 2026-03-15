@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 
 const HOME = process.env.HOME!;
 
@@ -35,4 +35,13 @@ export function discoverRepos(baseRepos: string[]): Array<{ repo: string; baseRe
 
 export function repoToSlug(path: string): string {
   return path.replace(/[/._\s]/g, "-");
+}
+
+/**
+ * Resolve a repo basename to its absolute path from the known repo list.
+ */
+export function resolveRepoName(name: string, baseRepos: string[]): string | null {
+  if (!name) return null;
+  const lower = name.toLowerCase();
+  return baseRepos.find((r) => basename(r).toLowerCase() === lower) ?? null;
 }

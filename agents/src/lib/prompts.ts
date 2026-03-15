@@ -1,11 +1,18 @@
+import { join } from "node:path";
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type ForgeStatus = "success" | "failed";
 
+export interface WorktreeInfo {
+  repoPath: string;
+  worktreePath: string;
+}
+
 export interface ForgeResult {
   ticketKey: string;
   status: ForgeStatus;
-  worktreePath: string;
+  worktrees: WorktreeInfo[];
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -13,26 +20,10 @@ export interface ForgeResult {
 export const AUTONOMY_PREFIX =
   "Autonomy mode: never use AskUserQuestion tool — explore answers yourself.";
 
-// ─── JSON extraction ─────────────────────────────────────────────────────────
+// ─── Worktree helpers ────────────────────────────────────────────────────────
 
-export function extractWorktreePath(stdout: string): string {
-  try {
-    const match = stdout.match(/\{[^{}]*"worktree_path"[^{}]*\}/);
-    if (match) {
-      const parsed: unknown = JSON.parse(match[0]);
-      if (
-        typeof parsed === "object" &&
-        parsed !== null &&
-        "worktree_path" in parsed &&
-        typeof parsed.worktree_path === "string"
-      ) {
-        return parsed.worktree_path;
-      }
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return "";
+export function worktreePath(repoAbsPath: string, branch: string): string {
+  return join(repoAbsPath, ".claude", "worktrees", branch);
 }
 
 // ─── Forge prompt ────────────────────────────────────────────────────────────
@@ -40,32 +31,28 @@ export function extractWorktreePath(stdout: string): string {
 export function buildForgePrompt(
   ticketKey: string,
   ticketUrl: string,
-  repos: string[],
   devServerInfo: string,
 ): string {
-  const repoList = repos.join("\n");
   const devCtx = devServerInfo ? `\nDev servers are already running: ${devServerInfo}` : "";
 
   return [
     `[GSD: forge ${ticketKey}] ${AUTONOMY_PREFIX}`,
     "",
-    `Invoke Skill("/forge ${ticketUrl} 'Find the correct repo from:`,
-    repoList,
-    `Multiple repos are possible.${devCtx}'")`,
+    `Invoke Skill("/forge ${ticketUrl}${devCtx}'")`,
     "",
-    "Return the JSON output from forge ONLY without code fence.",
+    "Report completion as plain text.",
   ].join("\n");
 }
 
 // ─── Merge prompt ────────────────────────────────────────────────────────────
 
-export function buildMergePrompt(primaryTicket: string, forges: ForgeResult[]): string {
-  const worktrees = forges.map((r) => `  ${r.ticketKey}: ${r.worktreePath}`).join("\n");
+export function buildMergePrompt(primaryTicket: string, worktreePaths: string[]): string {
+  const worktrees = worktreePaths.map((wt) => `  ${wt}`).join("\n");
 
   return [
     `[GSD: merge ${primaryTicket}] ${AUTONOMY_PREFIX}`,
     "",
-    "Forge results (ticket: worktree_path):",
+    "Worktrees to merge:",
     worktrees,
     "",
     "Steps:",
@@ -103,11 +90,14 @@ export function buildVerifyPrompt(
 // ─── PR prompt ───────────────────────────────────────────────────────────────
 
 export function buildPrPrompt(forges: ForgeResult[]): string {
+  let stepNum = 0;
   const steps = forges
-    .map(
-      (r, i) =>
-        `${i + 1}. In worktree ${r.worktreePath}:\n` +
-        `   Skill("/git-commit") then Skill("/create-pr 'create a Draft PR and keep description concise'")`,
+    .flatMap((r) =>
+      r.worktrees.map(
+        (wt) =>
+          `${++stepNum}. In worktree ${wt.worktreePath} (${r.ticketKey}):\n` +
+          `   Skill("/git-commit") then Skill("/create-pr 'create a Draft PR and keep description concise'")`,
+      ),
     )
     .join("\n");
 

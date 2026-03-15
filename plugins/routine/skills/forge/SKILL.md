@@ -35,7 +35,6 @@ Orchestrates end-to-end JIRA ticket processing. Phases 1–5 gather context and 
 
 1. Initialization — create skill directory at `~/.claude/skills/{ticket_id}/`
 2. JIRA Analysis (via `Skill("jira-ticket-viewer")`)
-2.5. Create Git Branch (named `{TICKET-ID}-{slugified-title}`)
 3. Discovery & Scanning (all 3.x run concurrently):
    - 3.1 Domain Discovery (via `Skill("domain-discover")`)
    - 3.2 Resource Scanning (links, Figma designs)
@@ -43,6 +42,8 @@ Orchestrates end-to-end JIRA ticket processing. Phases 1–5 gather context and 
 4. Prompt Optimization (via `Skill("meta-prompter")`)
 5. Implementation Planning + generate `SKILL.md` for the dynamic skill
 6. Execute — invoke `Skill("{ticket_id}-impl")`
+
+Also check the `ADDITIONAL_CONTEXT` as dev server info hint if provided.
 
 ## Skill Dependencies
 

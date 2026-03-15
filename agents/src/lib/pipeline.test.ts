@@ -55,8 +55,16 @@ function makeTracker(): ProcessedTracker & { marked: string[] } {
 
 void describe("mergeAndVerify", () => {
   const successForges: ForgeResult[] = [
-    { ticketKey: "EC-1", status: "success", worktreePath: "/wt/ec-1" },
-    { ticketKey: "EC-2", status: "success", worktreePath: "/wt/ec-2" },
+    {
+      ticketKey: "EC-1",
+      status: "success",
+      worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-1" }],
+    },
+    {
+      ticketKey: "EC-2",
+      status: "success",
+      worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-2" }],
+    },
   ];
 
   void it("returns all succeeded when merge, verify, and PR pass", async () => {
@@ -69,7 +77,10 @@ void describe("mergeAndVerify", () => {
 
     const result = await mergeAndVerify(
       successForges,
-      ["EC-1", "EC-2"],
+      [
+        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+      ],
       ["/repo"],
       true,
       runner,
@@ -84,13 +95,13 @@ void describe("mergeAndVerify", () => {
   });
 
   void it("returns all failed when no successful forges", async () => {
-    const forges: ForgeResult[] = [{ ticketKey: "EC-1", status: "failed", worktreePath: "" }];
+    const forges: ForgeResult[] = [{ ticketKey: "EC-1", status: "failed", worktrees: [] }];
     const runner = makeRunner([]);
     const { log } = collectLogs();
 
     const result = await mergeAndVerify(
       forges,
-      ["EC-1"],
+      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
       runner,
@@ -112,7 +123,10 @@ void describe("mergeAndVerify", () => {
 
     const result = await mergeAndVerify(
       successForges,
-      ["EC-1", "EC-2"],
+      [
+        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+      ],
       ["/repo"],
       true,
       runner,
@@ -129,8 +143,12 @@ void describe("mergeAndVerify", () => {
 
   void it("separates failed forges from successful ones in result", async () => {
     const mixed: ForgeResult[] = [
-      { ticketKey: "EC-1", status: "success", worktreePath: "/wt/ec-1" },
-      { ticketKey: "EC-2", status: "failed", worktreePath: "" },
+      {
+        ticketKey: "EC-1",
+        status: "success",
+        worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-1" }],
+      },
+      { ticketKey: "EC-2", status: "failed", worktrees: [] },
     ];
     const runner = makeRunner([
       { code: 0, stdout: "merge-branch" },
@@ -141,7 +159,10 @@ void describe("mergeAndVerify", () => {
 
     const result = await mergeAndVerify(
       mixed,
-      ["EC-1", "EC-2"],
+      [
+        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+      ],
       ["/repo"],
       true,
       runner,
@@ -166,7 +187,10 @@ void describe("mergeAndVerify", () => {
 
     await mergeAndVerify(
       successForges,
-      ["EC-1", "EC-2"],
+      [
+        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+      ],
       ["/repo"],
       true,
       runner,
@@ -199,7 +223,10 @@ void describe("mergeAndVerify", () => {
 
     await mergeAndVerify(
       successForges,
-      ["EC-1", "EC-2"],
+      [
+        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+      ],
       ["/repo"],
       true,
       runner,
@@ -226,7 +253,7 @@ void describe("mergeAndVerify", () => {
 
     await mergeAndVerify(
       [successForges[0]],
-      ["EC-1"],
+      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       false,
       runner,
@@ -261,7 +288,7 @@ void describe("mergeAndVerify", () => {
 
     await mergeAndVerify(
       [successForges[0]],
-      ["EC-1"],
+      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
       runner,
@@ -294,7 +321,7 @@ void describe("mergeAndVerify", () => {
 
     await mergeAndVerify(
       [successForges[0]],
-      ["EC-1"],
+      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       false,
       runner,
@@ -323,7 +350,7 @@ void describe("mergeAndVerify", () => {
 
     await mergeAndVerify(
       [successForges[0]],
-      ["EC-1"],
+      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
       runner,
@@ -346,7 +373,7 @@ void describe("mergeAndVerify", () => {
 
     const result = await mergeAndVerify(
       [successForges[0]],
-      ["EC-1"],
+      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
       runner,
@@ -369,7 +396,7 @@ void describe("mergeAndVerify", () => {
 
     const result = await mergeAndVerify(
       [successForges[0]],
-      ["EC-1"],
+      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       ["/repo"],
       true,
       runner,
@@ -404,8 +431,16 @@ void describe("processLayers", () => {
 
   void it("processes all layers and counts results", async () => {
     const layers: GroupedLayer[] = [
-      { group: ["EC-1"], relation: null, hasFrontend: false },
-      { group: ["EC-2"], relation: null, hasFrontend: false },
+      {
+        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        relation: null,
+        hasFrontend: false,
+      },
+      {
+        group: [{ key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        relation: null,
+        hasFrontend: false,
+      },
     ];
     const runner = makeFullRunner();
     const { log } = collectLogs();
@@ -429,8 +464,16 @@ void describe("processLayers", () => {
 
   void it("skips empty layers after filtering", async () => {
     const layers: GroupedLayer[] = [
-      { group: ["EC-1"], relation: null, hasFrontend: false },
-      { group: ["EC-99"], relation: null, hasFrontend: false }, // not in unprocessed
+      {
+        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        relation: null,
+        hasFrontend: false,
+      },
+      {
+        group: [{ key: "EC-99", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        relation: null,
+        hasFrontend: false,
+      }, // not in unprocessed
     ];
     const runner = makeFullRunner();
     const { logs, log } = collectLogs();
@@ -454,7 +497,15 @@ void describe("processLayers", () => {
 
   void it("respects skipped and excluded sets", async () => {
     const layers: GroupedLayer[] = [
-      { group: ["EC-1", "EC-2", "EC-3"], relation: null, hasFrontend: false },
+      {
+        group: [
+          { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+          { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+          { key: "EC-3", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        ],
+        relation: null,
+        hasFrontend: false,
+      },
     ];
     const runner = makeFullRunner();
     const { log } = collectLogs();
@@ -477,7 +528,13 @@ void describe("processLayers", () => {
   });
 
   void it("counts failures from forge errors", async () => {
-    const layers: GroupedLayer[] = [{ group: ["EC-1"], relation: null, hasFrontend: false }];
+    const layers: GroupedLayer[] = [
+      {
+        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        relation: null,
+        hasFrontend: false,
+      },
+    ];
     const runner = makeFullRunner(1); // forge fails
     const { log } = collectLogs();
 
@@ -520,7 +577,13 @@ void describe("processLayers", () => {
   });
 
   void it("logs layer info with relation", async () => {
-    const layers: GroupedLayer[] = [{ group: ["EC-1"], relation: "same-epic", hasFrontend: false }];
+    const layers: GroupedLayer[] = [
+      {
+        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        relation: "same-epic",
+        hasFrontend: false,
+      },
+    ];
     const runner = makeFullRunner();
     const { logs, log } = collectLogs();
 
@@ -541,7 +604,13 @@ void describe("processLayers", () => {
   });
 
   void it("logs layer info without relation when null", async () => {
-    const layers: GroupedLayer[] = [{ group: ["EC-1"], relation: null, hasFrontend: false }];
+    const layers: GroupedLayer[] = [
+      {
+        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        relation: null,
+        hasFrontend: false,
+      },
+    ];
     const runner = makeFullRunner();
     const { logs, log } = collectLogs();
 

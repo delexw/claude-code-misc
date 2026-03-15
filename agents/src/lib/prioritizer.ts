@@ -4,9 +4,24 @@
 
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import { AUTONOMY_PREFIX } from "./prompts.js";
+import { resolveRepoName } from "./repos.js";
+
+export interface RepoAssignment {
+  repoPath: string; // repo basename from prioritizer, resolved to abs path by pipeline
+  branch: string; // slugified branch name (e.g. "ec-123-fix-payment-bug")
+}
+
+export interface TicketAssignment {
+  key: string;
+  repos: RepoAssignment[]; // one or more repos this ticket touches
+}
+
+export function ticketKeys(group: TicketAssignment[]): string[] {
+  return group.map((t) => t.key);
+}
 
 export interface GroupedLayer {
-  group: string[];
+  group: TicketAssignment[];
   relation: string | null;
   hasFrontend: boolean;
 }
@@ -20,6 +35,58 @@ export interface PrioritizeResult {
 export interface SprintTicket {
   key: string;
   status: string;
+}
+
+function isRepoObj(r: unknown): r is { repo: string; branch: string } {
+  return (
+    typeof r === "object" &&
+    r !== null &&
+    "repo" in r &&
+    typeof r.repo === "string" &&
+    "branch" in r &&
+    typeof r.branch === "string"
+  );
+}
+
+function toRepoAssignments(raw: unknown): RepoAssignment[] {
+  if (Array.isArray(raw)) {
+    return raw.filter(isRepoObj).map((r) => ({ repoPath: r.repo, branch: r.branch }));
+  }
+  if (isRepoObj(raw)) {
+    return [{ repoPath: raw.repo, branch: raw.branch }];
+  }
+  return [];
+}
+
+/** Parse mixed array of strings or {key, repos} objects into TicketAssignment[] */
+function toTicketAssignments(arr: unknown[]): TicketAssignment[] {
+  return arr
+    .map((item) => {
+      if (typeof item === "string") return { key: item, repos: [] };
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        "key" in item &&
+        typeof item.key === "string"
+      ) {
+        // New format: { key, repos: [{ repo, branch }] }
+        if ("repos" in item) {
+          return { key: item.key, repos: toRepoAssignments(item.repos) };
+        }
+        // Compat: { key, repo, branch } → single-element repos array
+        if (
+          "repo" in item &&
+          typeof item.repo === "string" &&
+          "branch" in item &&
+          typeof item.branch === "string"
+        ) {
+          return { key: item.key, repos: [{ repoPath: item.repo, branch: item.branch }] };
+        }
+        return { key: item.key, repos: [] };
+      }
+      return null;
+    })
+    .filter((x): x is TicketAssignment => x !== null);
 }
 
 function toKeyReasonArray(arr: unknown[]): Array<{ key: string; reason: string }> {
@@ -53,16 +120,13 @@ export function parsePrioritizerOutput(raw: string): PrioritizeResult | null {
   const layers: GroupedLayer[] = parsed.layers.map((l: unknown) => {
     if (Array.isArray(l)) {
       return {
-        group: l.filter((x): x is string => typeof x === "string"),
+        group: toTicketAssignments(l),
         relation: null,
         hasFrontend: true,
       };
     }
     if (typeof l === "object" && l !== null) {
-      const group =
-        "group" in l && Array.isArray(l.group)
-          ? l.group.filter((x): x is string => typeof x === "string")
-          : [];
+      const group = "group" in l && Array.isArray(l.group) ? toTicketAssignments(l.group) : [];
       const relation = "relation" in l && typeof l.relation === "string" ? l.relation : null;
       const hasFrontend =
         "hasFrontend" in l && typeof l.hasFrontend === "boolean" ? l.hasFrontend : true;
@@ -84,7 +148,13 @@ export function parsePrioritizerOutput(raw: string): PrioritizeResult | null {
  */
 export function fallbackResult(tickets: string[]): PrioritizeResult {
   return {
-    layers: [{ group: tickets, relation: null, hasFrontend: true }],
+    layers: [
+      {
+        group: tickets.map((key) => ({ key, repos: [] })),
+        relation: null,
+        hasFrontend: true,
+      },
+    ],
     skipped: [],
     excluded: [],
   };
@@ -108,18 +178,21 @@ export function classifyTickets(tickets: SprintTicket[]): {
  * excluding skipped and excluded tickets.
  */
 export function filterGroup(
-  group: string[],
+  group: TicketAssignment[],
   unprocessed: Set<string>,
   skippedKeys: Set<string>,
   excludedKeys: Set<string>,
-): string[] {
-  return group.filter((t) => unprocessed.has(t) && !skippedKeys.has(t) && !excludedKeys.has(t));
+): TicketAssignment[] {
+  return group.filter(
+    (t) => unprocessed.has(t.key) && !skippedKeys.has(t.key) && !excludedKeys.has(t.key),
+  );
 }
 
 // ─── Prioritize via Claude ──────────────────────────────────────────────────
 
 export async function prioritizeTickets(
   allTickets: string[],
+  repos: string[],
   runner: ClaudeRunner,
   scriptDir: string,
   log: LogFn,
@@ -129,11 +202,14 @@ export async function prioritizeTickets(
   log(`PRIORITIZING: ${allTickets.length} ticket(s)`);
 
   const ticketList = allTickets.join(",");
+  const repoList = repos.join("\n");
   const { code, stdout } = await runner.run(
     [
       `[GSD: prioritize ${allTickets.length} tickets] ${AUTONOMY_PREFIX}`,
       "",
-      `Invoke Skill("/jira-ticket-prioritizer ${ticketList}").`,
+      `Invoke Skill("/jira-ticket-prioritizer 'Prioritize tickets ${ticketList} and assign each to one of these repos:`,
+      repoList,
+      `Use the repo basename in output (not the full path).'").`,
       "",
       "Return json ONLY without code fence",
     ].join("\n"),
@@ -149,6 +225,7 @@ export async function prioritizeTickets(
     try {
       const result = parsePrioritizerOutput(stdout);
       if (result) {
+        resolveAndValidateRepos(result, repos);
         logPrioritizeResult(result, log);
         return result;
       }
@@ -163,8 +240,29 @@ export async function prioritizeTickets(
   return fallbackResult(allTickets);
 }
 
+/**
+ * Validate and resolve repo basenames to absolute paths.
+ * Throws if any ticket is missing repos or has unresolvable repo names.
+ */
+function resolveAndValidateRepos(result: PrioritizeResult, baseRepos: string[]): void {
+  for (const layer of result.layers) {
+    for (const ticket of layer.group) {
+      if (ticket.repos.length === 0) {
+        throw new Error(`Prioritizer did not assign any repos for ${ticket.key}`);
+      }
+      for (const ra of ticket.repos) {
+        if (!ra.repoPath) throw new Error(`Empty repo name for ${ticket.key}`);
+        if (!ra.branch) throw new Error(`Empty branch name for ${ticket.key} in ${ra.repoPath}`);
+        const resolved = resolveRepoName(ra.repoPath, baseRepos);
+        if (!resolved) throw new Error(`Cannot resolve repo "${ra.repoPath}" for ${ticket.key}`);
+        ra.repoPath = resolved;
+      }
+    }
+  }
+}
+
 function logPrioritizeResult(result: PrioritizeResult, log: LogFn): void {
-  const summary = result.layers.map((l, i) => `L${i}:[${l.group.join(",")}]`).join(" ");
+  const summary = result.layers.map((l, i) => `L${i}:[${ticketKeys(l.group).join(",")}]`).join(" ");
   log(`PRIORITIZED: ${result.layers.length} layer(s) — ${summary}`);
   if (result.skipped.length > 0) log(`SKIPPED: ${result.skipped.map((s) => s.key).join(", ")}`);
   if (result.excluded.length > 0) log(`EXCLUDED: ${result.excluded.map((e) => e.key).join(", ")}`);

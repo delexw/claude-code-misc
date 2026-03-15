@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  extractWorktreePath,
+  worktreePath,
   buildForgePrompt,
   buildMergePrompt,
   buildVerifyPrompt,
@@ -9,82 +9,52 @@ import {
   AUTONOMY_PREFIX,
 } from "./prompts.js";
 
-void describe("extractWorktreePath", () => {
-  void it("extracts worktree_path from JSON in stdout", () => {
-    const stdout = 'some output\n{"worktree_path": "/tmp/wt-123"}\nmore output';
-    assert.equal(extractWorktreePath(stdout), "/tmp/wt-123");
-  });
-
-  void it("returns empty string when no JSON found", () => {
-    assert.equal(extractWorktreePath("no json here"), "");
-  });
-
-  void it("returns empty string for empty worktree_path", () => {
-    const stdout = '{"worktree_path": ""}';
-    assert.equal(extractWorktreePath(stdout), "");
-  });
-
-  void it("returns empty string for invalid JSON", () => {
-    const stdout = '{"worktree_path": broken}';
-    assert.equal(extractWorktreePath(stdout), "");
-  });
-
-  void it("returns empty string for empty input", () => {
-    assert.equal(extractWorktreePath(""), "");
-  });
-
-  void it("picks first match when multiple JSON objects exist", () => {
-    const stdout = '{"worktree_path": "/first"}\n{"worktree_path": "/second"}';
-    assert.equal(extractWorktreePath(stdout), "/first");
+void describe("worktreePath", () => {
+  void it("returns .claude/worktrees/<slug> under repo root", () => {
+    assert.equal(
+      worktreePath("/path/to/repo", "ec-123-repo"),
+      "/path/to/repo/.claude/worktrees/ec-123-repo",
+    );
   });
 });
 
 void describe("buildForgePrompt", () => {
   void it("includes ticket key and URL", () => {
-    const result = buildForgePrompt("EC-123", "https://jira/EC-123", ["/repo"], "");
+    const result = buildForgePrompt("EC-123", "https://jira/EC-123", "");
     assert.ok(result.includes("[GSD: forge EC-123]"));
     assert.ok(result.includes("https://jira/EC-123"));
   });
 
-  void it("includes repo list", () => {
-    const result = buildForgePrompt("EC-1", "url", ["/repo-a", "/repo-b"], "");
-    assert.ok(result.includes("/repo-a"));
-    assert.ok(result.includes("/repo-b"));
-  });
-
   void it("appends dev server info when provided", () => {
     const devInfo = '{"urls": ["http://localhost:3000", "http://localhost:3500"]}';
-    const result = buildForgePrompt("EC-1", "url", ["/repo"], devInfo);
+    const result = buildForgePrompt("EC-1", "url", devInfo);
     assert.ok(result.includes("Dev servers are already running:"));
     assert.ok(result.includes(devInfo));
   });
 
   void it("omits dev server context when empty", () => {
-    const result = buildForgePrompt("EC-1", "url", ["/repo"], "");
+    const result = buildForgePrompt("EC-1", "url", "");
     assert.ok(!result.includes("Dev servers are already running"));
   });
 
   void it("includes autonomy prefix", () => {
-    const result = buildForgePrompt("EC-1", "url", [], "");
+    const result = buildForgePrompt("EC-1", "url", "");
     assert.ok(result.includes(AUTONOMY_PREFIX));
   });
 });
 
 void describe("buildMergePrompt", () => {
-  const forges = [
-    { ticketKey: "EC-1", status: "success" as const, worktreePath: "/wt/ec-1" },
-    { ticketKey: "EC-2", status: "success" as const, worktreePath: "/wt/ec-2" },
-  ];
+  const wtPaths = ["/wt/ec-1", "/wt/ec-2"];
 
   void it("includes primary ticket in merge branch name", () => {
-    const result = buildMergePrompt("EC-1", forges);
+    const result = buildMergePrompt("EC-1", wtPaths);
     assert.ok(result.includes('"EC-1-merge"'));
   });
 
   void it("lists worktree paths", () => {
-    const result = buildMergePrompt("EC-1", forges);
-    assert.ok(result.includes("EC-1: /wt/ec-1"));
-    assert.ok(result.includes("EC-2: /wt/ec-2"));
+    const result = buildMergePrompt("EC-1", wtPaths);
+    assert.ok(result.includes("/wt/ec-1"));
+    assert.ok(result.includes("/wt/ec-2"));
   });
 });
 
@@ -99,8 +69,16 @@ void describe("buildVerifyPrompt", () => {
 
 void describe("buildPrPrompt", () => {
   const forges = [
-    { ticketKey: "EC-1", status: "success" as const, worktreePath: "/wt/ec-1" },
-    { ticketKey: "EC-2", status: "success" as const, worktreePath: "/wt/ec-2" },
+    {
+      ticketKey: "EC-1",
+      status: "success" as const,
+      worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-1" }],
+    },
+    {
+      ticketKey: "EC-2",
+      status: "success" as const,
+      worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-2" }],
+    },
   ];
 
   void it("generates PR steps for each forge", () => {

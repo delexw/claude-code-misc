@@ -36,11 +36,10 @@ Execute each phase sequentially. Read the linked file for detailed instructions 
 
 1. **Initialization** — [phase1-initialization.md](references/phase1-initialization.md)
 2. **JIRA Analysis** — [phase2-jira-analyzer.md](references/phase2-jira-analyzer.md)
-3. **Create Git Branch** — [phase2.5-create-branch.md](references/phase2.5-create-branch.md)
-4. **Discovery & Scanning** (all 3.x phases run concurrently):
+3. **Discovery & Scanning** (all 3.x phases run concurrently):
    - 3.1 **Domain Discovery** — [phase3.1-domain-discovery.md](references/phase3.1-domain-discovery.md)
    - 3.2 **Resource Scanning** — [phase3.2-resource-scanning.md](references/phase3.2-resource-scanning.md)
    - 3.3 **Page Inspection** (conditional: frontend/UI-affecting changes) — [phase3.3-page-inspection.md](references/phase3.3-page-inspection.md)
-5. **Prompt Optimization** — [phase4-prompt-optimization.md](references/phase4-prompt-optimization.md)
-6. **Implementation Planning + Skill Generation** — [phase5-implementation-planning.md](references/phase5-implementation-planning.md)
-7. **Execute** — [phase6-execution.md](references/phase6-execution.md)
+4. **Prompt Optimization** — [phase4-prompt-optimization.md](references/phase4-prompt-optimization.md)
+5. **Implementation Planning + Skill Generation** — [phase5-implementation-planning.md](references/phase5-implementation-planning.md)
+6. **Execute** — [phase6-execution.md](references/phase6-execution.md)

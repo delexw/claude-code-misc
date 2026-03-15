@@ -30,16 +30,23 @@ function collectLogs(): { logs: string[]; log: LogFn } {
 
 void describe("forgeTicket", () => {
   void it("returns success with worktree path on exit code 0", async () => {
-    const stdout = 'some output\n{"worktree_path": "/tmp/wt-ec-1"}\nmore';
-    const runner = makeRunner({ code: 0, stdout });
+    const runner = makeRunner({ code: 0, stdout: "some output" });
     const jira = makeJira();
     const { log } = collectLogs();
 
-    const result = await forgeTicket("EC-1", ["/repo"], "", runner, jira, log);
+    const result = await forgeTicket(
+      { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.equal(result.ticketKey, "EC-1");
     assert.equal(result.status, "success");
-    assert.equal(result.worktreePath, "/tmp/wt-ec-1");
+    assert.deepEqual(result.worktrees, [
+      { repoPath: "/repo", worktreePath: "/repo/.claude/worktrees/ec-1-fix-bug" },
+    ]);
   });
 
   void it("returns failed on non-zero exit code", async () => {
@@ -47,18 +54,30 @@ void describe("forgeTicket", () => {
     const jira = makeJira();
     const { log } = collectLogs();
 
-    const result = await forgeTicket("EC-2", ["/repo"], "", runner, jira, log);
+    const result = await forgeTicket(
+      { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.equal(result.status, "failed");
-    assert.equal(result.worktreePath, "");
+    assert.deepEqual(result.worktrees, []);
   });
 
   void it("logs forging start and result", async () => {
-    const runner = makeRunner({ code: 0, stdout: '{"worktree_path": "/wt"}' });
+    const runner = makeRunner({ code: 0, stdout: "" });
     const jira = makeJira();
     const { logs, log } = collectLogs();
 
-    await forgeTicket("EC-3", ["/repo"], "", runner, jira, log);
+    await forgeTicket(
+      { key: "EC-3", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.ok(logs.some((l) => l.includes("FORGING: EC-3")));
     assert.ok(logs.some((l) => l.includes("FORGED: EC-3")));
@@ -69,7 +88,13 @@ void describe("forgeTicket", () => {
     const jira = makeJira();
     const { logs, log } = collectLogs();
 
-    await forgeTicket("EC-4", ["/repo"], "", runner, jira, log);
+    await forgeTicket(
+      { key: "EC-4", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.ok(logs.some((l) => l.includes("FORGE FAILED: EC-4")));
   });
@@ -79,7 +104,7 @@ void describe("forgeTicket", () => {
     const runner = {
       run: async (prompt: string) => {
         capturedPrompt = prompt;
-        return { code: 0, stdout: '{"worktree_path": "/wt"}' };
+        return { code: 0, stdout: "" };
       },
       writeLog: () => "/fake",
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
@@ -87,7 +112,13 @@ void describe("forgeTicket", () => {
     const jira = makeJira("https://custom.jira");
     const { log } = collectLogs();
 
-    await forgeTicket("EC-5", ["/repo"], "", runner, jira, log);
+    await forgeTicket(
+      { key: "EC-5", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.ok(capturedPrompt.includes("https://custom.jira/browse/EC-5"));
   });
@@ -96,7 +127,7 @@ void describe("forgeTicket", () => {
     let loggedPrefix = "";
     let loggedId = "";
     const runner = {
-      run: async () => ({ code: 0, stdout: '{"worktree_path": "/wt"}' }),
+      run: async () => ({ code: 0, stdout: "" }),
       writeLog: (prefix: string, id: string) => {
         loggedPrefix = prefix;
         loggedId = id;
@@ -107,10 +138,16 @@ void describe("forgeTicket", () => {
     const jira = makeJira();
     const { log } = collectLogs();
 
-    await forgeTicket("EC-6", ["/repo"], "", runner, jira, log);
+    await forgeTicket(
+      { key: "EC-6", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.equal(loggedPrefix, "task");
-    assert.equal(loggedId, "EC-6");
+    assert.equal(loggedId, "EC-6-ec-1-fix-bug");
   });
 });
 
@@ -118,11 +155,20 @@ void describe("forgeTicket", () => {
 
 void describe("forgeGroup", () => {
   void it("returns results for all tickets in group", async () => {
-    const runner = makeRunner({ code: 0, stdout: '{"worktree_path": "/wt"}' });
+    const runner = makeRunner({ code: 0, stdout: "" });
     const jira = makeJira();
     const { log } = collectLogs();
 
-    const results = await forgeGroup(["EC-1", "EC-2"], ["/repo"], "", runner, jira, log);
+    const results = await forgeGroup(
+      [
+        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
+      ],
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.equal(results.length, 2);
     assert.equal(results[0].ticketKey, "EC-1");
@@ -130,11 +176,20 @@ void describe("forgeGroup", () => {
   });
 
   void it("logs group start", async () => {
-    const runner = makeRunner({ code: 0, stdout: '{"worktree_path": "/wt"}' });
+    const runner = makeRunner({ code: 0, stdout: "" });
     const jira = makeJira();
     const { logs, log } = collectLogs();
 
-    await forgeGroup(["EC-1", "EC-2"], ["/repo"], "", runner, jira, log);
+    await forgeGroup(
+      [
+        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
+      ],
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.ok(logs.some((l) => l.includes("FORGING GROUP: EC-1, EC-2")));
   });
@@ -144,7 +199,7 @@ void describe("forgeGroup", () => {
     const runner = {
       run: async () => {
         callCount++;
-        if (callCount === 1) return { code: 0, stdout: '{"worktree_path": "/wt"}' };
+        if (callCount === 1) return { code: 0, stdout: "" };
         return { code: 1, stdout: "" };
       },
       writeLog: () => "/fake",
@@ -153,7 +208,16 @@ void describe("forgeGroup", () => {
     const jira = makeJira();
     const { log } = collectLogs();
 
-    const results = await forgeGroup(["EC-1", "EC-2"], ["/repo"], "", runner, jira, log);
+    const results = await forgeGroup(
+      [
+        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
+      ],
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.equal(results[0].status, "success");
     assert.equal(results[1].status, "failed");
@@ -170,11 +234,17 @@ void describe("forgeGroup", () => {
     const jira = makeJira();
     const { log } = collectLogs();
 
-    const results = await forgeGroup(["EC-1"], ["/repo"], "", runner, jira, log);
+    const results = await forgeGroup(
+      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] }],
+      "",
+      runner,
+      jira,
+      log,
+    );
 
     assert.equal(results[0].status, "failed");
     assert.equal(results[0].ticketKey, "EC-1");
-    assert.equal(results[0].worktreePath, "");
+    assert.deepEqual(results[0].worktrees, []);
   });
 
   void it("handles empty group", async () => {
@@ -182,7 +252,7 @@ void describe("forgeGroup", () => {
     const jira = makeJira();
     const { log } = collectLogs();
 
-    const results = await forgeGroup([], ["/repo"], "", runner, jira, log);
+    const results = await forgeGroup([], "", runner, jira, log);
 
     assert.equal(results.length, 0);
   });

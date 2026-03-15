@@ -5,6 +5,7 @@ import {
   fallbackResult,
   classifyTickets,
   filterGroup,
+  type TicketAssignment,
 } from "./prioritizer.js";
 
 void describe("parsePrioritizerOutput", () => {
@@ -20,7 +21,10 @@ void describe("parsePrioritizerOutput", () => {
 
     const result = parsePrioritizerOutput(input)!;
     assert.equal(result.layers.length, 2);
-    assert.deepEqual(result.layers[0].group, ["EC-100", "EC-104"]);
+    assert.deepEqual(result.layers[0].group, [
+      { key: "EC-100", repos: [] },
+      { key: "EC-104", repos: [] },
+    ]);
     assert.equal(result.layers[0].relation, "same-epic");
     assert.equal(result.layers[0].hasFrontend, true);
     assert.equal(result.layers[1].hasFrontend, false);
@@ -39,10 +43,13 @@ void describe("parsePrioritizerOutput", () => {
 
     const result = parsePrioritizerOutput(input)!;
     assert.equal(result.layers.length, 2);
-    assert.deepEqual(result.layers[0].group, ["EC-100", "EC-101"]);
+    assert.deepEqual(result.layers[0].group, [
+      { key: "EC-100", repos: [] },
+      { key: "EC-101", repos: [] },
+    ]);
     assert.equal(result.layers[0].relation, null);
     assert.equal(result.layers[0].hasFrontend, true);
-    assert.deepEqual(result.layers[1].group, ["EC-102"]);
+    assert.deepEqual(result.layers[1].group, [{ key: "EC-102", repos: [] }]);
   });
 
   void it("strips code fences before parsing", () => {
@@ -55,7 +62,7 @@ void describe("parsePrioritizerOutput", () => {
 
     const result = parsePrioritizerOutput(input)!;
     assert.equal(result.layers.length, 1);
-    assert.deepEqual(result.layers[0].group, ["EC-1"]);
+    assert.deepEqual(result.layers[0].group, [{ key: "EC-1", repos: [] }]);
   });
 
   void it("returns null for empty layers", () => {
@@ -103,8 +110,8 @@ void describe("parsePrioritizerOutput", () => {
 
     const result = parsePrioritizerOutput(input)!;
     assert.equal(result.layers.length, 6);
-    assert.deepEqual(result.layers[0].group, ["EC-10819"]);
-    assert.deepEqual(result.layers[5].group, ["EC-10824"]);
+    assert.deepEqual(result.layers[0].group, [{ key: "EC-10819", repos: [] }]);
+    assert.deepEqual(result.layers[5].group, [{ key: "EC-10824", repos: [] }]);
     assert.equal(result.excluded.length, 2);
   });
 
@@ -115,7 +122,7 @@ void describe("parsePrioritizerOutput", () => {
     const input = "```\n" + json + "\n```";
 
     const result = parsePrioritizerOutput(input)!;
-    assert.deepEqual(result.layers[0].group, ["EC-1"]);
+    assert.deepEqual(result.layers[0].group, [{ key: "EC-1", repos: [] }]);
   });
 
   void it("handles leading/trailing whitespace from stdout", () => {
@@ -125,7 +132,7 @@ void describe("parsePrioritizerOutput", () => {
     const input = "\n\n  " + json + "  \n\n";
 
     const result = parsePrioritizerOutput(input)!;
-    assert.deepEqual(result.layers[0].group, ["EC-1"]);
+    assert.deepEqual(result.layers[0].group, [{ key: "EC-1", repos: [] }]);
   });
 
   void it("treats omitted relation as null", () => {
@@ -142,7 +149,7 @@ void describe("fallbackResult", () => {
   void it("wraps single ticket in one layer", () => {
     const result = fallbackResult(["EC-1"]);
     assert.equal(result.layers.length, 1);
-    assert.deepEqual(result.layers[0].group, ["EC-1"]);
+    assert.deepEqual(result.layers[0].group, [{ key: "EC-1", repos: [] }]);
     assert.equal(result.layers[0].hasFrontend, true);
     assert.deepEqual(result.skipped, []);
     assert.deepEqual(result.excluded, []);
@@ -150,7 +157,11 @@ void describe("fallbackResult", () => {
 
   void it("wraps multiple tickets in one layer", () => {
     const result = fallbackResult(["EC-1", "EC-2", "EC-3"]);
-    assert.deepEqual(result.layers[0].group, ["EC-1", "EC-2", "EC-3"]);
+    assert.deepEqual(result.layers[0].group, [
+      { key: "EC-1", repos: [] },
+      { key: "EC-2", repos: [] },
+      { key: "EC-3", repos: [] },
+    ]);
     assert.equal(result.layers[0].relation, null);
   });
 
@@ -232,36 +243,53 @@ void describe("classifyTickets", () => {
   });
 });
 
+const ta = (key: string): TicketAssignment => ({ key, repos: [] });
+
 void describe("filterGroup", () => {
   const unprocessed = new Set(["EC-1", "EC-2", "EC-3", "EC-4"]);
 
   void it("filters to only unprocessed tickets", () => {
-    const result = filterGroup(["EC-1", "EC-2", "EC-5"], unprocessed, new Set(), new Set());
-    assert.deepEqual(result, ["EC-1", "EC-2"]);
+    const result = filterGroup(
+      [ta("EC-1"), ta("EC-2"), ta("EC-5")],
+      unprocessed,
+      new Set(),
+      new Set(),
+    );
+    assert.deepEqual(result, [ta("EC-1"), ta("EC-2")]);
   });
 
   void it("excludes skipped tickets", () => {
-    const result = filterGroup(["EC-1", "EC-2", "EC-3"], unprocessed, new Set(["EC-2"]), new Set());
-    assert.deepEqual(result, ["EC-1", "EC-3"]);
+    const result = filterGroup(
+      [ta("EC-1"), ta("EC-2"), ta("EC-3")],
+      unprocessed,
+      new Set(["EC-2"]),
+      new Set(),
+    );
+    assert.deepEqual(result, [ta("EC-1"), ta("EC-3")]);
   });
 
   void it("excludes excluded tickets", () => {
-    const result = filterGroup(["EC-1", "EC-2", "EC-3"], unprocessed, new Set(), new Set(["EC-3"]));
-    assert.deepEqual(result, ["EC-1", "EC-2"]);
+    const result = filterGroup(
+      [ta("EC-1"), ta("EC-2"), ta("EC-3")],
+      unprocessed,
+      new Set(),
+      new Set(["EC-3"]),
+    );
+    assert.deepEqual(result, [ta("EC-1"), ta("EC-2")]);
   });
 
   void it("applies all filters together", () => {
     const result = filterGroup(
-      ["EC-1", "EC-2", "EC-3", "EC-4", "EC-5"],
+      [ta("EC-1"), ta("EC-2"), ta("EC-3"), ta("EC-4"), ta("EC-5")],
       unprocessed,
       new Set(["EC-2"]),
       new Set(["EC-4"]),
     );
-    assert.deepEqual(result, ["EC-1", "EC-3"]);
+    assert.deepEqual(result, [ta("EC-1"), ta("EC-3")]);
   });
 
   void it("returns empty when no tickets pass", () => {
-    const result = filterGroup(["EC-5", "EC-6"], unprocessed, new Set(), new Set());
+    const result = filterGroup([ta("EC-5"), ta("EC-6")], unprocessed, new Set(), new Set());
     assert.deepEqual(result, []);
   });
 
@@ -271,17 +299,22 @@ void describe("filterGroup", () => {
   });
 
   void it("passes through when all tickets are valid", () => {
-    const result = filterGroup(["EC-1", "EC-2", "EC-3"], unprocessed, new Set(), new Set());
-    assert.deepEqual(result, ["EC-1", "EC-2", "EC-3"]);
+    const result = filterGroup(
+      [ta("EC-1"), ta("EC-2"), ta("EC-3")],
+      unprocessed,
+      new Set(),
+      new Set(),
+    );
+    assert.deepEqual(result, [ta("EC-1"), ta("EC-2"), ta("EC-3")]);
   });
 
   void it("handles ticket in both skipped and excluded", () => {
     const result = filterGroup(
-      ["EC-1", "EC-2", "EC-3"],
+      [ta("EC-1"), ta("EC-2"), ta("EC-3")],
       unprocessed,
       new Set(["EC-2"]),
       new Set(["EC-2"]),
     );
-    assert.deepEqual(result, ["EC-1", "EC-3"]);
+    assert.deepEqual(result, [ta("EC-1"), ta("EC-3")]);
   });
 });
