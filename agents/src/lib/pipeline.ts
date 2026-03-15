@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
@@ -48,6 +49,23 @@ interface GroupResult {
 }
 
 // ─── PR output parsing ──────────────────────────────────────────────────────
+
+interface VerifyOutput {
+  status: "passed" | "fixed" | "skipped";
+  summary: string;
+}
+
+function isVerifyOutput(v: unknown): v is VerifyOutput {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "status" in v &&
+    typeof v.status === "string" &&
+    ["passed", "fixed", "skipped"].includes(v.status) &&
+    "summary" in v &&
+    typeof v.summary === "string"
+  );
+}
 
 interface PrOutput {
   pr_url: string;
@@ -165,8 +183,11 @@ export async function mergeAndVerify(
   );
   runner.writeLog("verify", primaryTicket, verifyOut);
 
+  const verifyResult = parseJson(verifyOut, isVerifyOutput);
   if (verifyCode !== 0) {
     log(`VERIFY FAILED: ${primaryTicket} (exit code: ${verifyCode})`);
+  } else if (verifyResult) {
+    log(`VERIFY ${verifyResult.status.toUpperCase()}: ${primaryTicket} — ${verifyResult.summary}`);
   }
 
   // Step 5: Create PRs per repo (continue from forge session for full context)
@@ -193,7 +214,21 @@ export async function mergeAndVerify(
         log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
       } else {
         const prUrl = parsePrUrl(prOut);
-        if (prUrl) nextPrUrls.set(mb.repoRoot, prUrl);
+        if (prUrl) {
+          nextPrUrls.set(mb.repoRoot, prUrl);
+          // Add verification summary as PR comment
+          if (verifyResult?.summary) {
+            try {
+              const body = `## Verification (${verifyResult.status})\n\n${verifyResult.summary}`;
+              execSync(`gh pr comment "${prUrl}" --body-file -`, {
+                cwd: mb.repoRoot,
+                input: body,
+              });
+            } catch {
+              log(`WARN: Could not add verification comment to ${prUrl}`);
+            }
+          }
+        }
       }
     }),
   );
