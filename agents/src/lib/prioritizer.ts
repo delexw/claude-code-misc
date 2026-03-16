@@ -241,21 +241,18 @@ export class Prioritizer {
       },
     );
 
-    if (code !== 0) {
-      this.log(`WARN: Prioritizer exited with code ${code} — falling back`);
-      return fallbackResult(allTickets);
+    if (code === 0) {
+      const result = parsePrioritizerOutput(stdout);
+      if (result) {
+        resolveAndValidateRepos(result, repos);
+        for (const w of validateDependsOn(result.layers)) this.log(`WARN: ${w}`);
+        logPrioritizeResult(result, this.log);
+        return result;
+      }
+      throw new Error("Prioritizer output parse failed — terminating");
+    } else {
+      throw new Error(`Prioritizer exited with code ${code} — terminating`);
     }
-
-    const result = parsePrioritizerOutput(stdout);
-    if (!result) {
-      this.log(`WARN: Prioritizer output parse failed — falling back`);
-      return fallbackResult(allTickets);
-    }
-
-    resolveAndValidateRepos(result, repos);
-    for (const w of validateDependsOn(result.layers)) this.log(`WARN: ${w}`);
-    logPrioritizeResult(result, this.log);
-    return result;
   }
 }
 

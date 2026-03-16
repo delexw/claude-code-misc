@@ -105,38 +105,38 @@ void describe("Prioritizer.prioritize", () => {
     assert.equal(result.excluded.length, 1);
   });
 
-  void it("falls back on non-zero exit code", async () => {
+  void it("throws on non-zero exit code", async () => {
     const runner = makeRunner({ code: 1, stdout: "" });
-    const { logs, log } = collectLogs();
+    const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    const result = await prioritizer.prioritize(["EC-1", "EC-2"], REPOS);
-
-    assert.deepEqual(keys(result.layers[0].group), ["EC-1", "EC-2"]);
-    assert.ok(logs.some((l) => l.includes("falling back")));
+    await assert.rejects(
+      () => prioritizer.prioritize(["EC-1", "EC-2"], REPOS),
+      /exited with code 1/,
+    );
   });
 
-  void it("falls back on invalid JSON output", async () => {
+  void it("throws on invalid JSON output", async () => {
     const runner = makeRunner({ code: 0, stdout: "not json" });
-    const { logs, log } = collectLogs();
+    const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    const result = await prioritizer.prioritize(["EC-1", "EC-2"], REPOS);
-
-    assert.deepEqual(keys(result.layers[0].group), ["EC-1", "EC-2"]);
-    assert.ok(logs.some((l) => l.includes("parse failed")));
+    await assert.rejects(
+      () => prioritizer.prioritize(["EC-1", "EC-2"], REPOS),
+      /parse failed/,
+    );
   });
 
-  void it("falls back when output has empty layers", async () => {
+  void it("throws when output has empty layers", async () => {
     const output = JSON.stringify({ layers: [], skipped: [], excluded: [] });
     const runner = makeRunner({ code: 0, stdout: output });
-    const { logs, log } = collectLogs();
+    const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    const result = await prioritizer.prioritize(["EC-1", "EC-2"], REPOS);
-
-    assert.deepEqual(keys(result.layers[0].group), ["EC-1", "EC-2"]);
-    assert.ok(logs.some((l) => l.includes("parse failed")));
+    await assert.rejects(
+      () => prioritizer.prioritize(["EC-1", "EC-2"], REPOS),
+      /parse failed/,
+    );
   });
 
   void it("logs prioritization summary on success", async () => {
@@ -195,7 +195,7 @@ void describe("Prioritizer.prioritize", () => {
     const { log } = collectLogs();
     const prioritizer = new Prioritizer({ runner, scriptDir: "/my/dir", log });
 
-    await prioritizer.prioritize(["EC-1", "EC-2"], REPOS);
+    await assert.rejects(() => prioritizer.prioritize(["EC-1", "EC-2"], REPOS));
 
     assert.equal(capturedOpts.cwd, "/my/dir");
     assert.equal(capturedOpts.model, "opus");
@@ -216,7 +216,7 @@ void describe("Prioritizer.prioritize", () => {
     const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    await prioritizer.prioritize(["EC-1", "EC-2", "EC-3"], REPOS);
+    await assert.rejects(() => prioritizer.prioritize(["EC-1", "EC-2", "EC-3"], REPOS));
 
     assert.ok(capturedPrompt.includes("EC-1,EC-2,EC-3"));
     assert.ok(capturedPrompt.includes("jira-ticket-prioritizer"));
