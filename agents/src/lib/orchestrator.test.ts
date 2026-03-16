@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { GSDOrchestrator, type OrchestratorDeps } from "./orchestrator.js";
 import { SprintDiscovery } from "./discovery.js";
+import { Prioritizer } from "./prioritizer.js";
+import { Pipeline } from "./pipeline.js";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
@@ -66,15 +68,20 @@ function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps &
   const jira = overrides.jira ?? makeJira();
   const tracker = overrides.tracker ?? makeTracker();
   const baseRepos = overrides.baseRepos ?? [];
+  const runner = makeRunner();
+  const devServers = makeDevServers();
   return {
     discovery: new SprintDiscovery(jira, tracker, baseRepos),
+    prioritizer:
+      overrides.prioritizer ??
+      new Prioritizer({ runner, scriptDir: tmpDir, log }),
+    pipeline:
+      overrides.pipeline ??
+      new Pipeline({ runner, devServers, jira, tracker, log }),
     jira,
     tracker,
     runState: new RunState(join(tmpDir, "run-state.json")),
-    runner: makeRunner(),
-    devServers: makeDevServers(),
     baseRepos,
-    scriptDir: tmpDir,
     log,
     logs,
     ...overrides,
@@ -137,7 +144,12 @@ void describe("GSDOrchestrator.prioritize", () => {
       writeLog: () => "/fake",
     } as unknown as ClaudeRunner;
 
-    const deps = makeDeps({ runState, runner, baseRepos: ["/abs/my-repo"] });
+    const { logs, log } = collectLogs();
+    const deps = makeDeps({
+      runState,
+      prioritizer: new Prioritizer({ runner, scriptDir: tmpDir, log }),
+      baseRepos: ["/abs/my-repo"],
+    });
     const orch = new GSDOrchestrator(deps);
 
     const result = await orch.prioritize(["EC-1", "EC-2"]);
@@ -170,9 +182,10 @@ void describe("GSDOrchestrator.prioritize", () => {
       writeLog: () => "/fake",
     } as unknown as ClaudeRunner;
 
+    const { logs, log } = collectLogs();
     const deps = makeDeps({
       runState: new RunState(join(tmpDir, "run-state.json")),
-      runner,
+      prioritizer: new Prioritizer({ runner, scriptDir: tmpDir, log }),
       baseRepos: ["/abs/my-repo"],
     });
     const orch = new GSDOrchestrator(deps);

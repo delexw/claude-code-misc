@@ -19,6 +19,8 @@ import { ClaudeRunner } from "./lib/claude-runner.js";
 import { postRunCleanup } from "./lib/cleanup.js";
 import { RunState } from "./lib/run-state.js";
 import { SprintDiscovery } from "./lib/discovery.js";
+import { Prioritizer } from "./lib/prioritizer.js";
+import { Pipeline } from "./lib/pipeline.js";
 import { GSDOrchestrator } from "./lib/orchestrator.js";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -72,19 +74,20 @@ async function main() {
     log,
   );
 
+  const runner = new ClaudeRunner(
+    process.env.GSD_CWD || join(HOME, "Envato/seo"),
+    LOG_DIR,
+    logger.logFile,
+  );
+
   await new GSDOrchestrator({
     discovery,
+    prioritizer: new Prioritizer({ runner, scriptDir: SCRIPT_DIR, log }),
+    pipeline: new Pipeline({ runner, devServers, jira, tracker, log }),
     jira,
     tracker,
     runState: new RunState(join(STATE_DIR, "run-state.json")),
-    runner: new ClaudeRunner(
-      process.env.GSD_CWD || join(HOME, "Envato/seo"),
-      LOG_DIR,
-      logger.logFile,
-    ),
-    devServers,
     baseRepos,
-    scriptDir: SCRIPT_DIR,
     log,
   }).run();
 }

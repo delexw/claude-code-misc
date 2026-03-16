@@ -5,27 +5,24 @@
  */
 
 import type { LogFn } from "./claude-runner.js";
-import type { ClaudeRunner } from "./claude-runner.js";
-import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
 import type { RunState } from "./run-state.js";
 import type { GroupedLayer } from "./prioritizer.js";
 import type { GroupStates } from "./dag.js";
 import type { SprintDiscovery, DiscoverResult } from "./discovery.js";
-import { prioritizeTickets } from "./prioritizer.js";
-import { processLayers } from "./pipeline.js";
+import { Prioritizer } from "./prioritizer.js";
+import { Pipeline } from "./pipeline.js";
 import { resetReposToMain } from "./repos.js";
 
 export interface OrchestratorDeps {
   discovery: SprintDiscovery;
+  prioritizer: Prioritizer;
+  pipeline: Pipeline;
   jira: JiraClient;
   tracker: ProcessedTracker;
   runState: RunState;
-  runner: ClaudeRunner;
-  devServers: DevServerManager;
   baseRepos: string[];
-  scriptDir: string;
   log: LogFn;
 }
 
@@ -38,24 +35,22 @@ interface PrioritizeResult {
 
 export class GSDOrchestrator {
   private readonly discovery: SprintDiscovery;
+  private readonly prioritizer: Prioritizer;
+  private readonly pipeline: Pipeline;
   private readonly jira: JiraClient;
   private readonly tracker: ProcessedTracker;
   private readonly runState: RunState;
-  private readonly runner: ClaudeRunner;
-  private readonly devServers: DevServerManager;
   private readonly baseRepos: string[];
-  private readonly scriptDir: string;
   private readonly log: LogFn;
 
   constructor(deps: OrchestratorDeps) {
     this.discovery = deps.discovery;
+    this.prioritizer = deps.prioritizer;
+    this.pipeline = deps.pipeline;
     this.jira = deps.jira;
     this.tracker = deps.tracker;
     this.runState = deps.runState;
-    this.runner = deps.runner;
-    this.devServers = deps.devServers;
     this.baseRepos = deps.baseRepos;
-    this.scriptDir = deps.scriptDir;
     this.log = deps.log;
   }
 
@@ -65,12 +60,9 @@ export class GSDOrchestrator {
 
     const saved = this.runState.load();
 
-    const result = await prioritizeTickets(
+    const result = await this.prioritizer.prioritize(
       allKeys,
       this.baseRepos,
-      this.runner,
-      this.scriptDir,
-      this.log,
       saved?.prioritizerResult,
     );
     this.runState.save(result);
@@ -107,17 +99,12 @@ export class GSDOrchestrator {
       );
     }
 
-    return processLayers(
+    return this.pipeline.processLayers(
       layers,
       unprocessedSet,
       new Set(skipped.map((s) => s.key)),
       new Set(excluded.map((e) => e.key)),
       discovery.repos,
-      this.runner,
-      this.devServers,
-      this.jira,
-      this.tracker,
-      this.log,
       initialGroupStates,
       this.runState,
     );
