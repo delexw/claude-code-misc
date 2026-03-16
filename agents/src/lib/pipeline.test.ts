@@ -110,7 +110,6 @@ void describe("mergeAndVerify", () => {
         { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -128,7 +127,6 @@ void describe("mergeAndVerify", () => {
     const result = await pipeline.mergeAndVerify(
       forges,
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -152,7 +150,6 @@ void describe("mergeAndVerify", () => {
         { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -186,7 +183,6 @@ void describe("mergeAndVerify", () => {
         { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -213,7 +209,6 @@ void describe("mergeAndVerify", () => {
         { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -253,7 +248,6 @@ void describe("mergeAndVerify", () => {
         { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -277,7 +271,6 @@ void describe("mergeAndVerify", () => {
     await pipeline.mergeAndVerify(
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-      ["/repo"],
       NO_VERIFY,
       NO_BASE,
     );
@@ -310,7 +303,6 @@ void describe("mergeAndVerify", () => {
     await pipeline.mergeAndVerify(
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -341,7 +333,6 @@ void describe("mergeAndVerify", () => {
     await pipeline.mergeAndVerify(
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-      ["/repo"],
       NO_VERIFY,
       NO_BASE,
     );
@@ -373,7 +364,6 @@ void describe("mergeAndVerify", () => {
     await pipeline.mergeAndVerify(
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -394,7 +384,6 @@ void describe("mergeAndVerify", () => {
     const result = await pipeline.mergeAndVerify(
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -415,7 +404,6 @@ void describe("mergeAndVerify", () => {
     const result = await pipeline.mergeAndVerify(
       [successForges[0]],
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-      ["/repo"],
       VERIFY,
       NO_BASE,
     );
@@ -464,7 +452,6 @@ void describe("processLayers", () => {
       new Set(["EC-1", "EC-2"]),
       new Set(),
       new Set(),
-      ["/repo"],
     );
 
     assert.equal(result.succeeded, 2);
@@ -495,7 +482,6 @@ void describe("processLayers", () => {
       new Set(["EC-1"]),
       new Set(),
       new Set(),
-      ["/repo"],
     );
 
     assert.equal(result.succeeded, 1);
@@ -524,7 +510,6 @@ void describe("processLayers", () => {
       new Set(["EC-1", "EC-2", "EC-3"]),
       new Set(["EC-2"]),
       new Set(["EC-3"]),
-      ["/repo"],
     );
 
     // Only EC-1 should be processed
@@ -549,7 +534,6 @@ void describe("processLayers", () => {
       new Set(["EC-1"]),
       new Set(),
       new Set(),
-      ["/repo"],
     );
 
     assert.equal(result.succeeded, 0);
@@ -561,7 +545,7 @@ void describe("processLayers", () => {
     const { log } = collectLogs();
     const pipeline = makePipeline(runner, log);
 
-    const result = await pipeline.processLayers([], new Set(), new Set(), new Set(), ["/repo"]);
+    const result = await pipeline.processLayers([], new Set(), new Set(), new Set());
 
     assert.equal(result.succeeded, 0);
     assert.equal(result.failed, 0);
@@ -580,7 +564,7 @@ void describe("processLayers", () => {
     const { logs, log } = collectLogs();
     const pipeline = makePipeline(runner, log);
 
-    await pipeline.processLayers(layers, new Set(["EC-1"]), new Set(), new Set(), ["/repo"]);
+    await pipeline.processLayers(layers, new Set(["EC-1"]), new Set(), new Set());
 
     assert.ok(logs.some((l) => l.includes("Layer 0") && l.includes("(same-epic)")));
   });
@@ -598,7 +582,7 @@ void describe("processLayers", () => {
     const { logs, log } = collectLogs();
     const pipeline = makePipeline(runner, log);
 
-    await pipeline.processLayers(layers, new Set(["EC-1"]), new Set(), new Set(), ["/repo"]);
+    await pipeline.processLayers(layers, new Set(["EC-1"]), new Set(), new Set());
 
     const layerLog = logs.find((l) => l.includes("Layer 0"));
     assert.ok(layerLog);
@@ -645,7 +629,6 @@ void describe("processLayers", () => {
       new Set(["EC-10", "EC-20"]),
       new Set(),
       new Set(),
-      ["/repo"],
     );
 
     // Find the merge call for EC-20 — it should reference the base branch from EC-10
@@ -717,7 +700,6 @@ void describe("real-world: EC-10798 team tabs resume", () => {
       new Set(["EC-10800"]),
       new Set(),
       new Set(),
-      ["/repo-sf"],
       savedStates,
     );
 
@@ -760,7 +742,6 @@ void describe("real-world: EC-10798 team tabs resume", () => {
       new Set(["EC-10798", "EC-10800"]),
       new Set(),
       new Set(),
-      ["/repo"],
     );
 
     assert.equal(result.succeeded, 0);

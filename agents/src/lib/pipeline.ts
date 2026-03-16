@@ -78,7 +78,6 @@ export class Pipeline {
   async mergeAndVerify(
     forges: ForgeResult[],
     group: TicketAssignment[],
-    repos: string[],
     verification: Verification,
     prevState: LayerState,
   ): Promise<GroupResult> {
@@ -140,7 +139,6 @@ export class Pipeline {
   /** Forge → merge+verify → manage dev servers. */
   async processGroup(
     group: TicketAssignment[],
-    repos: string[],
     verification: Verification,
     prevState: LayerState,
   ): Promise<GroupResult> {
@@ -148,7 +146,7 @@ export class Pipeline {
 
     const devServerInfo = verification.required ? this.devServers.devUrl : "";
     const forgeResults = await this.forge.forgeGroup(group, devServerInfo);
-    const result = await this.mergeAndVerify(forgeResults, group, repos, verification, prevState);
+    const result = await this.mergeAndVerify(forgeResults, group, verification, prevState);
 
     if (verification.required) this.devServers.stopAll();
 
@@ -161,7 +159,6 @@ export class Pipeline {
     unprocessedSet: Set<string>,
     skippedKeys: Set<string>,
     excludedKeys: Set<string>,
-    repos: string[],
     initialGroupStates?: GroupStates,
     runState?: RunState,
   ): Promise<{ succeeded: number; failed: number }> {
@@ -189,7 +186,7 @@ export class Pipeline {
         continue;
       }
 
-      const result = await this.processGroup(group, repos, layer.verification, prevState);
+      const result = await this.processGroup(group, layer.verification, prevState);
       succeeded += result.succeeded.length;
       failed += result.failed.length;
 

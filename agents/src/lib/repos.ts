@@ -1,4 +1,3 @@
-import { existsSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join, basename } from "node:path";
 
@@ -15,24 +14,6 @@ export function parseRepos(envVar: string): string[] {
     .map((r) => (r.startsWith("/") ? r : join(HOME, r)));
 }
 
-/**
- * Expand repos to include git worktree directories.
- */
-export function discoverRepos(baseRepos: string[]): Array<{ repo: string; baseRepo: string }> {
-  const repos: Array<{ repo: string; baseRepo: string }> = [];
-  for (const repo of baseRepos) {
-    repos.push({ repo, baseRepo: repo });
-    const worktreeDir = `${repo}-worktrees`;
-    if (existsSync(worktreeDir)) {
-      for (const entry of readdirSync(worktreeDir, { withFileTypes: true })) {
-        if (entry.isDirectory()) {
-          repos.push({ repo: join(worktreeDir, entry.name), baseRepo: repo });
-        }
-      }
-    }
-  }
-  return repos;
-}
 
 /**
  * Ensure all base repos are checked out on main.

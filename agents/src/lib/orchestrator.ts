@@ -104,7 +104,6 @@ export class GSDOrchestrator {
       unprocessedSet,
       new Set(skipped.map((s) => s.key)),
       new Set(excluded.map((e) => e.key)),
-      discovery.repos,
       initialGroupStates,
       this.runState,
     );

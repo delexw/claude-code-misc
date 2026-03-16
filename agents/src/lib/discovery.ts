@@ -8,12 +8,10 @@
 import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
 import { classifyTickets } from "./prioritizer.js";
-import { discoverRepos } from "./repos.js";
 
 export interface DiscoverResult {
   allKeys: string[];
   unprocessed: string[];
-  repos: string[];
   skippedCount: number;
 }
 
@@ -33,7 +31,6 @@ export class SprintDiscovery {
     if (allTickets.length === 0) return null;
 
     const processed = this.tracker.load();
-    const repos = discoverRepos(this.baseRepos).map((r) => r.repo);
 
     log?.(`Found ${allTickets.length} ticket(s) in sprint.`);
 
@@ -57,6 +54,6 @@ export class SprintDiscovery {
       return null;
     }
 
-    return { allKeys: allTickets.map((t) => t.key), unprocessed, repos, skippedCount };
+    return { allKeys: allTickets.map((t) => t.key), unprocessed, skippedCount };
   }
 }
