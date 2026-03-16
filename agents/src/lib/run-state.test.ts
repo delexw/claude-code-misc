@@ -51,16 +51,6 @@ void describe("RunState", () => {
     assert.equal(state.load(), null);
   });
 
-  void it("backward compat: old flat layerState treated as empty groupStates", () => {
-    writeFileSync(stateFile, JSON.stringify({
-      prioritizerResult: makeResult(["EC-1"]),
-      layerState: { branches: { "/repo": "branch" }, prUrls: {} },
-    }));
-    const loaded = state.load();
-    assert.ok(loaded);
-    assert.equal(loaded.groupStates.size, 0);
-  });
-
   // ─── save + load round-trip ────────────────────────────────────────────────
 
   void it("saves and loads prioritizer result", () => {

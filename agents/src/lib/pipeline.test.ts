@@ -1199,3 +1199,174 @@ void describe("buildTicketToGroupMap", () => {
     assert.equal(map.get("EC-3"), "EC-3");
   });
 });
+
+// ─── Real-world DAG scenario (from actual GSD run) ──────────────────────────
+
+void describe("real-world: EC-10798 team tabs resume", () => {
+  //
+  // Previous run processed 4 groups:
+  //   L0: [EC-10819]             (root, storefront)
+  //   L1: [EC-10821, EC-10820]   (depends on EC-10819, storefront)
+  //   L2: [EC-10822]             (depends on EC-10821, storefront + backend)
+  //   L3: [EC-10823, EC-10824]   (depends on EC-10822, storefront)
+  //
+  // L0-L2 completed. L3 crashed mid-flight.
+  // Restart: prioritizer re-runs with guidance, produces:
+  //   layers: [{ group: [EC-10823, EC-10824], depends_on: "EC-10822" }]
+  // Only EC-10823/EC-10824 are unprocessed.
+  //
+  // Persisted groupStates from previous run:
+  //   EC-10819 → storefront: "EC-10819-merge-add-team-tabs"
+  //   EC-10821 → storefront: "EC-10821-merge-add-tab-state"
+  //   EC-10822 → storefront: "EC-10822-merge", backend: "EC-10822-merge"
+  //
+
+  const SF = "/Users/x/seo/elements-storefront";
+  const BE = "/Users/x/seo/elements-backend";
+
+  void it("EC-10823/10824 merge from EC-10822's branch via depends_on", async () => {
+    // New prioritizer output (after restart with guidance)
+    const layers: GroupedLayer[] = [
+      {
+        group: [
+          { key: "EC-10823", repos: [{ repoPath: SF, branch: "ec-10823-update-filters-for-tab-context" }] },
+          { key: "EC-10824", repos: [{ repoPath: SF, branch: "ec-10824-handle-empty-states-for-team-ta" }] },
+        ],
+        relation: "same-epic",
+        verification: { required: true, reason: "Filter updates and empty states are visible UI changes" },
+        dependsOn: "EC-10822",
+      },
+    ];
+
+    // Persisted group states from the previous run's completed groups
+    const initialGroupStates: GroupStates = new Map([
+      ["EC-10819", {
+        branches: new Map([[SF, "EC-10819-merge-add-team-tabs"]]),
+        prUrls: new Map([[SF, "https://github.com/envato/elements-storefront/pull/100"]]),
+      }],
+      ["EC-10821", {
+        branches: new Map([[SF, "EC-10821-merge-add-tab-state"]]),
+        prUrls: new Map([[SF, "https://github.com/envato/elements-storefront/pull/101"]]),
+      }],
+      ["EC-10822", {
+        branches: new Map([
+          [SF, "EC-10822-merge"],
+          [BE, "EC-10822-merge"],
+        ]),
+        prUrls: new Map([
+          [SF, "https://github.com/envato/elements-storefront/pull/21178"],
+          [BE, "https://github.com/envato/elements-backend/pull/11798"],
+        ]),
+      }],
+    ]);
+
+    // Only EC-10823 and EC-10824 are unprocessed
+    const unprocessed = new Set(["EC-10823", "EC-10824"]);
+
+    const calls: Array<{ prompt: string; taskName: string }> = [];
+    const runner = {
+      run: async (prompt: string, opts: { taskName: string }) => {
+        calls.push({ prompt, taskName: opts.taskName });
+        if (opts.taskName.includes("forge")) return { code: 0, stdout: "" };
+        if (opts.taskName.includes("merge")) return { code: 0, stdout: "EC-10823-merge-update-filters" };
+        if (opts.taskName.includes("pr")) {
+          return { code: 0, stdout: JSON.stringify({ pr_url: "https://github.com/envato/elements-storefront/pull/21200", status: "success" }) };
+        }
+        return { code: 0, stdout: "ok" };
+      },
+      writeLog: () => "/fake",
+    } as unknown as ClaudeRunner;
+
+    const { logs, log } = collectLogs();
+    const result = await processLayers(
+      layers, unprocessed, new Set(), new Set(), [SF, BE],
+      runner, makeDevServers(), makeJira(), makeTracker(), log,
+      initialGroupStates,
+    );
+
+    // Both tickets processed
+    assert.equal(result.succeeded, 2);
+    assert.equal(result.failed, 0);
+
+    // Merge should branch from EC-10822-merge (the parent group's storefront branch)
+    const mergeCall = calls.find((c) => c.taskName.includes("merge"));
+    assert.ok(mergeCall, "merge call must exist");
+    assert.ok(
+      mergeCall.prompt.includes('from "EC-10822-merge"'),
+      `should merge from EC-10822-merge, got: ${mergeCall.prompt}`,
+    );
+
+    // PR should be stacked on EC-10822-merge
+    const prCall = calls.find((c) => c.taskName.includes("pr"));
+    assert.ok(prCall, "PR call must exist");
+    assert.ok(
+      prCall.prompt.includes("EC-10822-merge"),
+      "PR should reference EC-10822-merge as base branch",
+    );
+    assert.ok(
+      prCall.prompt.includes("stacked PR"),
+      "PR should be marked as stacked",
+    );
+    assert.ok(
+      prCall.prompt.includes("https://github.com/envato/elements-storefront/pull/21178"),
+      "PR should reference EC-10822's PR URL",
+    );
+
+    // Log should show the dependency
+    assert.ok(logs.some((l) => l.includes("→EC-10822")));
+  });
+
+  void it("resolves depends_on through ticketToGroup when referencing non-primary", async () => {
+    // What if the prioritizer produced depends_on: "EC-10820" instead of "EC-10821"?
+    // EC-10820 is in EC-10821's group. ticketToGroup should resolve it.
+    const layers: GroupedLayer[] = [
+      {
+        group: [
+          { key: "EC-10821", repos: [{ repoPath: SF, branch: "ec-10821-state" }] },
+          { key: "EC-10820", repos: [{ repoPath: SF, branch: "ec-10820-display" }] },
+        ],
+        relation: "same-epic",
+        verification: { required: false, reason: "test" },
+        dependsOn: null,
+      },
+      {
+        group: [
+          { key: "EC-10823", repos: [{ repoPath: SF, branch: "ec-10823-filters" }] },
+        ],
+        relation: null,
+        verification: { required: false, reason: "test" },
+        dependsOn: "EC-10820", // references non-primary ticket in EC-10821's group
+      },
+    ];
+
+    const calls: Array<{ prompt: string; taskName: string }> = [];
+    const runner = {
+      run: async (prompt: string, opts: { taskName: string }) => {
+        calls.push({ prompt, taskName: opts.taskName });
+        if (opts.taskName.includes("forge")) return { code: 0, stdout: "" };
+        if (opts.taskName.includes("merge") && opts.taskName.includes("EC-10821")) return { code: 0, stdout: "EC-10821-merge-state" };
+        if (opts.taskName.includes("merge") && opts.taskName.includes("EC-10823")) return { code: 0, stdout: "EC-10823-merge-filters" };
+        return { code: 0, stdout: "ok" };
+      },
+      writeLog: () => "/fake",
+    } as unknown as ClaudeRunner;
+
+    const { log } = collectLogs();
+    const result = await processLayers(
+      layers, new Set(["EC-10821", "EC-10820", "EC-10823"]), new Set(), new Set(),
+      [SF], runner, makeDevServers(), makeJira(), makeTracker(), log,
+    );
+
+    assert.equal(result.succeeded, 3);
+
+    // EC-10823's merge should branch from EC-10821-merge-state
+    // (EC-10820 resolved to EC-10821's group via ticketToGroup)
+    const ec10823Merge = calls.find((c) => c.taskName.includes("merge") && c.taskName.includes("EC-10823"));
+    assert.ok(ec10823Merge);
+    assert.ok(
+      ec10823Merge.prompt.includes('from "EC-10821-merge-state"'),
+      `EC-10823 should merge from EC-10821's branch, got: ${ec10823Merge.prompt}`,
+    );
+  });
+
+});

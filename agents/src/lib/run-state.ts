@@ -58,9 +58,7 @@ export class RunState {
   load(): { prioritizerResult: PrioritizeResult; groupStates: GroupStates } | null {
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
-      if (!raw.prioritizerResult?.layers) return null;
-      // Backward compat: old format had flat `layerState` — treat as empty group states
-      if (!raw.groupStates) return { prioritizerResult: raw.prioritizerResult, groupStates: new Map() };
+      if (!raw.prioritizerResult?.layers || !raw.groupStates) return null;
       return {
         prioritizerResult: raw.prioritizerResult,
         groupStates: deserializeGroupStates(raw.groupStates),
