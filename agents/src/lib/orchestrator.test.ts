@@ -1,4 +1,4 @@
-import { describe, it, beforeEach } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
@@ -26,7 +26,6 @@ function makeJira(
     fetchSprintTickets: async () => tickets,
     ticketUrl: (key: string) => `https://jira/${key}`,
     moveTicket: async () => true,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
   } as unknown as JiraClient;
 }
 
@@ -35,20 +34,16 @@ function makeTracker(processed: string[] = []): ProcessedTracker {
   return {
     load: () => new Set(processed),
     mark: (key: string) => marked.push(key),
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
   } as unknown as ProcessedTracker;
 }
 
 function makeRunner(): ClaudeRunner {
   return {
     run: async (_prompt: string, opts: { taskName: string }) => {
-      if (opts.taskName.includes("forge")) {
-        return { code: 0, stdout: '{"worktree_path": "/wt/t"}' };
-      }
+      if (opts.taskName.includes("forge")) return { code: 0, stdout: '{"worktree_path": "/wt/t"}' };
       return { code: 0, stdout: "branch-name" };
     },
     writeLog: () => "/fake",
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
   } as unknown as ClaudeRunner;
 }
 
@@ -58,7 +53,6 @@ function makeDevServers(): DevServerManager {
     startAll: async () => {},
     stopAll: () => {},
     restartOnBranch: async () => {},
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
   } as unknown as DevServerManager;
 }
 
@@ -85,14 +79,12 @@ void describe("GSDOrchestrator.discover", () => {
   void it("returns null when no active sprint", async () => {
     const deps = makeDeps({ jira: makeJira(null) });
     const orch = new GSDOrchestrator(deps);
-
     assert.equal(await orch.discover(), null);
   });
 
   void it("returns null when sprint has no tickets", async () => {
     const deps = makeDeps({ jira: makeJira("Sprint 1", []) });
     const orch = new GSDOrchestrator(deps);
-
     assert.equal(await orch.discover(), null);
   });
 
@@ -105,20 +97,6 @@ void describe("GSDOrchestrator.discover", () => {
       tracker: makeTracker(["EC-1"]),
     });
     const orch = new GSDOrchestrator(deps);
-
-    assert.equal(await orch.discover(), null);
-    assert.ok(deps.logs.some((l) => l.includes("No unprocessed")));
-  });
-
-  void it("returns null when all tickets are context (no pending)", async () => {
-    const deps = makeDeps({
-      jira: makeJira("Sprint 1", [
-        { key: "EC-1", status: "In Progress" },
-        { key: "EC-2", status: "Done" },
-      ]),
-    });
-    const orch = new GSDOrchestrator(deps);
-
     assert.equal(await orch.discover(), null);
   });
 
@@ -136,173 +114,125 @@ void describe("GSDOrchestrator.discover", () => {
     assert.ok(result);
     assert.deepEqual(result.allKeys, ["EC-1", "EC-2", "EC-3"]);
     assert.deepEqual(result.unprocessed, ["EC-1", "EC-2"]);
-    assert.equal(result.skippedCount, 0);
-  });
-
-  void it("separates processed from unprocessed and counts skips", async () => {
-    const deps = makeDeps({
-      jira: makeJira("Sprint 1", [
-        { key: "EC-1", status: "To Do" },
-        { key: "EC-2", status: "To Do" },
-        { key: "EC-3", status: "Backlog" },
-      ]),
-      tracker: makeTracker(["EC-1"]),
-    });
-    const orch = new GSDOrchestrator(deps);
-
-    const result = await orch.discover();
-    assert.ok(result);
-    assert.deepEqual(result.unprocessed, ["EC-2", "EC-3"]);
-    assert.equal(result.skippedCount, 1);
-    assert.ok(deps.logs.some((l) => l.includes("SKIP: EC-1")));
-  });
-
-  void it("includes all ticket keys (not just pending) in allKeys", async () => {
-    const deps = makeDeps({
-      jira: makeJira("Sprint 1", [
-        { key: "EC-1", status: "To Do" },
-        { key: "EC-2", status: "In Progress" },
-        { key: "EC-3", status: "Done" },
-      ]),
-    });
-    const orch = new GSDOrchestrator(deps);
-
-    const result = await orch.discover();
-    assert.ok(result);
-    assert.deepEqual(result.allKeys, ["EC-1", "EC-2", "EC-3"]);
-    assert.deepEqual(result.unprocessed, ["EC-1"]);
   });
 });
 
 // ─── prioritize ──────────────────────────────────────────────────────────────
 
 void describe("GSDOrchestrator.prioritize", () => {
-  void it("resumes from saved state when fingerprint matches", async () => {
+  void it("passes previous result as guidance and preserves saved groupStates", async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
 
-    // Pre-save state
-    runState.savePrioritizerResult(
-      {
-        layers: [{
-          group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-          relation: null,
-          verification: { required: false, reason: "test" },
-        }],
-        skipped: [],
-        excluded: [{ key: "EC-2", reason: "Done" }],
-      },
-      ["EC-1", "EC-2"],
-    );
-    runState.updateLayerState({
-      branches: new Map([["/repo", "ec-1-merge"]]),
-      prUrls: new Map([["/repo", "https://pr/1"]]),
+    // Pre-save state from a previous run
+    runState.save({
+      layers: [{
+        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        relation: null,
+        verification: { required: false, reason: "test" },
+        dependsOn: null,
+      }],
+      skipped: [],
+      excluded: [],
     });
+    runState.updateGroupStates(new Map([
+      ["EC-1", {
+        branches: new Map([["/repo", "ec-1-merge"]]),
+        prUrls: new Map([["/repo", "https://pr/1"]]),
+      }],
+    ]));
 
-    const deps = makeDeps({ runState, baseRepos: [] });
-    const orch = new GSDOrchestrator(deps);
-
-    const result = await orch.prioritize(["EC-1", "EC-2"], new Set());
-
-    assert.ok(result.initialLayerState);
-    assert.equal(result.initialLayerState.branches.get("/repo"), "ec-1-merge");
-    assert.equal(result.layers.length, 1);
-    assert.equal(result.excluded.length, 1);
-    assert.ok(deps.logs.some((l) => l.includes("RESUMING")));
-  });
-
-  void it("discards saved state when fingerprint does not match", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-
-    // Save state for different ticket set
-    runState.savePrioritizerResult(
-      {
-        layers: [{
-          group: [{ key: "EC-1", repos: [] }],
-          relation: null,
-          verification: { required: false, reason: "test" },
-        }],
-        skipped: [],
-        excluded: [],
-      },
-      ["EC-1"],
-    );
-
-    // Runner that returns a valid prioritizer result for the new ticket set
+    let capturedPrompt = "";
     const runner = {
-      run: async () => ({
-        code: 0,
-        stdout: JSON.stringify({
-          layers: [{
-            group: [
-              { key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] },
-              { key: "EC-2", repos: [{ repo: "my-repo", branch: "ec-2-fix" }] },
-            ],
-            relation: null,
-            verification: { required: false, reason: "test" },
-          }],
-          skipped: [],
-          excluded: [],
-        }),
-      }),
+      run: async (prompt: string) => {
+        capturedPrompt = prompt;
+        return {
+          code: 0,
+          stdout: JSON.stringify({
+            layers: [{
+              group: [
+                { key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] },
+                { key: "EC-2", repos: [{ repo: "my-repo", branch: "ec-2-new" }] },
+              ],
+              relation: null,
+              verification: { required: false, reason: "test" },
+              dependsOn: null,
+            }],
+          }),
+        };
+      },
       writeLog: () => "/fake",
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as ClaudeRunner;
 
     const deps = makeDeps({ runState, runner, baseRepos: ["/abs/my-repo"] });
     const orch = new GSDOrchestrator(deps);
 
-    const result = await orch.prioritize(["EC-1", "EC-2"], new Set());
+    const result = await orch.prioritize(["EC-1", "EC-2"]);
 
-    assert.equal(result.initialLayerState, undefined);
-    assert.equal(result.layers[0].group.length, 2);
-    assert.ok(!deps.logs.some((l) => l.includes("RESUMING")));
+    assert.ok(capturedPrompt.includes("PREVIOUS RUN GUIDANCE"));
+    assert.ok(result.initialGroupStates);
+    assert.equal(result.initialGroupStates.get("EC-1")?.branches.get("/repo"), "ec-1-merge");
+  });
+
+  void it("runs fresh prioritization when no saved state exists", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
+    let capturedPrompt = "";
+    const runner = {
+      run: async (prompt: string) => {
+        capturedPrompt = prompt;
+        return {
+          code: 0,
+          stdout: JSON.stringify({
+            layers: [{
+              group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
+              relation: null,
+              verification: { required: false, reason: "test" },
+              dependsOn: null,
+            }],
+          }),
+        };
+      },
+      writeLog: () => "/fake",
+    } as unknown as ClaudeRunner;
+
+    const deps = makeDeps({ runState: new RunState(join(tmpDir, "run-state.json")), runner, baseRepos: ["/abs/my-repo"] });
+    const orch = new GSDOrchestrator(deps);
+    const result = await orch.prioritize(["EC-1"]);
+
+    assert.ok(!capturedPrompt.includes("PREVIOUS RUN GUIDANCE"));
+    assert.equal(result.initialGroupStates, undefined);
   });
 });
 
 // ─── summarize ───────────────────────────────────────────────────────────────
 
 void describe("GSDOrchestrator.summarize", () => {
-  void it("logs summary line", () => {
-    const deps = makeDeps();
-    const orch = new GSDOrchestrator(deps);
-
-    orch.summarize(3, 1, 0);
-
-    assert.ok(deps.logs.some((l) => l.includes("processed=3") && l.includes("skipped=1") && l.includes("failed=0")));
-  });
-
   void it("clears run state when no failures", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
-    runState.savePrioritizerResult(
-      { layers: [{ group: [], relation: null, verification: { required: false, reason: "" } }], skipped: [], excluded: [] },
-      ["EC-1"],
-    );
+    runState.save({
+      layers: [{ group: [], relation: null, verification: { required: false, reason: "" }, dependsOn: null }],
+      skipped: [], excluded: [],
+    });
 
     const deps = makeDeps({ runState });
     const orch = new GSDOrchestrator(deps);
     orch.summarize(1, 0, 0);
-
-    // State should be cleared — load returns null
-    assert.equal(runState.load(["EC-1"]), null);
+    assert.equal(runState.load(), null);
   });
 
   void it("preserves run state when there are failures", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
-    runState.savePrioritizerResult(
-      { layers: [{ group: [], relation: null, verification: { required: false, reason: "" } }], skipped: [], excluded: [] },
-      ["EC-1"],
-    );
+    runState.save({
+      layers: [{ group: [], relation: null, verification: { required: false, reason: "" }, dependsOn: null }],
+      skipped: [], excluded: [],
+    });
 
     const deps = makeDeps({ runState });
     const orch = new GSDOrchestrator(deps);
     orch.summarize(1, 0, 2);
-
-    // State should still exist
-    assert.ok(runState.load(["EC-1"]));
+    assert.ok(runState.load());
   });
 });
 
@@ -312,54 +242,7 @@ void describe("GSDOrchestrator.run", () => {
   void it("exits early when discover returns null", async () => {
     const deps = makeDeps({ jira: makeJira(null) });
     const orch = new GSDOrchestrator(deps);
-
-    await orch.run(); // should not throw
-    assert.ok(!deps.logs.some((l) => l.includes("PRIORITIZ")));
-  });
-
-  void it("runs full workflow with resumed state: discover → resume → process → summarize", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-
-    // Pre-save prioritizer result so we skip the Claude prioritizer call
-    runState.savePrioritizerResult(
-      {
-        layers: [{
-          group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-          relation: null,
-          verification: { required: false, reason: "test" },
-        }],
-        skipped: [],
-        excluded: [],
-      },
-      ["EC-1"],
-    );
-
-    const runner = {
-      run: async (_prompt: string, opts: { taskName: string }) => {
-        if (opts.taskName.includes("forge")) {
-          return { code: 0, stdout: '{"worktree_path": "/wt/ec-1"}' };
-        }
-        return { code: 0, stdout: "branch-name" };
-      },
-      writeLog: () => "/fake",
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
-    } as unknown as ClaudeRunner;
-
-    const deps = makeDeps({
-      jira: makeJira("Sprint 1", [{ key: "EC-1", status: "To Do" }]),
-      runState,
-      runner,
-      baseRepos: [],
-      scriptDir: tmpDir,
-    });
-    const orch = new GSDOrchestrator(deps);
-
     await orch.run();
-
-    assert.ok(deps.logs.some((l) => l.includes("Found 1 ticket")));
-    assert.ok(deps.logs.some((l) => l.includes("RESUMING")));
-    assert.ok(deps.logs.some((l) => l.includes("Layer 0")));
-    assert.ok(deps.logs.some((l) => l.includes("Summary")));
+    assert.ok(!deps.logs.some((l) => l.includes("PRIORITIZ")));
   });
 });

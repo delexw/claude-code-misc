@@ -1,76 +1,90 @@
 /**
- * Persists prioritizer result and layer state across runs so that
+ * Persists prioritizer result and per-group state across runs so that
  * a restart resumes from where it left off instead of re-prioritizing.
  */
 
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import type { PrioritizeResult } from "./prioritizer.js";
-import type { LayerState, RepoMap } from "./pipeline.js";
+import type { GroupStates, LayerState, RepoMap } from "./pipeline.js";
+
+/** Repo root absolute path (e.g. "/Users/x/Envato/seo/elements-storefront"). */
+type RepoPath = string;
+
+/** Primary ticket key used as group identifier (e.g. "EC-10819"). */
+type GroupKey = string;
+
+/** Serialized layer state as written to disk (Maps become plain objects). */
+interface SerializedLayerState {
+  /** repo path → merge branch name (e.g. "EC-10819-merge-add-team-tabs") */
+  branches: { [repo: RepoPath]: string };
+  /** repo path → pull request URL (e.g. "https://github.com/org/repo/pull/42") */
+  prUrls: { [repo: RepoPath]: string };
+}
 
 interface SerializedState {
-  /** Sorted ticket keys the state was built for — used to detect staleness. */
-  ticketFingerprint: string;
   prioritizerResult: PrioritizeResult;
-  layerState: {
-    branches: Record<string, string>;
-    prUrls: Record<string, string>;
-  };
+  /** Per-group state keyed by primary ticket key. */
+  groupStates: { [group: GroupKey]: SerializedLayerState };
 }
 
-function fingerprint(ticketKeys: string[]): string {
-  return [...ticketKeys].sort().join(",");
-}
-
-function serializeMap(m: RepoMap): Record<string, string> {
+function serializeMap(m: RepoMap): { [repo: RepoPath]: string } {
   return Object.fromEntries(m);
 }
 
-function deserializeMap(o: Record<string, string>): RepoMap {
+function deserializeMap(o: { [repo: RepoPath]: string }): RepoMap {
   return new Map(Object.entries(o));
+}
+
+function serializeGroupStates(gs: GroupStates): { [group: GroupKey]: SerializedLayerState } {
+  const out: { [group: GroupKey]: SerializedLayerState } = {};
+  for (const [key, state] of gs) {
+    out[key] = { branches: serializeMap(state.branches), prUrls: serializeMap(state.prUrls) };
+  }
+  return out;
+}
+
+function deserializeGroupStates(raw: { [group: GroupKey]: SerializedLayerState }): GroupStates {
+  const gs: GroupStates = new Map();
+  for (const [key, state] of Object.entries(raw)) {
+    gs.set(key, { branches: deserializeMap(state.branches), prUrls: deserializeMap(state.prUrls) });
+  }
+  return gs;
 }
 
 export class RunState {
   constructor(private filePath: string) {}
 
-  /**
-   * Load saved state if it matches the current ticket set.
-   * Returns null if no state exists, it's corrupt, or the tickets have changed.
-   */
-  load(currentTicketKeys: string[]): { prioritizerResult: PrioritizeResult; layerState: LayerState } | null {
+  /** Load saved state. Returns null if no state exists or it's corrupt. */
+  load(): { prioritizerResult: PrioritizeResult; groupStates: GroupStates } | null {
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
-      if (!raw.prioritizerResult?.layers || !raw.layerState) return null;
-      if (raw.ticketFingerprint !== fingerprint(currentTicketKeys)) return null;
+      if (!raw.prioritizerResult?.layers) return null;
+      // Backward compat: old format had flat `layerState` — treat as empty group states
+      if (!raw.groupStates) return { prioritizerResult: raw.prioritizerResult, groupStates: new Map() };
       return {
         prioritizerResult: raw.prioritizerResult,
-        layerState: {
-          branches: deserializeMap(raw.layerState.branches),
-          prUrls: deserializeMap(raw.layerState.prUrls),
-        },
+        groupStates: deserializeGroupStates(raw.groupStates),
       };
     } catch {
       return null;
     }
   }
 
-  /** Save prioritizer result with initial empty layer state. */
-  savePrioritizerResult(result: PrioritizeResult, ticketKeys: string[]): void {
+  /** Save prioritizer result, preserving existing group states if present. */
+  save(result: PrioritizeResult): void {
+    const existing = this.load();
     const state: SerializedState = {
-      ticketFingerprint: fingerprint(ticketKeys),
       prioritizerResult: result,
-      layerState: { branches: {}, prUrls: {} },
+      groupStates: existing ? serializeGroupStates(existing.groupStates) : {},
     };
     writeFileSync(this.filePath, JSON.stringify(state, null, 2));
   }
 
-  /** Update the layer state (call after each successful layer). */
-  updateLayerState(layerState: LayerState): void {
+  /** Update the per-group states (call after each successful group). */
+  updateGroupStates(groupStates: GroupStates): void {
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
-      raw.layerState = {
-        branches: serializeMap(layerState.branches),
-        prUrls: serializeMap(layerState.prUrls),
-      };
+      raw.groupStates = serializeGroupStates(groupStates);
       writeFileSync(this.filePath, JSON.stringify(raw, null, 2));
     } catch {
       // If the file doesn't exist, nothing to update

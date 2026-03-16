@@ -5,40 +5,18 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { RunState } from "./run-state.js";
 import type { PrioritizeResult } from "./prioritizer.js";
+import type { GroupStates } from "./pipeline.js";
 
-function makePrioritizerResult(keys: string[]): PrioritizeResult {
+function makeResult(keys: string[]): PrioritizeResult {
   return {
-    layers: [
-      {
-        group: keys.map((key) => ({
-          key,
-          repos: [{ repoPath: `/repo/${key}`, branch: `${key}-branch` }],
-        })),
-        relation: null,
-        verification: { required: true, reason: "test" },
-      },
-    ],
+    layers: [{
+      group: keys.map((key) => ({ key, repos: [{ repoPath: `/repo/${key}`, branch: `${key}-branch` }] })),
+      relation: null,
+      verification: { required: true, reason: "test" },
+      dependsOn: null,
+    }],
     skipped: [],
     excluded: [],
-  };
-}
-
-function makeMultiLayerResult(): PrioritizeResult {
-  return {
-    layers: [
-      {
-        group: [{ key: "EC-1", repos: [{ repoPath: "/repo/a", branch: "ec-1-fix" }] }],
-        relation: null,
-        verification: { required: false, reason: "api only" },
-      },
-      {
-        group: [{ key: "EC-2", repos: [{ repoPath: "/repo/a", branch: "ec-2-ui" }] }],
-        relation: "depends-on",
-        verification: { required: true, reason: "ui change" },
-      },
-    ],
-    skipped: [{ key: "EC-3", reason: "blocked" }],
-    excluded: [{ key: "EC-4", reason: "Done" }],
   };
 }
 
@@ -54,298 +32,205 @@ void describe("RunState", () => {
   });
 
   afterEach(() => {
-    try {
-      unlinkSync(stateFile);
-    } catch {}
+    try { unlinkSync(stateFile); } catch {}
   });
 
   // ─── load ───────────────────────────────────────────────────────────────────
 
   void it("returns null when no state file exists", () => {
-    assert.equal(state.load(["EC-1"]), null);
+    assert.equal(state.load(), null);
   });
 
   void it("returns null for corrupt JSON", () => {
     writeFileSync(stateFile, "not json");
-    assert.equal(state.load(["EC-1"]), null);
-  });
-
-  void it("returns null when ticketFingerprint does not match", () => {
-    const result = makePrioritizerResult(["EC-1", "EC-2"]);
-    state.savePrioritizerResult(result, ["EC-1", "EC-2"]);
-
-    // Different tickets → stale
-    assert.equal(state.load(["EC-1", "EC-3"]), null);
+    assert.equal(state.load(), null);
   });
 
   void it("returns null when saved state has missing fields", () => {
-    writeFileSync(stateFile, JSON.stringify({ ticketFingerprint: "EC-1", layerState: null }));
-    assert.equal(state.load(["EC-1"]), null);
+    writeFileSync(stateFile, JSON.stringify({ prioritizerResult: null }));
+    assert.equal(state.load(), null);
   });
 
-  // ─── savePrioritizerResult + load round-trip ────────────────────────────────
-
-  void it("saves and loads prioritizer result with matching tickets", () => {
-    const result = makePrioritizerResult(["EC-1", "EC-2"]);
-    state.savePrioritizerResult(result, ["EC-1", "EC-2"]);
-
-    const loaded = state.load(["EC-1", "EC-2"]);
+  void it("backward compat: old flat layerState treated as empty groupStates", () => {
+    writeFileSync(stateFile, JSON.stringify({
+      prioritizerResult: makeResult(["EC-1"]),
+      layerState: { branches: { "/repo": "branch" }, prUrls: {} },
+    }));
+    const loaded = state.load();
     assert.ok(loaded);
-    assert.equal(loaded.prioritizerResult.layers.length, 1);
+    assert.equal(loaded.groupStates.size, 0);
+  });
+
+  // ─── save + load round-trip ────────────────────────────────────────────────
+
+  void it("saves and loads prioritizer result", () => {
+    state.save(makeResult(["EC-1", "EC-2"]));
+
+    const loaded = state.load();
+    assert.ok(loaded);
     assert.equal(loaded.prioritizerResult.layers[0].group[0].key, "EC-1");
     assert.equal(loaded.prioritizerResult.layers[0].group[1].key, "EC-2");
   });
 
-  void it("fingerprint is order-independent", () => {
-    const result = makePrioritizerResult(["EC-2", "EC-1"]);
-    state.savePrioritizerResult(result, ["EC-2", "EC-1"]);
+  void it("initial groupStates is empty on fresh save", () => {
+    state.save(makeResult(["EC-1"]));
 
-    // Load with reversed order → same fingerprint
-    const loaded = state.load(["EC-1", "EC-2"]);
+    const loaded = state.load();
     assert.ok(loaded);
+    assert.equal(loaded.groupStates.size, 0);
   });
 
-  void it("preserves skipped and excluded in round-trip", () => {
-    const result = makeMultiLayerResult();
-    state.savePrioritizerResult(result, ["EC-1", "EC-2", "EC-3", "EC-4"]);
+  void it("save preserves existing groupStates", () => {
+    state.save(makeResult(["EC-1"]));
+    const gs: GroupStates = new Map([
+      ["EC-1", {
+        branches: new Map([["/repo", "ec-1-merge"]]),
+        prUrls: new Map([["/repo", "https://pr/1"]]),
+      }],
+    ]);
+    state.updateGroupStates(gs);
 
-    const loaded = state.load(["EC-1", "EC-2", "EC-3", "EC-4"]);
+    // Re-save with updated result — groupStates preserved
+    state.save(makeResult(["EC-1", "EC-2"]));
+
+    const loaded = state.load();
     assert.ok(loaded);
-    assert.equal(loaded.prioritizerResult.skipped.length, 1);
-    assert.equal(loaded.prioritizerResult.skipped[0].key, "EC-3");
-    assert.equal(loaded.prioritizerResult.excluded.length, 1);
-    assert.equal(loaded.prioritizerResult.excluded[0].key, "EC-4");
+    assert.equal(loaded.prioritizerResult.layers[0].group.length, 2);
+    assert.equal(loaded.groupStates.get("EC-1")?.branches.get("/repo"), "ec-1-merge");
   });
 
-  void it("preserves multi-layer structure with relations and verification", () => {
-    const result = makeMultiLayerResult();
-    state.savePrioritizerResult(result, ["EC-1", "EC-2", "EC-3", "EC-4"]);
+  // ─── updateGroupStates ─────────────────────────────────────────────────────
 
-    const loaded = state.load(["EC-1", "EC-2", "EC-3", "EC-4"]);
+  void it("updates group states and preserves prioritizer result", () => {
+    state.save(makeResult(["EC-1"]));
+    state.updateGroupStates(new Map([
+      ["EC-1", {
+        branches: new Map([["/repo", "ec-1-merge"]]),
+        prUrls: new Map([["/repo", "https://pr/1"]]),
+      }],
+    ]));
+
+    const loaded = state.load();
     assert.ok(loaded);
-    assert.equal(loaded.prioritizerResult.layers.length, 2);
-    assert.equal(loaded.prioritizerResult.layers[0].verification.required, false);
-    assert.equal(loaded.prioritizerResult.layers[1].relation, "depends-on");
-    assert.equal(loaded.prioritizerResult.layers[1].verification.required, true);
-  });
-
-  void it("initial layerState has empty branches and prUrls", () => {
-    const result = makePrioritizerResult(["EC-1"]);
-    state.savePrioritizerResult(result, ["EC-1"]);
-
-    const loaded = state.load(["EC-1"]);
-    assert.ok(loaded);
-    assert.equal(loaded.layerState.branches.size, 0);
-    assert.equal(loaded.layerState.prUrls.size, 0);
-  });
-
-  // ─── updateLayerState ───────────────────────────────────────────────────────
-
-  void it("updates layer state and preserves prioritizer result", () => {
-    const result = makePrioritizerResult(["EC-1", "EC-2"]);
-    state.savePrioritizerResult(result, ["EC-1", "EC-2"]);
-
-    state.updateLayerState({
-      branches: new Map([["/repo/a", "ec-1-merge-branch"]]),
-      prUrls: new Map([["/repo/a", "https://github.com/org/repo/pull/42"]]),
-    });
-
-    const loaded = state.load(["EC-1", "EC-2"]);
-    assert.ok(loaded);
-    assert.equal(loaded.layerState.branches.get("/repo/a"), "ec-1-merge-branch");
-    assert.equal(loaded.layerState.prUrls.get("/repo/a"), "https://github.com/org/repo/pull/42");
-    // prioritizer result untouched
+    assert.equal(loaded.groupStates.get("EC-1")?.branches.get("/repo"), "ec-1-merge");
     assert.equal(loaded.prioritizerResult.layers[0].group[0].key, "EC-1");
   });
 
-  void it("overwrites layer state on subsequent updates", () => {
-    const result = makePrioritizerResult(["EC-1"]);
-    state.savePrioritizerResult(result, ["EC-1"]);
+  void it("accumulates multiple group states", () => {
+    state.save(makeResult(["EC-1", "EC-2"]));
 
-    state.updateLayerState({
-      branches: new Map([["/repo/a", "layer-0-branch"]]),
-      prUrls: new Map([["/repo/a", "https://pr/1"]]),
-    });
+    state.updateGroupStates(new Map([
+      ["EC-1", { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map() }],
+    ]));
 
-    state.updateLayerState({
-      branches: new Map([
-        ["/repo/a", "layer-0-branch"],
-        ["/repo/b", "layer-1-branch"],
-      ]),
-      prUrls: new Map([
-        ["/repo/a", "https://pr/1"],
-        ["/repo/b", "https://pr/2"],
-      ]),
-    });
+    // Second update adds EC-2 alongside EC-1
+    state.updateGroupStates(new Map([
+      ["EC-1", { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map([["/repo", "https://pr/1"]]) }],
+      ["EC-2", { branches: new Map([["/repo", "ec-2-merge"]]), prUrls: new Map([["/repo", "https://pr/2"]]) }],
+    ]));
 
-    const loaded = state.load(["EC-1"]);
+    const loaded = state.load();
     assert.ok(loaded);
-    assert.equal(loaded.layerState.branches.size, 2);
-    assert.equal(loaded.layerState.branches.get("/repo/b"), "layer-1-branch");
-    assert.equal(loaded.layerState.prUrls.get("/repo/b"), "https://pr/2");
+    assert.equal(loaded.groupStates.size, 2);
+    assert.equal(loaded.groupStates.get("EC-1")?.prUrls.get("/repo"), "https://pr/1");
+    assert.equal(loaded.groupStates.get("EC-2")?.branches.get("/repo"), "ec-2-merge");
   });
 
-  void it("updateLayerState is a no-op when no state file exists", () => {
-    // Should not throw
-    state.updateLayerState({
-      branches: new Map([["/repo/a", "branch"]]),
-      prUrls: new Map(),
-    });
+  void it("updateGroupStates is a no-op when no state file exists", () => {
+    state.updateGroupStates(new Map([
+      ["EC-1", { branches: new Map(), prUrls: new Map() }],
+    ]));
     assert.equal(existsSync(stateFile), false);
   });
 
   // ─── clear ──────────────────────────────────────────────────────────────────
 
   void it("clear removes the state file", () => {
-    const result = makePrioritizerResult(["EC-1"]);
-    state.savePrioritizerResult(result, ["EC-1"]);
-    assert.equal(existsSync(stateFile), true);
-
+    state.save(makeResult(["EC-1"]));
     state.clear();
     assert.equal(existsSync(stateFile), false);
   });
 
   void it("clear is safe when no file exists", () => {
-    state.clear(); // should not throw
+    state.clear();
   });
 
   void it("load returns null after clear", () => {
-    const result = makePrioritizerResult(["EC-1"]);
-    state.savePrioritizerResult(result, ["EC-1"]);
+    state.save(makeResult(["EC-1"]));
     state.clear();
-    assert.equal(state.load(["EC-1"]), null);
+    assert.equal(state.load(), null);
   });
 
-  // ─── staleness / fingerprint edge cases ─────────────────────────────────────
+  // ─── DAG resume scenario ───────────────────────────────────────────────────
 
-  void it("detects stale state when a ticket is added", () => {
-    const result = makePrioritizerResult(["EC-1", "EC-2"]);
-    state.savePrioritizerResult(result, ["EC-1", "EC-2"]);
-
-    // Sprint now has an extra ticket
-    assert.equal(state.load(["EC-1", "EC-2", "EC-3"]), null);
-  });
-
-  void it("detects stale state when a ticket is removed", () => {
-    const result = makePrioritizerResult(["EC-1", "EC-2"]);
-    state.savePrioritizerResult(result, ["EC-1", "EC-2"]);
-
-    // Sprint lost a ticket
-    assert.equal(state.load(["EC-1"]), null);
-  });
-
-  void it("matches when tickets are identical but in different order", () => {
-    const result = makePrioritizerResult(["EC-3", "EC-1", "EC-2"]);
-    state.savePrioritizerResult(result, ["EC-3", "EC-1", "EC-2"]);
-
-    const loaded = state.load(["EC-2", "EC-3", "EC-1"]);
-    assert.ok(loaded);
-  });
-
-  // ─── resume scenario (the real use case) ────────────────────────────────────
-
-  void it("full resume scenario: save → update layers → load on restart", () => {
-    const tickets = ["EC-10819", "EC-10820", "EC-10821", "EC-10822", "EC-10823", "EC-10824", "EC-10798"];
+  void it("full DAG resume: multiple groups with independent state", () => {
     const result: PrioritizeResult = {
       layers: [
         {
-          group: [
-            { key: "EC-10819", repos: [{ repoPath: "/repo/storefront", branch: "ec-10819-tabs" }] },
-            { key: "EC-10820", repos: [{ repoPath: "/repo/storefront", branch: "ec-10820-display" }] },
-          ],
-          relation: "same-epic",
-          verification: { required: true, reason: "ui" },
-        },
-        {
-          group: [
-            { key: "EC-10821", repos: [{ repoPath: "/repo/storefront", branch: "ec-10821-state" }] },
-          ],
+          group: [{ key: "EC-1", repos: [{ repoPath: "/storefront", branch: "ec-1-fix" }] }],
           relation: null,
-          verification: { required: true, reason: "state management" },
-        },
-        {
-          group: [
-            { key: "EC-10822", repos: [
-              { repoPath: "/repo/storefront", branch: "ec-10822-fetch" },
-              { repoPath: "/repo/backend", branch: "ec-10822-fetch" },
-            ]},
-          ],
-          relation: null,
-          verification: { required: true, reason: "data fetching" },
-        },
-        {
-          group: [
-            { key: "EC-10823", repos: [{ repoPath: "/repo/storefront", branch: "ec-10823-filters" }] },
-            { key: "EC-10824", repos: [{ repoPath: "/repo/storefront", branch: "ec-10824-empty" }] },
-          ],
-          relation: "same-epic",
           verification: { required: true, reason: "ui" },
+          dependsOn: null,
+        },
+        {
+          group: [{ key: "EC-2", repos: [{ repoPath: "/backend", branch: "ec-2-api" }] }],
+          relation: null,
+          verification: { required: false, reason: "api" },
+          dependsOn: null,
+        },
+        {
+          group: [{ key: "EC-3", repos: [{ repoPath: "/storefront", branch: "ec-3-ui" }] }],
+          relation: null,
+          verification: { required: true, reason: "ui" },
+          dependsOn: "EC-1",
         },
       ],
       skipped: [],
-      excluded: [{ key: "EC-10798", reason: "parent story" }],
+      excluded: [],
     };
 
-    // Step 1: Initial save
-    state.savePrioritizerResult(result, tickets);
+    state.save(result);
 
-    // Step 2: Layers 0-2 complete, updating state after each
-    state.updateLayerState({
-      branches: new Map([["/repo/storefront", "EC-10819-merge-add-team-tabs"]]),
-      prUrls: new Map([["/repo/storefront", "https://github.com/org/repo/pull/100"]]),
-    });
+    // Groups EC-1 and EC-2 complete
+    state.updateGroupStates(new Map([
+      ["EC-1", {
+        branches: new Map([["/storefront", "ec-1-merge"]]),
+        prUrls: new Map([["/storefront", "https://pr/1"]]),
+      }],
+      ["EC-2", {
+        branches: new Map([["/backend", "ec-2-merge"]]),
+        prUrls: new Map([["/backend", "https://pr/2"]]),
+      }],
+    ]));
 
-    state.updateLayerState({
-      branches: new Map([["/repo/storefront", "EC-10821-merge-add-tab-state"]]),
-      prUrls: new Map([["/repo/storefront", "https://github.com/org/repo/pull/101"]]),
-    });
+    // Crash! Re-save with guidance (maybe new ticket added)
+    const updatedResult = { ...result };
+    state.save(updatedResult);
 
-    state.updateLayerState({
-      branches: new Map([
-        ["/repo/storefront", "EC-10822-merge-update-data-fetching"],
-        ["/repo/backend", "EC-10822-merge-update-data-fetching"],
-      ]),
-      prUrls: new Map([
-        ["/repo/storefront", "https://github.com/org/repo/pull/102"],
-        ["/repo/backend", "https://github.com/org/backend/pull/50"],
-      ]),
-    });
+    const loaded = state.load();
+    assert.ok(loaded);
 
-    // Step 3: Crash! Restart with same tickets
-    const loaded = state.load(tickets);
-    assert.ok(loaded, "should load saved state");
+    // Group states preserved through re-save
+    assert.equal(loaded.groupStates.size, 2);
+    assert.equal(loaded.groupStates.get("EC-1")?.branches.get("/storefront"), "ec-1-merge");
+    assert.equal(loaded.groupStates.get("EC-2")?.branches.get("/backend"), "ec-2-merge");
 
-    // Verify prioritizer result preserved
-    assert.equal(loaded.prioritizerResult.layers.length, 4);
-    assert.equal(loaded.prioritizerResult.layers[3].group[0].key, "EC-10823");
-    assert.equal(loaded.prioritizerResult.layers[3].group[1].key, "EC-10824");
-
-    // Verify layer state has the merge chain from layers 0-2
-    assert.equal(
-      loaded.layerState.branches.get("/repo/storefront"),
-      "EC-10822-merge-update-data-fetching",
-    );
-    assert.equal(
-      loaded.layerState.branches.get("/repo/backend"),
-      "EC-10822-merge-update-data-fetching",
-    );
-    assert.equal(
-      loaded.layerState.prUrls.get("/repo/storefront"),
-      "https://github.com/org/repo/pull/102",
-    );
-
-    // Layer 3 (EC-10823, EC-10824) can now build on this state
+    // EC-3 depends on EC-1 — pipeline will look up EC-1's state
+    assert.equal(loaded.prioritizerResult.layers[2].dependsOn, "EC-1");
   });
 
-  // ─── file content structure ─────────────────────────────────────────────────
+  // ─── file format ───────────────────────────────────────────────────────────
 
-  void it("writes valid JSON with ticketFingerprint", () => {
-    const result = makePrioritizerResult(["EC-2", "EC-1"]);
-    state.savePrioritizerResult(result, ["EC-2", "EC-1"]);
+  void it("writes groupStates (not flat layerState) to disk", () => {
+    state.save(makeResult(["EC-1"]));
+    state.updateGroupStates(new Map([
+      ["EC-1", { branches: new Map([["/repo", "branch"]]), prUrls: new Map() }],
+    ]));
 
     const raw = JSON.parse(readFileSync(stateFile, "utf-8"));
-    assert.equal(raw.ticketFingerprint, "EC-1,EC-2"); // sorted
-    assert.ok(raw.prioritizerResult);
-    assert.ok(raw.layerState);
+    assert.ok(raw.groupStates);
+    assert.ok(raw.groupStates["EC-1"]);
+    assert.equal(raw.groupStates["EC-1"].branches["/repo"], "branch");
+    assert.equal(raw.layerState, undefined);
   });
 });

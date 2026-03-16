@@ -11,7 +11,7 @@ import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
 import type { RunState } from "./run-state.js";
 import type { GroupedLayer } from "./prioritizer.js";
-import type { LayerState } from "./pipeline.js";
+import type { GroupStates } from "./pipeline.js";
 import { classifyTickets, prioritizeTickets } from "./prioritizer.js";
 import { processLayers } from "./pipeline.js";
 import { discoverRepos, resetReposToMain } from "./repos.js";
@@ -30,7 +30,6 @@ export interface OrchestratorDeps {
 interface DiscoverResult {
   allKeys: string[];
   unprocessed: string[];
-  processed: Set<string>;
   repos: string[];
   skippedCount: number;
 }
@@ -39,7 +38,7 @@ interface PrioritizeResult {
   layers: GroupedLayer[];
   skipped: Array<{ key: string; reason: string }>;
   excluded: Array<{ key: string; reason: string }>;
-  initialLayerState?: LayerState;
+  initialGroupStates?: GroupStates;
 }
 
 export class GSDOrchestrator {
@@ -99,23 +98,16 @@ export class GSDOrchestrator {
     return {
       allKeys: allTickets.map((t) => t.key),
       unprocessed,
-      processed,
       repos,
       skippedCount,
     };
   }
 
-  /** Step 2: Resume saved state or run fresh prioritization. */
-  async prioritize(allKeys: string[], processed: Set<string>): Promise<PrioritizeResult> {
+  /** Step 2: Prioritize tickets, guided by previous run if available. */
+  async prioritize(allKeys: string[]): Promise<PrioritizeResult> {
     resetReposToMain(this.baseRepos, this.log);
 
-    const saved = this.runState.load(allKeys);
-
-    if (saved) {
-      this.log(`RESUMING: loaded prioritizer result and layer state from previous run`);
-      const { layers, skipped, excluded } = saved.prioritizerResult;
-      return { layers, skipped, excluded, initialLayerState: saved.layerState };
-    }
+    const saved = this.runState.load();
 
     const result = await prioritizeTickets(
       allKeys,
@@ -123,11 +115,16 @@ export class GSDOrchestrator {
       this.runner,
       this.scriptDir,
       this.log,
-      processed,
+      saved?.prioritizerResult,
     );
-    this.runState.savePrioritizerResult(result, allKeys);
+    this.runState.save(result);
 
-    return { layers: result.layers, skipped: result.skipped, excluded: result.excluded };
+    return {
+      layers: result.layers,
+      skipped: result.skipped,
+      excluded: result.excluded,
+      initialGroupStates: saved?.groupStates,
+    };
   }
 
   /** Step 3: Process layers — forge, merge, verify, PR. */
@@ -135,7 +132,7 @@ export class GSDOrchestrator {
     discovery: DiscoverResult,
     prioritization: PrioritizeResult,
   ): Promise<{ succeeded: number; failed: number }> {
-    const { layers, skipped, excluded, initialLayerState } = prioritization;
+    const { layers, skipped, excluded, initialGroupStates } = prioritization;
 
     for (const s of skipped) this.log(`INFO: skipping ${s.key} — ${s.reason}`);
     for (const e of excluded) this.log(`INFO: excluded ${e.key} — ${e.reason}`);
@@ -151,7 +148,7 @@ export class GSDOrchestrator {
       this.jira,
       this.tracker,
       this.log,
-      initialLayerState,
+      initialGroupStates,
       this.runState,
     );
   }
@@ -167,7 +164,7 @@ export class GSDOrchestrator {
     const discovery = await this.discover();
     if (!discovery) return;
 
-    const prioritization = await this.prioritize(discovery.allKeys, discovery.processed);
+    const prioritization = await this.prioritize(discovery.allKeys);
     const { succeeded, failed } = await this.process(discovery, prioritization);
 
     this.summarize(succeeded, discovery.skippedCount, failed);

@@ -11,7 +11,7 @@ import {
   buildVerifyPrompt,
   buildPrPrompt,
 } from "./prompts.js";
-import { filterGroup, ticketKeys } from "./prioritizer.js";
+import { filterGroup, primaryKey, ticketKeys } from "./prioritizer.js";
 import { parseJson } from "./json.js";
 import { forgeGroup } from "./forge.js";
 import type { RunState } from "./run-state.js";
@@ -36,10 +36,57 @@ function groupWorktreesByRepo(forges: ForgeResult[]): Map<string, string[]> {
 /** Map from repo root path → a string value (branch name, PR URL, etc.). */
 export type RepoMap = Map<string, string>;
 
-/** Combined per-repo state carried between layers. */
+/** Combined per-repo state carried between groups. */
 export interface LayerState {
   branches: RepoMap;
   prUrls: RepoMap;
+}
+
+/** Per-group state map, keyed by the group's primary ticket key. */
+export type GroupStates = Map<string, LayerState>;
+
+function emptyState(): LayerState {
+  return { branches: new Map(), prUrls: new Map() };
+}
+
+/**
+ * Build a lookup from any ticket key to its group's primary key.
+ * Allows dependsOn to reference any ticket in a group, not just the primary.
+ */
+export function buildTicketToGroupMap(layers: GroupedLayer[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const layer of layers) {
+    const pk = primaryKey(layer);
+    for (const ticket of layer.group) {
+      map.set(ticket.key, pk);
+    }
+  }
+  return map;
+}
+
+/** Resolve the parent state for a group based on its dependsOn reference. */
+export function resolveParentState(
+  dependsOn: string | null,
+  groupStates: GroupStates,
+  failedGroups: Set<string>,
+  ticketToGroup: Map<string, string>,
+  log: LogFn,
+): LayerState | "skip" {
+  if (!dependsOn) return emptyState();
+
+  // Resolve ticket key → group primary key (dependsOn may reference any ticket in a group)
+  const groupKey = ticketToGroup.get(dependsOn) ?? dependsOn;
+
+  if (failedGroups.has(groupKey)) {
+    log(`SKIP: dependency ${dependsOn} (group ${groupKey}) failed — skipping downstream group`);
+    return "skip";
+  }
+  const parent = groupStates.get(groupKey);
+  if (!parent) {
+    log(`WARN: dependency ${dependsOn} (group ${groupKey}) not found in group states — branching from main`);
+    return emptyState();
+  }
+  return parent;
 }
 
 interface GroupResult {
@@ -113,6 +160,8 @@ export async function mergeAndVerify(
     return { succeeded: [], failed: keys, layerState: prevState };
   }
 
+  // Filtered group's first ticket — used for branch naming, logs, and task names.
+  // Distinct from the unfiltered primaryKey(layer) used as groupStates key in processLayers.
   const primaryTicket = keys[0];
 
   // Step 1: Commit each worktree (continue from forge session)
@@ -300,7 +349,7 @@ export async function processGroup(
   return result;
 }
 
-// ─── Process layers (dependency order) ───────────────────────────────────────
+// ─── Process layers (dependency DAG) ─────────────────────────────────────────
 
 export async function processLayers(
   layers: GroupedLayer[],
@@ -313,15 +362,17 @@ export async function processLayers(
   jira: JiraClient,
   tracker: ProcessedTracker,
   log: LogFn,
-  initialState?: LayerState,
+  initialGroupStates?: GroupStates,
   runState?: RunState,
 ): Promise<{ succeeded: number; failed: number }> {
   let succeeded = 0;
   let failed = 0;
 
-  // Tracks per-repo merge branches + PR URLs — next layer inherits (stacked PRs).
-  // Seed from persisted state on restart so the merge chain is preserved.
-  let layerState: LayerState = initialState ?? { branches: new Map(), prUrls: new Map() };
+  // Per-group state keyed by primary ticket key.
+  // Seeded from persisted state on restart so the merge chain is preserved.
+  const groupStates: GroupStates = new Map(initialGroupStates ?? []);
+  const failedGroups = new Set<string>();
+  const ticketToGroup = buildTicketToGroupMap(layers);
 
   /* oxlint-disable no-await-in-loop -- layers are sequential; each depends on the prior layer */
   for (let i = 0; i < layers.length; i++) {
@@ -329,15 +380,27 @@ export async function processLayers(
     const group = filterGroup(layer.group, unprocessedSet, skippedKeys, excludedKeys);
     if (group.length === 0) continue;
 
+    // Unfiltered primary key — stable identifier for groupStates and dependsOn resolution.
+    // Branch naming uses the filtered group's first ticket (inside mergeAndVerify).
+    const pk = primaryKey(layer);
+    const depLabel = layer.dependsOn ? ` →${layer.dependsOn}` : "";
     log(
-      `Layer ${i}: [${ticketKeys(group).join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}`,
+      `Layer ${i}: [${ticketKeys(group).join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}${depLabel}`,
     );
+
+    // Resolve parent state from the dependency graph
+    const prevState = resolveParentState(layer.dependsOn, groupStates, failedGroups, ticketToGroup, log);
+    if (prevState === "skip") {
+      failedGroups.add(pk);
+      failed += group.length;
+      continue;
+    }
 
     const result = await processGroup(
       group,
       repos,
       layer.verification,
-      layerState,
+      prevState,
       runner,
       devServers,
       jira,
@@ -347,15 +410,13 @@ export async function processLayers(
     succeeded += result.succeeded.length;
     failed += result.failed.length;
 
-    // If the entire layer failed, stop — later layers depend on this one
     if (result.succeeded.length === 0) {
-      log(`Layer ${i} failed entirely — halting chain (later layers depend on this)`);
-      break;
+      log(`Layer ${i} group ${pk} failed — downstream dependents will be skipped`);
+      failedGroups.add(pk);
+    } else {
+      groupStates.set(pk, result.layerState);
+      runState?.updateGroupStates(groupStates);
     }
-
-    // Carry forward state so the next layer inherits this layer's branches + PR URLs
-    layerState = result.layerState;
-    runState?.updateLayerState(layerState);
   }
 
   /* oxlint-enable no-await-in-loop */

@@ -48,7 +48,7 @@ void describe("buildMergePrompt", () => {
 
   void it("includes primary ticket in merge branch name", () => {
     const result = buildMergePrompt("EC-1", wtPaths);
-    assert.ok(result.includes('"EC-1-merge"'));
+    assert.ok(result.includes('"EC-1-merge-{slug}"'));
   });
 
   void it("lists worktree paths", () => {

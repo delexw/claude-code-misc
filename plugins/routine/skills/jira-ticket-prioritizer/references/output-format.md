@@ -4,7 +4,7 @@ The prioritizer produces two JSON files in `.jira-ticket-prioritizer-tmp/`.
 
 ## output.json (presented to user)
 
-Tickets grouped by dependency layer. Each layer contains a group of related tickets that can be worked on in parallel (no dependencies within a group). First ticket in each group is the primary ticket (used for branch naming).
+Topologically-sorted array of groups forming a dependency DAG. Each group contains related tickets with no internal dependencies. First ticket in each group is the primary ticket (group identifier). Groups declare their parent via `depends_on`.
 
 ```json
 {
@@ -12,8 +12,9 @@ Tickets grouped by dependency layer. Each layer contains a group of related tick
     { "group": [
         {"key": "PROJ-100", "repos": [{"repo": "acme-api", "branch": "proj-100-fix-auth-bug"}]},
         {"key": "PROJ-104", "repos": [{"repo": "acme-web", "branch": "proj-104-update-login-ui"}, {"repo": "acme-api", "branch": "proj-104-add-api-endpoint"}]}
-      ], "relation": "same-epic", "verification": {"required": true, "reason": "PROJ-104 updates login UI rendered on /login page"} },
-    { "group": [{"key": "PROJ-101", "repos": [{"repo": "acme-api", "branch": "proj-101-add-rate-limiting"}]}], "relation": null, "verification": {"required": false, "reason": "API-only change, no visible UI"} }
+      ], "relation": "same-epic", "verification": {"required": true, "reason": "PROJ-104 updates login UI rendered on /login page"}, "depends_on": null },
+    { "group": [{"key": "PROJ-101", "repos": [{"repo": "acme-api", "branch": "proj-101-add-rate-limiting"}]}], "relation": null, "verification": {"required": false, "reason": "API-only change, no visible UI"}, "depends_on": "PROJ-100" },
+    { "group": [{"key": "PROJ-105", "repos": [{"repo": "acme-web", "branch": "proj-105-dashboard"}]}], "relation": null, "verification": {"required": true, "reason": "new dashboard page"}, "depends_on": null }
   ],
   "skipped": [
     { "key": "PROJ-102", "reason": "depends on PROJ-100 (status: In Progress)" }
@@ -27,11 +28,10 @@ Tickets grouped by dependency layer. Each layer contains a group of related tick
 }
 ```
 
-- **layers[0]** = Layer 0 (no blockers — work on these first)
-- **layers[1]** = Layer 1 (depends on layer 0 being done)
-- ...and so on
-- **layers[N].group** = ticket assignments in this group, ordered by descending priority score. Each entry is `{"key": "TICKET-KEY", "repos": [{"repo": "repo-basename", "branch": "slugified-branch-name"}, ...]}`. A ticket may touch one or more repos. Both `repo` and `branch` are REQUIRED for every entry. The `repo` is the target repository basename inferred from ticket context and the available repo list. The `branch` is a slugified branch name from ticket key + summary (lowercase, hyphens, max 50 chars, e.g. `"ec-123-fix-payment-bug"`). First ticket is the primary ticket.
+- **layers** = flat, topologically-sorted array of groups. One group per entry, processed sequentially in order.
+- **layers[N].group** = ticket assignments in this group, ordered by descending priority score. Each entry is `{"key": "TICKET-KEY", "repos": [{"repo": "repo-basename", "branch": "slugified-branch-name"}, ...]}`. A ticket may touch one or more repos. Both `repo` and `branch` are REQUIRED for every entry. The `repo` is the target repository basename inferred from ticket context and the available repo list. The `branch` is a slugified branch name from ticket key + summary (lowercase, hyphens, max 50 chars, e.g. `"ec-123-fix-payment-bug"`). First ticket is the primary ticket (group identifier).
 - **layers[N].relation** = why these tickets are grouped (e.g. `"same-epic"`, `"same-feature"`, `"same-component"`, or `null` for single-ticket groups)
+- **layers[N].depends_on** = **REQUIRED**. Ticket key of the parent group this depends on, or `null` for root groups. See Dependency DAG Rules below.
 - **layers[N].verification** = object `{"required": boolean, "reason": string}` indicating whether the group's changes should be visually verified via a running dev server.
   - **required** = `true` only when changes produce **visible, reachable UI** — e.g. a component rendered on an existing page. Set to `false` when: (a) backend/API-only, (b) new component not yet mounted on any page, (c) UI behind a feature flag that is off by default, (d) purely styling tokens or test changes. Inferred semantically from ticket content.
   - **reason** = short explanation of why `required` is true or false. Used for logging and debugging orchestrator decisions.
@@ -40,12 +40,19 @@ Tickets grouped by dependency layer. Each layer contains a group of related tick
 
 ### Ordering Rules
 
-1. `layers` array is ordered by **dependency layer** (0, 1, 2, ...)
-2. Within each group, tickets are ordered by **descending priority score**
-3. Tickets within the same group have **no dependencies on each other**
-4. Tickets with status Done/Closed/Resolved are placed in `excluded`
-5. Container/parent stories with no implementable tasks of their own are placed in `excluded`
-6. Tickets whose cross-layer dependencies are not yet resolved (dependency ticket status is not "Done") are placed in `skipped`
+1. Within each group, tickets are ordered by **descending priority score**
+2. Tickets within the same group have **no dependencies on each other**
+3. Tickets with status Done/Closed/Resolved are placed in `excluded`
+4. Container/parent stories with no implementable tasks of their own are placed in `excluded`
+5. Tickets whose cross-layer dependencies are not yet resolved (dependency ticket status is not "Done") are placed in `skipped`
+
+### Dependency DAG Rules
+
+- `depends_on` is **REQUIRED** on every group — set to the ticket key of the parent group, or `null` for root groups
+- `depends_on` may reference any ticket in the parent group (not just the first) — the pipeline resolves it to the group
+- `depends_on` MUST reference a group that appears **earlier** in the `layers` array (never same position or later)
+- Multiple groups may depend on the same parent (fan-out / diamond)
+- A group with `"depends_on": null` is a **root** — it branches from main independently, regardless of its position in the array
 
 ### Grouping Rules
 

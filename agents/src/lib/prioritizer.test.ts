@@ -5,6 +5,8 @@ import {
   fallbackResult,
   classifyTickets,
   filterGroup,
+  validateDependsOn,
+  type GroupedLayer,
   type TicketAssignment,
 } from "./prioritizer.js";
 
@@ -118,6 +120,41 @@ void describe("parsePrioritizerOutput", () => {
 
     const result = parsePrioritizerOutput(input)!;
     assert.ok(result);
+  });
+
+  void it("parses depends_on field", () => {
+    const input = JSON.stringify({
+      layers: [
+        {
+          group: [{ key: "EC-1", repos: [{ repo: "acme-api", branch: "ec-1-fix" }] }],
+          relation: null,
+          verification: { required: false, reason: "root" },
+        },
+        {
+          group: [{ key: "EC-2", repos: [{ repo: "acme-api", branch: "ec-2-fix" }] }],
+          relation: null,
+          verification: { required: true, reason: "depends on EC-1" },
+          depends_on: "EC-1",
+        },
+      ],
+    });
+
+    const result = parsePrioritizerOutput(input)!;
+    assert.equal(result.layers[0].dependsOn, null);
+    assert.equal(result.layers[1].dependsOn, "EC-1");
+  });
+
+  void it("defaults dependsOn to null when depends_on is absent", () => {
+    const input = JSON.stringify({
+      layers: [{
+        group: [{ key: "EC-1", repos: [{ repo: "acme-api", branch: "ec-1-fix" }] }],
+        relation: null,
+        verification: { required: false, reason: "test" },
+      }],
+    });
+
+    const result = parsePrioritizerOutput(input)!;
+    assert.equal(result.layers[0].dependsOn, null);
   });
 
   void it("parses repo assignments with branch names", () => {
@@ -316,5 +353,59 @@ void describe("filterGroup", () => {
       new Set(["EC-2"]),
     );
     assert.deepEqual(result, [ta("EC-1"), ta("EC-3")]);
+  });
+});
+
+// ─── validateDependsOn ──────────────────────────────────────────────────────
+
+function gl(key: string, dependsOn: string | null, extraKeys: string[] = []): GroupedLayer {
+  return {
+    group: [{ key, repos: [] }, ...extraKeys.map((k) => ({ key: k, repos: [] }))],
+    relation: null,
+    verification: { required: false, reason: "test" },
+    dependsOn,
+  };
+}
+
+void describe("validateDependsOn", () => {
+  void it("returns no warnings for valid DAG", () => {
+    const layers = [gl("EC-1", null), gl("EC-2", "EC-1"), gl("EC-3", "EC-2")];
+    assert.deepEqual(validateDependsOn(layers), []);
+  });
+
+  void it("returns no warnings for all-root groups", () => {
+    const layers = [gl("EC-1", null), gl("EC-2", null)];
+    assert.deepEqual(validateDependsOn(layers), []);
+  });
+
+  void it("returns no warnings for diamond DAG", () => {
+    const layers = [gl("EC-1", null), gl("EC-2", "EC-1"), gl("EC-3", "EC-1")];
+    assert.deepEqual(validateDependsOn(layers), []);
+  });
+
+  void it("returns no warnings when dependsOn references non-primary ticket in earlier group", () => {
+    const layers = [gl("EC-1", null, ["EC-2"]), gl("EC-3", "EC-2")];
+    assert.deepEqual(validateDependsOn(layers), []);
+  });
+
+  void it("warns on forward reference", () => {
+    const layers = [gl("EC-1", "EC-2"), gl("EC-2", null)];
+    const warnings = validateDependsOn(layers);
+    assert.equal(warnings.length, 1);
+    assert.ok(warnings[0].includes("EC-2") && warnings[0].includes("not yet seen"));
+  });
+
+  void it("warns on self-reference", () => {
+    const layers = [gl("EC-1", "EC-1")];
+    const warnings = validateDependsOn(layers);
+    assert.equal(warnings.length, 1);
+    assert.ok(warnings[0].includes("references itself"));
+  });
+
+  void it("warns on reference to non-existent group", () => {
+    const layers = [gl("EC-1", null), gl("EC-2", "EC-MISSING")];
+    const warnings = validateDependsOn(layers);
+    assert.equal(warnings.length, 1);
+    assert.ok(warnings[0].includes("EC-MISSING") && warnings[0].includes("not yet seen"));
   });
 });
