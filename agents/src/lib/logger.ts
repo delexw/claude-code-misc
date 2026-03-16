@@ -1,4 +1,4 @@
-import { mkdirSync, appendFileSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { mkdirSync, appendFileSync, readdirSync, statSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 export function makeTimestamp(): string {
@@ -17,15 +17,15 @@ export function createLogger(logDir: string, logFile: string) {
   return { log, logFile };
 }
 
-export function cleanupOldLogs(logDir: string, prefixes: string[], retentionDays: number): void {
+export function cleanupOldLogs(logDir: string, _prefixes: string[], retentionDays: number): void {
   const cutoff = Date.now() - retentionDays * 86_400_000;
-  for (const prefix of prefixes) {
-    try {
-      for (const file of readdirSync(logDir)) {
-        if (!file.startsWith(prefix)) continue;
-        const filepath = join(logDir, file);
-        if (statSync(filepath).mtimeMs < cutoff) unlinkSync(filepath);
+  try {
+    for (const entry of readdirSync(logDir)) {
+      const entryPath = join(logDir, entry);
+      const stat = statSync(entryPath);
+      if (stat.isDirectory() && stat.mtimeMs < cutoff) {
+        rmSync(entryPath, { recursive: true, force: true });
       }
-    } catch {}
-  }
+    }
+  } catch {}
 }

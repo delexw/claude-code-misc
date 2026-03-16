@@ -23,13 +23,14 @@ import { processLayers } from "./lib/pipeline.js";
 
 const HOME = process.env.HOME!;
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const LOG_DIR = join(SCRIPT_DIR, "logs/.get-shit-done");
+const LOG_BASE = join(SCRIPT_DIR, "logs/.get-shit-done");
 const STATE_DIR = join(SCRIPT_DIR, "state/.get-shit-done");
 const TIMESTAMP = makeTimestamp();
+const LOG_DIR = join(LOG_BASE, TIMESTAMP);
 
 mkdirSync(STATE_DIR, { recursive: true });
 
-const { log, logFile } = createLogger(LOG_DIR, join(LOG_DIR, `get-shit-done-${TIMESTAMP}.log`));
+const { log, logFile } = createLogger(LOG_DIR, join(LOG_DIR, "get-shit-done.log"));
 
 const jira = new JiraClient(
   process.env.JIRA_CLI || "/opt/homebrew/bin/jira",
@@ -43,7 +44,6 @@ const runner = new ClaudeRunner(
   process.env.GSD_CWD || join(HOME, "Envato/seo"),
   LOG_DIR,
   logFile,
-  TIMESTAMP,
 );
 const baseRepos = parseRepos("GSD_REPOS");
 
@@ -119,7 +119,7 @@ async function main() {
   );
 
   log(`=== Summary: processed=${succeeded} skipped=${skippedCount} failed=${failed} ===`);
-  cleanupOldLogs(LOG_DIR, ["get-shit-done-", "task-", "group-", "merge-", "verify-", "pr-"], 7);
+  cleanupOldLogs(LOG_BASE, [], 7);
 }
 
 main().catch((err: unknown) => {

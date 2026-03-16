@@ -20,7 +20,6 @@ export class ClaudeRunner {
     private readonly cwd: string,
     private readonly logDir: string,
     private readonly logFile: string,
-    private readonly timestamp: string,
   ) {}
 
   async run(prompt: string, opts: RunOpts): Promise<{ code: number; stdout: string }> {
@@ -44,7 +43,7 @@ export class ClaudeRunner {
   }
 
   writeLog(prefix: string, id: string, content: string): string {
-    const path = join(this.logDir, `${prefix}-${id}-${this.timestamp}.log`);
+    const path = join(this.logDir, `${prefix}-${id}.log`);
     writeFileSync(path, content);
     return path;
   }
