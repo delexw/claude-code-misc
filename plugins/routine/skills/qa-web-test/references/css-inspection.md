@@ -1,7 +1,6 @@
 # CSS Inspection Patterns
 
-JavaScript snippets for use with `mcp__chrome-devtools__evaluate_script` to debug CSS layout
-issues in the browser.
+JavaScript snippets to evaluate in the browser for debugging CSS layout issues.
 
 ## Element Dimensions
 
@@ -95,7 +94,6 @@ findContainer('.target-selector')
 
 ### Check if a container query would match
 ```javascript
-// For @container (inline-size < 700px), check the container's inline size
 const container = document.querySelector('.container-selector');
 const rect = container.getBoundingClientRect();
 JSON.stringify({
@@ -187,8 +185,8 @@ JSON.stringify({
 
 ## Responsive Testing Utilities
 
-### Compare element at multiple viewports (manual approach)
-After emulating each viewport width, run:
+### Compare element at multiple viewports
+After resizing the viewport, evaluate:
 ```javascript
 const selector = '.target-selector';
 const el = document.querySelector(selector);

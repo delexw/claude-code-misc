@@ -1,15 +1,15 @@
 ---
 name: page-inspector
-description: Capture current page layout, styles, and structure from a live web page using Chrome DevTools MCP. Use when you need to understand the existing UI before making changes — captures screenshots, DOM structure, computed styles, and layout properties. Useful as a pre-implementation baseline for frontend or UI-affecting changes.
+description: Capture current page layout, styles, and structure from a live web page using PinchTab browser automation. Use when you need to understand the existing UI before making changes — captures screenshots, DOM structure, computed styles, and layout properties. Useful as a pre-implementation baseline for frontend or UI-affecting changes.
 argument-hint: <target URL and optional output directory>
-allowed-tools: mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__emulate, mcp__chrome-devtools__evaluate_script, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__select_page, mcp__chrome-devtools__resize_page, mcp__chrome-devtools__wait_for, Read, Write, Edit, Bash
+allowed-tools: Bash, Read, Write, Edit, Skill
 model: sonnet
 context: fork
 ---
 
 # Page Inspector — Capture Current Page Layout & Styles
 
-Connects to a running Chrome browser session via Chrome DevTools MCP, navigates to the target page, and captures a comprehensive snapshot of the current layout, styles, and structure. This output serves as a baseline reference for implementation.
+Uses `Skill("pinchtab")` for all browser interaction — navigation, screenshots, viewport emulation, and DOM inspection. Describe what you need and let pinchtab handle the details.
 
 ## Inputs
 
@@ -21,42 +21,30 @@ Infer from the arguments:
 
 ## Prerequisites
 
-1. Chrome running with remote debugging enabled (or Chrome DevTools MCP server configured)
-2. Target page accessible (dev server running)
-3. If the page requires authentication, attempt to find credentials from environment variables. If none are found or authentication fails, skip the inspection
+If the page requires authentication, attempt to find credentials from environment variables. If none are found or authentication fails, skip the inspection.
 
 ## Execution
 
-### 1. Connect & Navigate
+### 1. Navigate & Snapshot
 
-- List available pages via `list_pages`
-- Navigate to `TARGET_URL` or select it if already open
-- **Clear the page cache and hard-refresh** before inspecting:
-  ```js
-  // Run via evaluate_script to clear page cache and hard-refresh
-  caches.keys().then(names => names.forEach(name => caches.delete(name)));
-  location.reload(true);
-  ```
-- Wait for the page to fully reload
+- Navigate to TARGET_URL
+- Take an interactive snapshot to confirm the page loaded
+- If auth is needed, fill login form fields and submit, then re-snapshot
 
 ### 2. Capture Desktop Screenshot
 
-- Take a full-page screenshot at the current viewport width
-- Save to `OUT_DIR/screenshots/desktop.png`
+- Take a screenshot and save to `OUT_DIR/screenshots/desktop.png`
+- Ensure `mkdir -p OUT_DIR/screenshots` before writing files
 
 ### 3. Capture Key Viewport Screenshots
 
-Take screenshots at these widths to capture responsive breakpoints:
-- 1440px (desktop large)
-- 1024px (tablet landscape)
-- 768px (tablet portrait)
-- 375px (mobile)
-
-Save each to `OUT_DIR/screenshots/{width}px.png`
+For each width (1440px, 1024px, 768px, 375px):
+- Resize viewport to the target width
+- Take a screenshot and save to `OUT_DIR/screenshots/{width}px.png`
 
 ### 4. Inspect Layout Structure
 
-Use `evaluate_script` to extract:
+Evaluate JavaScript that extracts:
 - Key layout containers and their CSS display/position properties
 - Flex/grid configurations on major layout elements
 - Any fixed/sticky positioned elements
@@ -64,7 +52,7 @@ Use `evaluate_script` to extract:
 
 ### 5. Inspect Computed Styles
 
-For the main content area and key UI elements, capture:
+Evaluate JavaScript that captures for key UI elements:
 - Font families, sizes, weights, line heights
 - Colors (text, background, borders)
 - Spacing (margins, paddings)
@@ -99,5 +87,3 @@ Create `OUT_DIR/mugshot.md` with:
 ## Notes
 {Any observations relevant to upcoming changes}
 ```
-
-Ensure `mkdir -p OUT_DIR/screenshots` before writing files.

@@ -1,7 +1,6 @@
 # Step 4: CSS Property Inspection
 
-When debugging a specific CSS issue, use `mcp__chrome-devtools__evaluate_script` to inspect
-computed styles.
+When debugging a specific CSS issue, evaluate JavaScript to inspect computed styles.
 
 ## Get computed CSS properties
 

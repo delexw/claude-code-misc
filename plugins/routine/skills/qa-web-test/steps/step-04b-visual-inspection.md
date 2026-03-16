@@ -1,10 +1,8 @@
 # Step 4b: Visual Design Inspection
 
-After layout inspection, check typography, color, spacing, and visibility for each breakpoint using `mcp__chrome-devtools__evaluate_script`.
+After layout inspection, evaluate JavaScript at each breakpoint to check typography, color, spacing, and visibility.
 
 ## 1. Typography
-
-Inspect font properties on key text elements (headings, body text, links, buttons):
 
 ```javascript
 const selectors = ['h1','h2','h3','p','a','button','.nav-link','.card-title'];
@@ -33,8 +31,6 @@ Look for:
 - Line heights that are too tight (`< 1.2`) or too loose (`> 2.0`)
 
 ## 2. Color & Contrast
-
-Inspect foreground/background color pairs and estimate contrast:
 
 ```javascript
 const selectors = ['h1','h2','p','a','button','.nav-link','[class*="card"]','[class*="banner"]'];
@@ -92,8 +88,6 @@ WCAG thresholds:
 
 ## 3. Spacing
 
-Inspect margin, padding, and gap on layout containers and content elements:
-
 ```javascript
 const selectors = ['.container','main','section','[class*="card"]','[class*="grid"]','[class*="flex"]','header','footer','nav'];
 const results = selectors.flatMap(sel => {
@@ -142,7 +136,7 @@ JSON.stringify(results, null, 2)
 
 ## 5. Visibility & Display State
 
-Check for elements that may be incorrectly hidden or shown at the current breakpoint:
+Check for elements incorrectly hidden or shown at the current breakpoint:
 
 ```javascript
 const selectors = ['nav','.sidebar','.menu','.modal','.drawer','[class*="mobile"]','[class*="desktop"]','[class*="hidden"]'];
@@ -173,5 +167,5 @@ Look for:
 ## Tips
 
 - **Run these checks at each breakpoint** — visual properties often change across breakpoints via media/container queries
-- **Compare results across viewports** — collect typography/spacing data at each width and look for inconsistencies or missing responsive adjustments
+- **Compare results across viewports** — collect typography/spacing data at each width and look for inconsistencies
 - **Adapt selectors** — the selectors above are common patterns; adjust to match the actual page structure discovered during Step 3

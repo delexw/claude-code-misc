@@ -80,7 +80,7 @@ Write the following markdown to `OUT_DIR/qa-report-{YYYY-MM-DD}.md`:
 
 ## Save screenshots
 
-When taking screenshots during Step 3, save them to `OUT_DIR/screenshots/{page}-{width}px.png` instead of `/tmp/`.
+When taking screenshots during Step 3, save them to `OUT_DIR/screenshots/{page}-{width}px.png`.
 
 ## Final output
 
