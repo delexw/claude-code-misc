@@ -5,7 +5,7 @@
 
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import type { PrioritizeResult } from "./prioritizer.js";
-import type { GroupStates, LayerState, RepoMap } from "./pipeline.js";
+import type { GroupStates, RepoMap } from "./dag.js";
 
 /** Repo root absolute path (e.g. "/Users/x/Envato/seo/elements-storefront"). */
 type RepoPath = string;

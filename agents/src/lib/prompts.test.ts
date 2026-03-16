@@ -60,7 +60,10 @@ void describe("buildMergePrompt", () => {
 
 void describe("buildVerifyPrompt", () => {
   void it("includes dev URL and merge branch", () => {
-    const result = buildVerifyPrompt("EC-1", "https://elements.envato.dev", "EC-1-merge", { required: true, reason: "updates login page" });
+    const result = buildVerifyPrompt("EC-1", "https://elements.envato.dev", "EC-1-merge", {
+      required: true,
+      reason: "updates login page",
+    });
     assert.ok(result.includes("https://elements.envato.dev"));
     assert.ok(result.includes("verification"));
     assert.ok(result.includes('merge branch "EC-1-merge"'));

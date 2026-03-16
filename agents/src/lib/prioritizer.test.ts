@@ -5,8 +5,6 @@ import {
   fallbackResult,
   classifyTickets,
   filterGroup,
-  validateDependsOn,
-  type GroupedLayer,
   type TicketAssignment,
 } from "./prioritizer.js";
 
@@ -92,11 +90,7 @@ void describe("parsePrioritizerOutput", () => {
 
   void it("parses many sequential single-ticket layers", () => {
     const input = JSON.stringify({
-      layers: [
-        makeLayer(["EC-10819"]),
-        makeLayer(["EC-10820"]),
-        makeLayer(["EC-10821"]),
-      ],
+      layers: [makeLayer(["EC-10819"]), makeLayer(["EC-10820"]), makeLayer(["EC-10821"])],
       skipped: [],
       excluded: [{ key: "EC-10798", reason: "Pure container story" }],
     });
@@ -146,11 +140,13 @@ void describe("parsePrioritizerOutput", () => {
 
   void it("defaults dependsOn to null when depends_on is absent", () => {
     const input = JSON.stringify({
-      layers: [{
-        group: [{ key: "EC-1", repos: [{ repo: "acme-api", branch: "ec-1-fix" }] }],
-        relation: null,
-        verification: { required: false, reason: "test" },
-      }],
+      layers: [
+        {
+          group: [{ key: "EC-1", repos: [{ repo: "acme-api", branch: "ec-1-fix" }] }],
+          relation: null,
+          verification: { required: false, reason: "test" },
+        },
+      ],
     });
 
     const result = parsePrioritizerOutput(input)!;
@@ -159,17 +155,22 @@ void describe("parsePrioritizerOutput", () => {
 
   void it("parses repo assignments with branch names", () => {
     const input = JSON.stringify({
-      layers: [{
-        group: [
-          { key: "EC-1", repos: [{ repo: "acme-api", branch: "ec-1-fix-auth" }] },
-          { key: "EC-2", repos: [
-            { repo: "acme-api", branch: "ec-2-endpoint" },
-            { repo: "acme-web", branch: "ec-2-ui" },
-          ]},
-        ],
-        relation: "same-epic",
-        verification: { required: true, reason: "EC-2 updates login page" },
-      }],
+      layers: [
+        {
+          group: [
+            { key: "EC-1", repos: [{ repo: "acme-api", branch: "ec-1-fix-auth" }] },
+            {
+              key: "EC-2",
+              repos: [
+                { repo: "acme-api", branch: "ec-2-endpoint" },
+                { repo: "acme-web", branch: "ec-2-ui" },
+              ],
+            },
+          ],
+          relation: "same-epic",
+          verification: { required: true, reason: "EC-2 updates login page" },
+        },
+      ],
     });
 
     const result = parsePrioritizerOutput(input)!;
@@ -356,56 +357,3 @@ void describe("filterGroup", () => {
   });
 });
 
-// ─── validateDependsOn ──────────────────────────────────────────────────────
-
-function gl(key: string, dependsOn: string | null, extraKeys: string[] = []): GroupedLayer {
-  return {
-    group: [{ key, repos: [] }, ...extraKeys.map((k) => ({ key: k, repos: [] }))],
-    relation: null,
-    verification: { required: false, reason: "test" },
-    dependsOn,
-  };
-}
-
-void describe("validateDependsOn", () => {
-  void it("returns no warnings for valid DAG", () => {
-    const layers = [gl("EC-1", null), gl("EC-2", "EC-1"), gl("EC-3", "EC-2")];
-    assert.deepEqual(validateDependsOn(layers), []);
-  });
-
-  void it("returns no warnings for all-root groups", () => {
-    const layers = [gl("EC-1", null), gl("EC-2", null)];
-    assert.deepEqual(validateDependsOn(layers), []);
-  });
-
-  void it("returns no warnings for diamond DAG", () => {
-    const layers = [gl("EC-1", null), gl("EC-2", "EC-1"), gl("EC-3", "EC-1")];
-    assert.deepEqual(validateDependsOn(layers), []);
-  });
-
-  void it("returns no warnings when dependsOn references non-primary ticket in earlier group", () => {
-    const layers = [gl("EC-1", null, ["EC-2"]), gl("EC-3", "EC-2")];
-    assert.deepEqual(validateDependsOn(layers), []);
-  });
-
-  void it("warns on forward reference", () => {
-    const layers = [gl("EC-1", "EC-2"), gl("EC-2", null)];
-    const warnings = validateDependsOn(layers);
-    assert.equal(warnings.length, 1);
-    assert.ok(warnings[0].includes("EC-2") && warnings[0].includes("not yet seen"));
-  });
-
-  void it("warns on self-reference", () => {
-    const layers = [gl("EC-1", "EC-1")];
-    const warnings = validateDependsOn(layers);
-    assert.equal(warnings.length, 1);
-    assert.ok(warnings[0].includes("references itself"));
-  });
-
-  void it("warns on reference to non-existent group", () => {
-    const layers = [gl("EC-1", null), gl("EC-2", "EC-MISSING")];
-    const warnings = validateDependsOn(layers);
-    assert.equal(warnings.length, 1);
-    assert.ok(warnings[0].includes("EC-MISSING") && warnings[0].includes("not yet seen"));
-  });
-});

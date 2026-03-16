@@ -11,10 +11,11 @@ import {
   buildVerifyPrompt,
   buildPrPrompt,
 } from "./prompts.js";
-import { filterGroup, primaryKey, ticketKeys } from "./prioritizer.js";
+import { filterGroup, ticketKeys } from "./prioritizer.js";
 import { parseJson } from "./json.js";
 import { forgeGroup } from "./forge.js";
 import type { RunState } from "./run-state.js";
+import { Dag, type GroupStates, type LayerState, type RepoMap, primaryKey } from "./dag.js";
 
 /**
  * Group worktree infos by their repo root path.
@@ -31,63 +32,8 @@ function groupWorktreesByRepo(forges: ForgeResult[]): Map<string, string[]> {
   return byRepo;
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-/** Map from repo root path → a string value (branch name, PR URL, etc.). */
-export type RepoMap = Map<string, string>;
-
-/** Combined per-repo state carried between groups. */
-export interface LayerState {
-  branches: RepoMap;
-  prUrls: RepoMap;
-}
-
-/** Per-group state map, keyed by the group's primary ticket key. */
-export type GroupStates = Map<string, LayerState>;
-
-function emptyState(): LayerState {
-  return { branches: new Map(), prUrls: new Map() };
-}
-
-/**
- * Build a lookup from any ticket key to its group's primary key.
- * Allows dependsOn to reference any ticket in a group, not just the primary.
- */
-export function buildTicketToGroupMap(layers: GroupedLayer[]): Map<string, string> {
-  const map = new Map<string, string>();
-  for (const layer of layers) {
-    const pk = primaryKey(layer);
-    for (const ticket of layer.group) {
-      map.set(ticket.key, pk);
-    }
-  }
-  return map;
-}
-
-/** Resolve the parent state for a group based on its dependsOn reference. */
-export function resolveParentState(
-  dependsOn: string | null,
-  groupStates: GroupStates,
-  failedGroups: Set<string>,
-  ticketToGroup: Map<string, string>,
-  log: LogFn,
-): LayerState | "skip" {
-  if (!dependsOn) return emptyState();
-
-  // Resolve ticket key → group primary key (dependsOn may reference any ticket in a group)
-  const groupKey = ticketToGroup.get(dependsOn) ?? dependsOn;
-
-  if (failedGroups.has(groupKey)) {
-    log(`SKIP: dependency ${dependsOn} (group ${groupKey}) failed — skipping downstream group`);
-    return "skip";
-  }
-  const parent = groupStates.get(groupKey);
-  if (!parent) {
-    log(`WARN: dependency ${dependsOn} (group ${groupKey}) not found in group states — branching from main`);
-    return emptyState();
-  }
-  return parent;
-}
+// Re-export DAG types for consumers that previously imported from pipeline
+export type { GroupStates, LayerState, RepoMap } from "./dag.js";
 
 interface GroupResult {
   succeeded: string[];
@@ -225,9 +171,16 @@ export async function mergeAndVerify(
   }
 
   // Step 4: Verify — always run; the skill decides what to check based on verification context
-  log(`VERIFYING: ${primaryTicket} (ui required: ${verification.required}, reason: ${verification.reason})`);
+  log(
+    `VERIFYING: ${primaryTicket} (ui required: ${verification.required}, reason: ${verification.reason})`,
+  );
   const { code: verifyCode, stdout: verifyOut } = await runner.run(
-    buildVerifyPrompt(primaryTicket, verification.required ? devServers.devUrl : "", mergeBranch, verification),
+    buildVerifyPrompt(
+      primaryTicket,
+      verification.required ? devServers.devUrl : "",
+      mergeBranch,
+      verification,
+    ),
     {
       cwd: mergedBranches[0].repoRoot,
       continueSession: true,
@@ -254,9 +207,12 @@ export async function mergeAndVerify(
     mergedBranches.map(async (mb) => {
       const baseBranch = prevState.branches.get(mb.repoRoot);
       const basePrUrl = prevState.prUrls.get(mb.repoRoot);
-      const dep: PrDependency | undefined =
-        baseBranch ? { baseBranch, prUrl: basePrUrl ?? baseBranch } : undefined;
-      log(`CREATING PR: ${primaryTicket} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`);
+      const dep: PrDependency | undefined = baseBranch
+        ? { baseBranch, prUrl: basePrUrl ?? baseBranch }
+        : undefined;
+      log(
+        `CREATING PR: ${primaryTicket} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`,
+      );
       const { code: prCode, stdout: prOut } = await runner.run(
         buildPrPrompt(succeededKeys, mb.branch, dep, screenshots),
         {
@@ -368,11 +324,7 @@ export async function processLayers(
   let succeeded = 0;
   let failed = 0;
 
-  // Per-group state keyed by primary ticket key.
-  // Seeded from persisted state on restart so the merge chain is preserved.
-  const groupStates: GroupStates = new Map(initialGroupStates ?? []);
-  const failedGroups = new Set<string>();
-  const ticketToGroup = buildTicketToGroupMap(layers);
+  const dag = new Dag(layers, log, initialGroupStates);
 
   /* oxlint-disable no-await-in-loop -- layers are sequential; each depends on the prior layer */
   for (let i = 0; i < layers.length; i++) {
@@ -388,10 +340,9 @@ export async function processLayers(
       `Layer ${i}: [${ticketKeys(group).join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}${depLabel}`,
     );
 
-    // Resolve parent state from the dependency graph
-    const prevState = resolveParentState(layer.dependsOn, groupStates, failedGroups, ticketToGroup, log);
+    const prevState = dag.resolve(layer.dependsOn);
     if (prevState === "skip") {
-      failedGroups.add(pk);
+      dag.fail(pk);
       failed += group.length;
       continue;
     }
@@ -412,10 +363,10 @@ export async function processLayers(
 
     if (result.succeeded.length === 0) {
       log(`Layer ${i} group ${pk} failed — downstream dependents will be skipped`);
-      failedGroups.add(pk);
+      dag.fail(pk);
     } else {
-      groupStates.set(pk, result.layerState);
-      runState?.updateGroupStates(groupStates);
+      dag.record(pk, result.layerState);
+      runState?.updateGroupStates(dag.snapshot());
     }
   }
 

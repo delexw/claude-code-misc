@@ -5,16 +5,21 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { RunState } from "./run-state.js";
 import type { PrioritizeResult } from "./prioritizer.js";
-import type { GroupStates } from "./pipeline.js";
+import type { GroupStates } from "./dag.js";
 
 function makeResult(keys: string[]): PrioritizeResult {
   return {
-    layers: [{
-      group: keys.map((key) => ({ key, repos: [{ repoPath: `/repo/${key}`, branch: `${key}-branch` }] })),
-      relation: null,
-      verification: { required: true, reason: "test" },
-      dependsOn: null,
-    }],
+    layers: [
+      {
+        group: keys.map((key) => ({
+          key,
+          repos: [{ repoPath: `/repo/${key}`, branch: `${key}-branch` }],
+        })),
+        relation: null,
+        verification: { required: true, reason: "test" },
+        dependsOn: null,
+      },
+    ],
     skipped: [],
     excluded: [],
   };
@@ -32,7 +37,9 @@ void describe("RunState", () => {
   });
 
   afterEach(() => {
-    try { unlinkSync(stateFile); } catch {}
+    try {
+      unlinkSync(stateFile);
+    } catch {}
   });
 
   // ─── load ───────────────────────────────────────────────────────────────────
@@ -73,10 +80,13 @@ void describe("RunState", () => {
   void it("save preserves existing groupStates", () => {
     state.save(makeResult(["EC-1"]));
     const gs: GroupStates = new Map([
-      ["EC-1", {
-        branches: new Map([["/repo", "ec-1-merge"]]),
-        prUrls: new Map([["/repo", "https://pr/1"]]),
-      }],
+      [
+        "EC-1",
+        {
+          branches: new Map([["/repo", "ec-1-merge"]]),
+          prUrls: new Map([["/repo", "https://pr/1"]]),
+        },
+      ],
     ]);
     state.updateGroupStates(gs);
 
@@ -93,12 +103,17 @@ void describe("RunState", () => {
 
   void it("updates group states and preserves prioritizer result", () => {
     state.save(makeResult(["EC-1"]));
-    state.updateGroupStates(new Map([
-      ["EC-1", {
-        branches: new Map([["/repo", "ec-1-merge"]]),
-        prUrls: new Map([["/repo", "https://pr/1"]]),
-      }],
-    ]));
+    state.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+      ]),
+    );
 
     const loaded = state.load();
     assert.ok(loaded);
@@ -109,15 +124,29 @@ void describe("RunState", () => {
   void it("accumulates multiple group states", () => {
     state.save(makeResult(["EC-1", "EC-2"]));
 
-    state.updateGroupStates(new Map([
-      ["EC-1", { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map() }],
-    ]));
+    state.updateGroupStates(
+      new Map([["EC-1", { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map() }]]),
+    );
 
     // Second update adds EC-2 alongside EC-1
-    state.updateGroupStates(new Map([
-      ["EC-1", { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map([["/repo", "https://pr/1"]]) }],
-      ["EC-2", { branches: new Map([["/repo", "ec-2-merge"]]), prUrls: new Map([["/repo", "https://pr/2"]]) }],
-    ]));
+    state.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+        [
+          "EC-2",
+          {
+            branches: new Map([["/repo", "ec-2-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/2"]]),
+          },
+        ],
+      ]),
+    );
 
     const loaded = state.load();
     assert.ok(loaded);
@@ -127,9 +156,7 @@ void describe("RunState", () => {
   });
 
   void it("updateGroupStates is a no-op when no state file exists", () => {
-    state.updateGroupStates(new Map([
-      ["EC-1", { branches: new Map(), prUrls: new Map() }],
-    ]));
+    state.updateGroupStates(new Map([["EC-1", { branches: new Map(), prUrls: new Map() }]]));
     assert.equal(existsSync(stateFile), false);
   });
 
@@ -182,16 +209,24 @@ void describe("RunState", () => {
     state.save(result);
 
     // Groups EC-1 and EC-2 complete
-    state.updateGroupStates(new Map([
-      ["EC-1", {
-        branches: new Map([["/storefront", "ec-1-merge"]]),
-        prUrls: new Map([["/storefront", "https://pr/1"]]),
-      }],
-      ["EC-2", {
-        branches: new Map([["/backend", "ec-2-merge"]]),
-        prUrls: new Map([["/backend", "https://pr/2"]]),
-      }],
-    ]));
+    state.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/storefront", "ec-1-merge"]]),
+            prUrls: new Map([["/storefront", "https://pr/1"]]),
+          },
+        ],
+        [
+          "EC-2",
+          {
+            branches: new Map([["/backend", "ec-2-merge"]]),
+            prUrls: new Map([["/backend", "https://pr/2"]]),
+          },
+        ],
+      ]),
+    );
 
     // Crash! Re-save with guidance (maybe new ticket added)
     const updatedResult = { ...result };
@@ -213,11 +248,14 @@ void describe("RunState", () => {
 
   void it("writes groupStates (not flat layerState) to disk", () => {
     state.save(makeResult(["EC-1"]));
-    state.updateGroupStates(new Map([
-      ["EC-1", { branches: new Map([["/repo", "branch"]]), prUrls: new Map() }],
-    ]));
+    state.updateGroupStates(
+      new Map([["EC-1", { branches: new Map([["/repo", "branch"]]), prUrls: new Map() }]]),
+    );
 
-    const raw = JSON.parse(readFileSync(stateFile, "utf-8"));
+    const raw = JSON.parse(readFileSync(stateFile, "utf-8")) as {
+      groupStates?: { [k: string]: { branches: { [k: string]: string } } };
+      layerState?: unknown;
+    };
     assert.ok(raw.groupStates);
     assert.ok(raw.groupStates["EC-1"]);
     assert.equal(raw.groupStates["EC-1"].branches["/repo"], "branch");

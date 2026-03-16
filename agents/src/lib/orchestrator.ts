@@ -11,7 +11,7 @@ import type { JiraClient } from "./jira.js";
 import type { ProcessedTracker } from "./processed-tracker.js";
 import type { RunState } from "./run-state.js";
 import type { GroupedLayer } from "./prioritizer.js";
-import type { GroupStates } from "./pipeline.js";
+import type { GroupStates } from "./dag.js";
 import { classifyTickets, prioritizeTickets } from "./prioritizer.js";
 import { processLayers } from "./pipeline.js";
 import { discoverRepos, resetReposToMain } from "./repos.js";

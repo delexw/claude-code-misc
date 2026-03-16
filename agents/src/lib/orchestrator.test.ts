@@ -56,7 +56,9 @@ function makeDevServers(): DevServerManager {
   } as unknown as DevServerManager;
 }
 
-function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps & { logs: string[] } {
+function makeDeps(
+  overrides: Partial<OrchestratorDeps> = {},
+): OrchestratorDeps & { logs: string[] } {
   const { logs, log } = collectLogs();
   const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
   return {
@@ -126,21 +128,28 @@ void describe("GSDOrchestrator.prioritize", () => {
 
     // Pre-save state from a previous run
     runState.save({
-      layers: [{
-        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-        relation: null,
-        verification: { required: false, reason: "test" },
-        dependsOn: null,
-      }],
+      layers: [
+        {
+          group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+          relation: null,
+          verification: { required: false, reason: "test" },
+          dependsOn: null,
+        },
+      ],
       skipped: [],
       excluded: [],
     });
-    runState.updateGroupStates(new Map([
-      ["EC-1", {
-        branches: new Map([["/repo", "ec-1-merge"]]),
-        prUrls: new Map([["/repo", "https://pr/1"]]),
-      }],
-    ]));
+    runState.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+      ]),
+    );
 
     let capturedPrompt = "";
     const runner = {
@@ -149,15 +158,17 @@ void describe("GSDOrchestrator.prioritize", () => {
         return {
           code: 0,
           stdout: JSON.stringify({
-            layers: [{
-              group: [
-                { key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] },
-                { key: "EC-2", repos: [{ repo: "my-repo", branch: "ec-2-new" }] },
-              ],
-              relation: null,
-              verification: { required: false, reason: "test" },
-              dependsOn: null,
-            }],
+            layers: [
+              {
+                group: [
+                  { key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] },
+                  { key: "EC-2", repos: [{ repo: "my-repo", branch: "ec-2-new" }] },
+                ],
+                relation: null,
+                verification: { required: false, reason: "test" },
+                dependsOn: null,
+              },
+            ],
           }),
         };
       },
@@ -183,19 +194,25 @@ void describe("GSDOrchestrator.prioritize", () => {
         return {
           code: 0,
           stdout: JSON.stringify({
-            layers: [{
-              group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
-              relation: null,
-              verification: { required: false, reason: "test" },
-              dependsOn: null,
-            }],
+            layers: [
+              {
+                group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
+                relation: null,
+                verification: { required: false, reason: "test" },
+                dependsOn: null,
+              },
+            ],
           }),
         };
       },
       writeLog: () => "/fake",
     } as unknown as ClaudeRunner;
 
-    const deps = makeDeps({ runState: new RunState(join(tmpDir, "run-state.json")), runner, baseRepos: ["/abs/my-repo"] });
+    const deps = makeDeps({
+      runState: new RunState(join(tmpDir, "run-state.json")),
+      runner,
+      baseRepos: ["/abs/my-repo"],
+    });
     const orch = new GSDOrchestrator(deps);
     const result = await orch.prioritize(["EC-1"]);
 
@@ -211,8 +228,16 @@ void describe("GSDOrchestrator.summarize", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
     runState.save({
-      layers: [{ group: [], relation: null, verification: { required: false, reason: "" }, dependsOn: null }],
-      skipped: [], excluded: [],
+      layers: [
+        {
+          group: [],
+          relation: null,
+          verification: { required: false, reason: "" },
+          dependsOn: null,
+        },
+      ],
+      skipped: [],
+      excluded: [],
     });
 
     const deps = makeDeps({ runState });
@@ -225,8 +250,16 @@ void describe("GSDOrchestrator.summarize", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
     runState.save({
-      layers: [{ group: [], relation: null, verification: { required: false, reason: "" }, dependsOn: null }],
-      skipped: [], excluded: [],
+      layers: [
+        {
+          group: [],
+          relation: null,
+          verification: { required: false, reason: "" },
+          dependsOn: null,
+        },
+      ],
+      skipped: [],
+      excluded: [],
     });
 
     const deps = makeDeps({ runState });
