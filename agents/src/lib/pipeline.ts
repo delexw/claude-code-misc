@@ -28,11 +28,24 @@ interface GroupResult {
   layerState: LayerState;
 }
 
+interface MergeResult {
+  repoRoot: string;
+  code: number;
+  branch: string;
+}
+
 interface VerifyOutput {
   status: "passed" | "fixed" | "skipped";
   summary: string;
   screenshots?: string[];
 }
+
+interface PrOutput {
+  pr_url: string;
+  status: "success";
+}
+
+// ─── Type guards ────────────────────────────────────────────────────────────
 
 function isVerifyOutput(v: unknown): v is VerifyOutput {
   return (
@@ -46,11 +59,6 @@ function isVerifyOutput(v: unknown): v is VerifyOutput {
   );
 }
 
-interface PrOutput {
-  pr_url: string;
-  status: "success";
-}
-
 function isPrOutput(v: unknown): v is PrOutput {
   return (
     typeof v === "object" &&
@@ -61,6 +69,8 @@ function isPrOutput(v: unknown): v is PrOutput {
     typeof v.pr_url === "string"
   );
 }
+
+// ─── Static helpers ─────────────────────────────────────────────────────────
 
 function parsePrUrl(stdout: string): string {
   return parseJson(stdout, isPrOutput)?.pr_url ?? "";
@@ -107,6 +117,7 @@ export class Pipeline {
     this.forge = new ForgeService({ runner: deps.runner, jira: deps.jira, log: deps.log });
   }
 
+  /** Commit → merge → verify → PR → JIRA update. */
   async mergeAndVerify(
     forges: ForgeResult[],
     group: TicketAssignment[],
@@ -125,46 +136,9 @@ export class Pipeline {
 
     const primaryTicket = keys[0];
 
-    // Step 1: Commit each worktree
-    this.log(`COMMITTING: ${primaryTicket} (${successful.length} ticket(s))`);
-    await Promise.all(
-      successful.flatMap((forge) =>
-        forge.worktrees.map(async (wt) => {
-          const { code, stdout } = await this.runner.run(buildCommitPrompt(forge.ticketKey), {
-            cwd: wt.worktreePath,
-            continueSession: true,
-            model: "sonnet",
-            taskName: `get-shit-done: commit ${forge.ticketKey}`,
-          });
-          this.runner.writeLog("commit", forge.ticketKey, stdout);
-          if (code !== 0)
-            this.log(`COMMIT WARN: ${forge.ticketKey} in ${wt.worktreePath} (exit code: ${code})`);
-        }),
-      ),
-    );
+    await this.commitWorktrees(primaryTicket, successful);
 
-    // Step 2: Merge committed worktrees per repo in parallel
-    const worktreesByRepo = groupWorktreesByRepo(successful);
-    this.log(`MERGING: ${primaryTicket} across ${worktreesByRepo.size} repo(s)`);
-
-    const mergeResults = await Promise.all(
-      [...worktreesByRepo.entries()].map(async ([repoRoot, wtPaths]) => {
-        const baseBranch = prevState.branches.get(repoRoot);
-        const { code, stdout } = await this.runner.run(
-          buildMergePrompt(primaryTicket, wtPaths, baseBranch),
-          {
-            cwd: repoRoot,
-            model: "sonnet",
-            taskName: `get-shit-done: merge ${primaryTicket} in ${repoRoot}`,
-          },
-        );
-        this.runner.writeLog("merge", primaryTicket, stdout);
-        const branch = stdout.trim().split("\n").pop()?.trim() || "";
-        return { repoRoot, code, branch };
-      }),
-    );
-
-    const mergedBranches = mergeResults.filter((r) => r.code === 0 && r.branch);
+    const mergedBranches = await this.mergeWorktrees(primaryTicket, successful, prevState);
     if (mergedBranches.length === 0) {
       this.log(`MERGE FAILED: ${primaryTicket} — all repos failed or produced empty branch names`);
       return {
@@ -173,105 +147,26 @@ export class Pipeline {
         layerState: prevState,
       };
     }
-    for (const r of mergeResults) {
-      if (r.code !== 0) this.log(`MERGE FAILED: ${primaryTicket} in ${r.repoRoot}`);
-      else if (!r.branch)
-        this.log(`MERGE WARN: ${primaryTicket} in ${r.repoRoot} — empty branch name`);
-    }
 
-    // Step 3: Restart servers on merge branch (only when UI verification needed)
     const mergeBranch = mergedBranches[0].branch;
-    this.log(`MERGE BRANCH: ${mergeBranch}`);
-    if (verification.required) {
-      await this.devServers.restartOnBranch(mergeBranch);
-    }
+    await this.restartServersIfNeeded(mergeBranch, verification);
 
-    // Step 4: Verify
-    this.log(
-      `VERIFYING: ${primaryTicket} (ui required: ${verification.required}, reason: ${verification.reason})`,
-    );
-    const { code: verifyCode, stdout: verifyOut } = await this.runner.run(
-      buildVerifyPrompt(
-        primaryTicket,
-        verification.required ? this.devServers.devUrl : "",
-        mergeBranch,
-        verification,
-      ),
-      {
-        cwd: mergedBranches[0].repoRoot,
-        continueSession: true,
-        model: "opus",
-        effort: "low",
-        taskName: `get-shit-done: verify ${primaryTicket}`,
-      },
-    );
-    this.runner.writeLog("verify", primaryTicket, verifyOut);
-
-    const verifyResult = parseJson(verifyOut, isVerifyOutput);
-    if (verifyCode !== 0) {
-      this.log(`VERIFY FAILED: ${primaryTicket} (exit code: ${verifyCode})`);
-    } else if (verifyResult) {
-      this.log(
-        `VERIFY ${verifyResult.status.toUpperCase()}: ${primaryTicket} — ${verifyResult.summary}`,
-      );
-    }
-
-    // Step 5: Create PRs per repo
-    const succeededKeys = successful.map((r) => r.ticketKey);
-    const screenshots = verifyResult?.screenshots ?? [];
-    const nextPrUrls: RepoMap = new Map(prevState.prUrls);
-
-    await Promise.all(
-      mergedBranches.map(async (mb) => {
-        const baseBranch = prevState.branches.get(mb.repoRoot);
-        const basePrUrl = prevState.prUrls.get(mb.repoRoot);
-        const dep: PrDependency | undefined = baseBranch
-          ? { baseBranch, prUrl: basePrUrl ?? baseBranch }
-          : undefined;
-        this.log(
-          `CREATING PR: ${primaryTicket} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`,
-        );
-        const { code: prCode, stdout: prOut } = await this.runner.run(
-          buildPrPrompt(succeededKeys, mb.branch, dep, screenshots),
-          {
-            cwd: mb.repoRoot,
-            continueSession: true,
-            model: "sonnet",
-            taskName: `get-shit-done: pr ${primaryTicket} in ${mb.repoRoot}`,
-          },
-        );
-        this.runner.writeLog("pr", primaryTicket, prOut);
-        if (prCode !== 0) {
-          this.log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
-        } else {
-          const prUrl = parsePrUrl(prOut);
-          if (prUrl) {
-            nextPrUrls.set(mb.repoRoot, prUrl);
-            if (verifyResult?.summary) {
-              try {
-                const body = `## Verification (${verifyResult.status})\n\n${verifyResult.summary}`;
-                execSync(`gh pr comment "${prUrl}" --body-file -`, {
-                  cwd: mb.repoRoot,
-                  input: body,
-                });
-              } catch {
-                this.log(`WARN: Could not add verification comment to ${prUrl}`);
-              }
-            }
-          }
-        }
-      }),
+    const verifyResult = await this.verify(
+      primaryTicket,
+      mergeBranch,
+      mergedBranches[0].repoRoot,
+      verification,
     );
 
-    // Step 6: Update JIRA
-    const promotedParents = new Set<string>();
-    await Promise.all(
-      successful.map(async (r) => {
-        this.log(`SUCCESS: ${r.ticketKey}`);
-        await this.jira.promoteToReview(r.ticketKey, this.log, promotedParents);
-        this.tracker.mark(r.ticketKey);
-      }),
+    const nextPrUrls = await this.createPullRequests(
+      primaryTicket,
+      successful.map((r) => r.ticketKey),
+      mergedBranches,
+      prevState,
+      verifyResult,
     );
+
+    await this.updateJira(successful);
 
     const nextBranches: RepoMap = new Map(prevState.branches);
     for (const mb of mergedBranches) {
@@ -285,6 +180,7 @@ export class Pipeline {
     };
   }
 
+  /** Forge → merge+verify → manage dev servers. */
   async processGroup(
     group: TicketAssignment[],
     repos: string[],
@@ -302,6 +198,7 @@ export class Pipeline {
     return result;
   }
 
+  /** Walk layers sequentially, resolving DAG dependencies between groups. */
   async processLayers(
     layers: GroupedLayer[],
     unprocessedSet: Set<string>,
@@ -352,5 +249,182 @@ export class Pipeline {
 
     return { succeeded, failed };
   }
-}
 
+  // ─── Private steps ──────────────────────────────────────────────────────────
+
+  /** Step 1: Commit each worktree (continue from forge session). */
+  private async commitWorktrees(primaryTicket: string, successful: ForgeResult[]): Promise<void> {
+    this.log(`COMMITTING: ${primaryTicket} (${successful.length} ticket(s))`);
+    await Promise.all(
+      successful.flatMap((forge) =>
+        forge.worktrees.map(async (wt) => {
+          const { code, stdout } = await this.runner.run(buildCommitPrompt(forge.ticketKey), {
+            cwd: wt.worktreePath,
+            continueSession: true,
+            model: "sonnet",
+            taskName: `get-shit-done: commit ${forge.ticketKey}`,
+          });
+          this.runner.writeLog("commit", forge.ticketKey, stdout);
+          if (code !== 0)
+            this.log(`COMMIT WARN: ${forge.ticketKey} in ${wt.worktreePath} (exit code: ${code})`);
+        }),
+      ),
+    );
+  }
+
+  /** Step 2: Merge committed worktrees per repo in parallel. */
+  private async mergeWorktrees(
+    primaryTicket: string,
+    successful: ForgeResult[],
+    prevState: LayerState,
+  ): Promise<MergeResult[]> {
+    const worktreesByRepo = groupWorktreesByRepo(successful);
+    this.log(`MERGING: ${primaryTicket} across ${worktreesByRepo.size} repo(s)`);
+
+    const mergeResults = await Promise.all(
+      [...worktreesByRepo.entries()].map(async ([repoRoot, wtPaths]) => {
+        const baseBranch = prevState.branches.get(repoRoot);
+        const { code, stdout } = await this.runner.run(
+          buildMergePrompt(primaryTicket, wtPaths, baseBranch),
+          {
+            cwd: repoRoot,
+            model: "sonnet",
+            taskName: `get-shit-done: merge ${primaryTicket} in ${repoRoot}`,
+          },
+        );
+        this.runner.writeLog("merge", primaryTicket, stdout);
+        const branch = stdout.trim().split("\n").pop()?.trim() || "";
+        return { repoRoot, code, branch };
+      }),
+    );
+
+    const mergedBranches = mergeResults.filter((r) => r.code === 0 && r.branch);
+    for (const r of mergeResults) {
+      if (r.code !== 0) this.log(`MERGE FAILED: ${primaryTicket} in ${r.repoRoot}`);
+      else if (!r.branch)
+        this.log(`MERGE WARN: ${primaryTicket} in ${r.repoRoot} — empty branch name`);
+    }
+
+    this.log(`MERGE BRANCH: ${mergedBranches[0]?.branch ?? "(none)"}`);
+    return mergedBranches;
+  }
+
+  /** Step 3: Restart dev servers on merge branch when UI verification is needed. */
+  private async restartServersIfNeeded(
+    mergeBranch: string,
+    verification: Verification,
+  ): Promise<void> {
+    if (verification.required) {
+      await this.devServers.restartOnBranch(mergeBranch);
+    }
+  }
+
+  /** Step 4: Run verification skill. */
+  private async verify(
+    primaryTicket: string,
+    mergeBranch: string,
+    cwd: string,
+    verification: Verification,
+  ): Promise<VerifyOutput | null> {
+    this.log(
+      `VERIFYING: ${primaryTicket} (ui required: ${verification.required}, reason: ${verification.reason})`,
+    );
+    const { code, stdout } = await this.runner.run(
+      buildVerifyPrompt(
+        primaryTicket,
+        verification.required ? this.devServers.devUrl : "",
+        mergeBranch,
+        verification,
+      ),
+      {
+        cwd,
+        continueSession: true,
+        model: "opus",
+        effort: "low",
+        taskName: `get-shit-done: verify ${primaryTicket}`,
+      },
+    );
+    this.runner.writeLog("verify", primaryTicket, stdout);
+
+    const result = parseJson(stdout, isVerifyOutput);
+    if (code !== 0) {
+      this.log(`VERIFY FAILED: ${primaryTicket} (exit code: ${code})`);
+    } else if (result) {
+      this.log(`VERIFY ${result.status.toUpperCase()}: ${primaryTicket} — ${result.summary}`);
+    }
+    return result;
+  }
+
+  /** Step 5: Create PRs per repo. */
+  private async createPullRequests(
+    primaryTicket: string,
+    succeededKeys: string[],
+    mergedBranches: MergeResult[],
+    prevState: LayerState,
+    verifyResult: VerifyOutput | null,
+  ): Promise<RepoMap> {
+    const screenshots = verifyResult?.screenshots ?? [];
+    const nextPrUrls: RepoMap = new Map(prevState.prUrls);
+
+    await Promise.all(
+      mergedBranches.map(async (mb) => {
+        const baseBranch = prevState.branches.get(mb.repoRoot);
+        const basePrUrl = prevState.prUrls.get(mb.repoRoot);
+        const dep: PrDependency | undefined = baseBranch
+          ? { baseBranch, prUrl: basePrUrl ?? baseBranch }
+          : undefined;
+        this.log(
+          `CREATING PR: ${primaryTicket} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`,
+        );
+        const { code, stdout } = await this.runner.run(
+          buildPrPrompt(succeededKeys, mb.branch, dep, screenshots),
+          {
+            cwd: mb.repoRoot,
+            continueSession: true,
+            model: "sonnet",
+            taskName: `get-shit-done: pr ${primaryTicket} in ${mb.repoRoot}`,
+          },
+        );
+        this.runner.writeLog("pr", primaryTicket, stdout);
+        if (code !== 0) {
+          this.log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
+        } else {
+          const prUrl = parsePrUrl(stdout);
+          if (prUrl) {
+            nextPrUrls.set(mb.repoRoot, prUrl);
+            this.addVerificationComment(mb.repoRoot, prUrl, verifyResult);
+          }
+        }
+      }),
+    );
+
+    return nextPrUrls;
+  }
+
+  /** Step 6: Move tickets to In Review and promote parents. */
+  private async updateJira(successful: ForgeResult[]): Promise<void> {
+    const promotedParents = new Set<string>();
+    await Promise.all(
+      successful.map(async (r) => {
+        this.log(`SUCCESS: ${r.ticketKey}`);
+        await this.jira.promoteToReview(r.ticketKey, this.log, promotedParents);
+        this.tracker.mark(r.ticketKey);
+      }),
+    );
+  }
+
+  /** Add verification summary as a PR comment. */
+  private addVerificationComment(
+    cwd: string,
+    prUrl: string,
+    verifyResult: VerifyOutput | null,
+  ): void {
+    if (!verifyResult?.summary) return;
+    try {
+      const body = `## Verification (${verifyResult.status})\n\n${verifyResult.summary}`;
+      execSync(`gh pr comment "${prUrl}" --body-file -`, { cwd, input: body });
+    } catch {
+      this.log(`WARN: Could not add verification comment to ${prUrl}`);
+    }
+  }
+}
