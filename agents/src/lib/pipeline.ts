@@ -45,49 +45,6 @@ interface PrOutput {
   status: "success";
 }
 
-// ─── Type guards ────────────────────────────────────────────────────────────
-
-function isVerifyOutput(v: unknown): v is VerifyOutput {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    "status" in v &&
-    typeof v.status === "string" &&
-    ["passed", "fixed", "skipped"].includes(v.status) &&
-    "summary" in v &&
-    typeof v.summary === "string"
-  );
-}
-
-function isPrOutput(v: unknown): v is PrOutput {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    "status" in v &&
-    v.status === "success" &&
-    "pr_url" in v &&
-    typeof v.pr_url === "string"
-  );
-}
-
-// ─── Static helpers ─────────────────────────────────────────────────────────
-
-function parsePrUrl(stdout: string): string {
-  return parseJson(stdout, isPrOutput)?.pr_url ?? "";
-}
-
-function groupWorktreesByRepo(forges: ForgeResult[]): Map<string, string[]> {
-  const byRepo = new Map<string, string[]>();
-  for (const forge of forges) {
-    for (const wt of forge.worktrees) {
-      const paths = byRepo.get(wt.repoPath) ?? [];
-      paths.push(wt.worktreePath);
-      byRepo.set(wt.repoPath, paths);
-    }
-  }
-  return byRepo;
-}
-
 // ─── Pipeline deps ──────────────────────────────────────────────────────────
 
 export interface PipelineDeps {
@@ -278,7 +235,7 @@ export class Pipeline {
     successful: ForgeResult[],
     prevState: LayerState,
   ): Promise<MergeResult[]> {
-    const worktreesByRepo = groupWorktreesByRepo(successful);
+    const worktreesByRepo = Pipeline.groupWorktreesByRepo(successful);
     this.log(`MERGING: ${primaryTicket} across ${worktreesByRepo.size} repo(s)`);
 
     const mergeResults = await Promise.all(
@@ -346,7 +303,7 @@ export class Pipeline {
     );
     this.runner.writeLog("verify", primaryTicket, stdout);
 
-    const result = parseJson(stdout, isVerifyOutput);
+    const result = parseJson(stdout, (v): v is VerifyOutput => Pipeline.isVerifyOutput(v));
     if (code !== 0) {
       this.log(`VERIFY FAILED: ${primaryTicket} (exit code: ${code})`);
     } else if (result) {
@@ -389,7 +346,7 @@ export class Pipeline {
         if (code !== 0) {
           this.log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
         } else {
-          const prUrl = parsePrUrl(stdout);
+          const prUrl = Pipeline.parsePrUrl(stdout);
           if (prUrl) {
             nextPrUrls.set(mb.repoRoot, prUrl);
             this.addVerificationComment(mb.repoRoot, prUrl, verifyResult);
@@ -426,5 +383,46 @@ export class Pipeline {
     } catch {
       this.log(`WARN: Could not add verification comment to ${prUrl}`);
     }
+  }
+
+  // ─── Private helpers ────────────────────────────────────────────────────────
+
+  private static isVerifyOutput(v: unknown): v is VerifyOutput {
+    return (
+      typeof v === "object" &&
+      v !== null &&
+      "status" in v &&
+      typeof v.status === "string" &&
+      ["passed", "fixed", "skipped"].includes(v.status) &&
+      "summary" in v &&
+      typeof v.summary === "string"
+    );
+  }
+
+  private static isPrOutput(v: unknown): v is PrOutput {
+    return (
+      typeof v === "object" &&
+      v !== null &&
+      "status" in v &&
+      v.status === "success" &&
+      "pr_url" in v &&
+      typeof v.pr_url === "string"
+    );
+  }
+
+  private static parsePrUrl(stdout: string): string {
+    return parseJson(stdout, (v): v is PrOutput => Pipeline.isPrOutput(v))?.pr_url ?? "";
+  }
+
+  private static groupWorktreesByRepo(forges: ForgeResult[]): Map<string, string[]> {
+    const byRepo = new Map<string, string[]>();
+    for (const forge of forges) {
+      for (const wt of forge.worktrees) {
+        const paths = byRepo.get(wt.repoPath) ?? [];
+        paths.push(wt.worktreePath);
+        byRepo.set(wt.repoPath, paths);
+      }
+    }
+    return byRepo;
   }
 }
