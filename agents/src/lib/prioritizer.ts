@@ -167,7 +167,95 @@ export function filterGroup(
   );
 }
 
-// ─── Prioritize via Claude ──────────────────────────────────────────────────
+// ─── Prioritizer deps ───────────────────────────────────────────────────────
+
+export interface PrioritizerDeps {
+  runner: ClaudeRunner;
+  scriptDir: string;
+  log: LogFn;
+}
+
+// ─── Prioritizer class ──────────────────────────────────────────────────────
+
+export class Prioritizer {
+  private readonly runner: ClaudeRunner;
+  private readonly scriptDir: string;
+  private readonly log: LogFn;
+
+  constructor(deps: PrioritizerDeps) {
+    this.runner = deps.runner;
+    this.scriptDir = deps.scriptDir;
+    this.log = deps.log;
+  }
+
+  async prioritize(
+    allTickets: string[],
+    repos: string[],
+    previousResult?: PrioritizeResult,
+  ): Promise<PrioritizeResult> {
+    if (allTickets.length <= 1) return fallbackResult(allTickets);
+
+    this.log(
+      `PRIORITIZING: ${allTickets.length} ticket(s)${previousResult ? " (guided by previous run)" : ""}`,
+    );
+
+    const ticketList = allTickets.join(",");
+    const repoList = repos.join("\n");
+
+    const guidanceNote = previousResult
+      ? [
+          "",
+          "IMPORTANT — PREVIOUS RUN GUIDANCE:",
+          "A previous prioritization run produced the result below. You MUST preserve:",
+          "- The first ticket in each group (primary key) — downstream depends_on references it",
+          "- Layer order, repo assignments, and branch names for existing tickets",
+          "- depends_on values for existing groups",
+          "Tickets already forged should be treated as COMPLETED for dependency resolution,",
+          "regardless of their current JIRA status. Slot any new tickets into the appropriate",
+          "layer (never as the first ticket in an existing group). Remove any tickets no longer in the list above.",
+          "",
+          "Previous result:",
+          "<previous_result>",
+          JSON.stringify(previousResult),
+          "</previous_result>",
+        ].join("\n")
+      : "";
+
+    const { code, stdout } = await this.runner.run(
+      [
+        `[GSD: prioritize ${allTickets.length} tickets] ${AUTONOMY_PREFIX}`,
+        guidanceNote,
+        "",
+        `Invoke Skill("/jira-ticket-prioritizer 'Prioritize tickets ${ticketList} and assign each to one of these repos:`,
+        repoList,
+        `Use the repo basename in output (not the full path).'").`,
+        "",
+        "Return json ONLY without code fence",
+      ].join("\n"),
+      {
+        taskName: `get-shit-done: prioritizing ${allTickets.length} tickets`,
+        cwd: this.scriptDir,
+        timeoutMs: 5 * 60 * 60 * 1000,
+        model: "opus",
+      },
+    );
+
+    if (code === 0) {
+      const result = parsePrioritizerOutput(stdout);
+      if (result) {
+        resolveAndValidateRepos(result, repos);
+        for (const w of validateDependsOn(result.layers)) this.log(`WARN: ${w}`);
+        logPrioritizeResult(result, this.log);
+        return result;
+      }
+      throw new Error("Prioritizer output parse failed — terminating");
+    } else {
+      throw new Error(`Prioritizer exited with code ${code} — terminating`);
+    }
+  }
+}
+
+// ─── Backward-compatible free function ──────────────────────────────────────
 
 export async function prioritizeTickets(
   allTickets: string[],
@@ -177,71 +265,15 @@ export async function prioritizeTickets(
   log: LogFn,
   previousResult?: PrioritizeResult,
 ): Promise<PrioritizeResult> {
-  if (allTickets.length <= 1) return fallbackResult(allTickets);
-
-  log(
-    `PRIORITIZING: ${allTickets.length} ticket(s)${previousResult ? " (guided by previous run)" : ""}`,
+  return new Prioritizer({ runner, scriptDir, log }).prioritize(
+    allTickets,
+    repos,
+    previousResult,
   );
-
-  const ticketList = allTickets.join(",");
-  const repoList = repos.join("\n");
-
-  const guidanceNote = previousResult
-    ? [
-        "",
-        "IMPORTANT — PREVIOUS RUN GUIDANCE:",
-        "A previous prioritization run produced the result below. You MUST preserve:",
-        "- The first ticket in each group (primary key) — downstream depends_on references it",
-        "- Layer order, repo assignments, and branch names for existing tickets",
-        "- depends_on values for existing groups",
-        "Tickets already forged should be treated as COMPLETED for dependency resolution,",
-        "regardless of their current JIRA status. Slot any new tickets into the appropriate",
-        "layer (never as the first ticket in an existing group). Remove any tickets no longer in the list above.",
-        "",
-        "Previous result:",
-        "<previous_result>",
-        JSON.stringify(previousResult),
-        "</previous_result>",
-      ].join("\n")
-    : "";
-
-  const { code, stdout } = await runner.run(
-    [
-      `[GSD: prioritize ${allTickets.length} tickets] ${AUTONOMY_PREFIX}`,
-      guidanceNote,
-      "",
-      `Invoke Skill("/jira-ticket-prioritizer 'Prioritize tickets ${ticketList} and assign each to one of these repos:`,
-      repoList,
-      `Use the repo basename in output (not the full path).'").`,
-      "",
-      "Return json ONLY without code fence",
-    ].join("\n"),
-    {
-      taskName: `get-shit-done: prioritizing ${allTickets.length} tickets`,
-      cwd: scriptDir,
-      timeoutMs: 5 * 60 * 60 * 1000,
-      model: "opus",
-    },
-  );
-
-  if (code === 0) {
-    const result = parsePrioritizerOutput(stdout);
-    if (result) {
-      resolveAndValidateRepos(result, repos);
-      for (const w of validateDependsOn(result.layers)) log(`WARN: ${w}`);
-      logPrioritizeResult(result, log);
-      return result;
-    }
-    throw new Error("Prioritizer output parse failed — terminating");
-  } else {
-    throw new Error(`Prioritizer exited with code ${code} — terminating`);
-  }
 }
 
-/**
- * Validate and resolve repo basenames to absolute paths.
- * Throws if any ticket is missing repos or has unresolvable repo names.
- */
+// ─── Internal helpers ───────────────────────────────────────────────────────
+
 function resolveAndValidateRepos(result: PrioritizeResult, baseRepos: string[]): void {
   for (const layer of result.layers) {
     for (const ticket of layer.group) {
