@@ -246,14 +246,13 @@ export async function mergeAndVerify(
     }),
   );
 
-  // Step 6: Update JIRA
+  // Step 6: Update JIRA — move tickets to In Review, promote parent if all sub-tasks done
+  const promotedParents = new Set<string>();
   await Promise.all(
     successful.map(async (r) => {
       log(`SUCCESS: ${r.ticketKey}`);
-      const moved = await jira.moveTicket(r.ticketKey, "In Progress");
-      if (!moved) log(`WARN: Could not move ${r.ticketKey} to In Progress`);
+      await jira.promoteToReview(r.ticketKey, log, promotedParents);
       tracker.mark(r.ticketKey);
-      return r;
     }),
   );
 

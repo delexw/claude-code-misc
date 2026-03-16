@@ -137,9 +137,23 @@ export class GSDOrchestrator {
     for (const s of skipped) this.log(`INFO: skipping ${s.key} — ${s.reason}`);
     for (const e of excluded) this.log(`INFO: excluded ${e.key} — ${e.reason}`);
 
+    // Promote excluded pending tickets (e.g. container stories whose sub-tasks are all done)
+    const unprocessedSet = new Set(discovery.unprocessed);
+    const excludedPending = excluded.filter((e) => unprocessedSet.has(e.key));
+    if (excludedPending.length > 0) {
+      const promotedParents = new Set<string>();
+      await Promise.all(
+        excludedPending.map(async (e) => {
+          this.log(`PROMOTE: ${e.key} excluded but pending — checking if ready for review`);
+          await this.jira.promoteToReview(e.key, this.log, promotedParents);
+          this.tracker.mark(e.key);
+        }),
+      );
+    }
+
     return processLayers(
       layers,
-      new Set(discovery.unprocessed),
+      unprocessedSet,
       new Set(skipped.map((s) => s.key)),
       new Set(excluded.map((e) => e.key)),
       discovery.repos,

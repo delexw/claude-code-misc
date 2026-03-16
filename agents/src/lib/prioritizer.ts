@@ -84,8 +84,7 @@ function isRawOutput(v: unknown): v is RawPrioritizeOutput {
     typeof v === "object" &&
     v !== null &&
     "layers" in v &&
-    Array.isArray(v.layers) &&
-    v.layers.length > 0
+    Array.isArray(v.layers)
   );
 }
 

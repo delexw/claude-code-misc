@@ -43,6 +43,9 @@ function makeJira(): JiraClient {
   return {
     ticketUrl: (key: string) => `https://jira/${key}`,
     moveTicket: async () => true,
+    getParentKey: async () => null,
+    hasUnfinishedSubtasks: async () => true,
+    promoteToReview: async () => {},
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
   } as unknown as JiraClient;
 }
@@ -220,13 +223,18 @@ void describe("mergeAndVerify", () => {
     assert.deepEqual(tracker.marked, ["EC-1", "EC-2"]);
   });
 
-  void it("moves tickets to In Progress via jira", async () => {
+  void it("moves tickets to In Review via jira", async () => {
     const movedTickets: string[] = [];
     const jira = {
       ticketUrl: () => "",
       moveTicket: async (key: string) => {
         movedTickets.push(key);
         return true;
+      },
+      getParentKey: async () => null,
+      hasUnfinishedSubtasks: async () => true,
+      promoteToReview: async (key: string) => {
+        movedTickets.push(key);
       },
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as JiraClient;
@@ -359,10 +367,15 @@ void describe("mergeAndVerify", () => {
     assert.equal(restarted, false);
   });
 
-  void it("logs warning when jira moveTicket fails", async () => {
+  void it("logs warning when jira promoteToReview fails", async () => {
     const jira = {
       ticketUrl: () => "",
       moveTicket: async () => false,
+      getParentKey: async () => null,
+      hasUnfinishedSubtasks: async () => true,
+      promoteToReview: async (key: string, logFn: (msg: string) => void) => {
+        logFn(`WARN: Could not move ${key} to In Review`);
+      },
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as JiraClient;
 

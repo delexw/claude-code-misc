@@ -26,6 +26,9 @@ function makeJira(
     fetchSprintTickets: async () => tickets,
     ticketUrl: (key: string) => `https://jira/${key}`,
     moveTicket: async () => true,
+    getParentKey: async () => null,
+    hasUnfinishedSubtasks: async () => true,
+    promoteToReview: async () => {},
   } as unknown as JiraClient;
 }
 
