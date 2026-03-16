@@ -157,34 +157,25 @@ export class DevServerManager {
   // ─── Restart non-fixed-branch servers on a merge branch ──────────────────
 
   async restartOnBranch(mergeBranch: string): Promise<void> {
-    const toRestart = this.services.filter((s) => !s.branchFixed);
-    if (toRestart.length === 0) return;
+    this.log(`RESTARTING all servers on branch: ${mergeBranch}`);
 
-    this.log(`RESTARTING ${toRestart.length} server(s) on branch: ${mergeBranch}`);
+    // Stop all servers
+    this.stopAll();
 
-    // Kill only the non-fixed-branch servers
-    for (const server of Array.from(this.running)) {
-      if (!server.config.branchFixed) {
-        this.killServer(server);
-        this.running.splice(this.running.indexOf(server), 1);
-      }
-    }
-
-    // Checkout merge branch and restart
-    for (const svc of toRestart) {
-      const name = svc.name;
+    // Checkout merge branch for non-fixed-branch services
+    for (const svc of this.services.filter((s) => !s.branchFixed)) {
       try {
         execSync(`git checkout ${mergeBranch}`, { cwd: svc.cwd, stdio: "pipe" });
-        this.log(`  Checked out ${mergeBranch} in ${name}`);
+        this.log(`  Checked out ${mergeBranch} in ${svc.name}`);
       } catch (e: unknown) {
         this.log(
-          `  WARN: git checkout failed for ${name}: ${e instanceof Error ? e.message : String(e)}`,
+          `  WARN: git checkout failed for ${svc.name}: ${e instanceof Error ? e.message : String(e)}`,
         );
       }
-      this.spawnService(svc);
     }
 
-    await this.waitForReady();
+    // Start all servers
+    await this.startAll();
   }
 
   // ─── Private ─────────────────────────────────────────────────────────────
