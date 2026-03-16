@@ -53,6 +53,7 @@ interface GroupResult {
 interface VerifyOutput {
   status: "passed" | "fixed" | "skipped";
   summary: string;
+  screenshots?: string[];
 }
 
 function isVerifyOutput(v: unknown): v is VerifyOutput {
@@ -196,6 +197,7 @@ export async function mergeAndVerify(
 
   // Step 5: Create PRs per repo (continue from forge session for full context)
   const succeededKeys = successful.map((r) => r.ticketKey);
+  const screenshots = verifyResult?.screenshots ?? [];
   const nextPrUrls: RepoMap = new Map(prevState.prUrls);
 
   await Promise.all(
@@ -206,7 +208,7 @@ export async function mergeAndVerify(
         baseBranch ? { baseBranch, prUrl: basePrUrl ?? baseBranch } : undefined;
       log(`CREATING PR: ${primaryTicket} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`);
       const { code: prCode, stdout: prOut } = await runner.run(
-        buildPrPrompt(succeededKeys, mb.branch, dep),
+        buildPrPrompt(succeededKeys, mb.branch, dep, screenshots),
         {
           cwd: mb.repoRoot,
           continueSession: true,

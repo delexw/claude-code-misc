@@ -37,12 +37,15 @@ Fix all issues found until verification passes clean.
 ```
 
 ## Output
-å
+
 Output a JSON summary:
 
 ```json
 {
   "status": "passed | fixed | skipped",
-  "summary": "Rich markdown summary of what was verified and any fixes applied"
+  "summary": "Rich markdown summary of what was verified and any fixes applied",
+  "screenshots": ["path/to/screenshot1.png", "path/to/screenshot2.png"]
 }
 ```
+
+The `screenshots` array must contain **absolute paths** to all screenshots captured during QA web testing. If no screenshots were taken, return an empty array `[]`.

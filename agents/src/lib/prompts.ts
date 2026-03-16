@@ -124,6 +124,7 @@ export function buildPrPrompt(
   ticketKeys: string[],
   mergeBranch: string,
   dependency?: PrDependency,
+  screenshots?: string[],
 ): string {
   const tickets = ticketKeys.join(", ");
   const base = dependency?.baseBranch ?? "main";
@@ -131,12 +132,16 @@ export function buildPrPrompt(
     dependency
       ? `\n\nThis is a stacked PR. Set the PR base branch to "${dependency.baseBranch}" (not main). Add to the PR description: "Depends on ${dependency.prUrl} — merge that first."`
       : "";
+  const screenshotNote =
+    screenshots && screenshots.length > 0
+      ? `\n\nAttach these verification screenshots to the PR description:\n${screenshots.map((s) => `- ${s}`).join("\n")}`
+      : "";
 
   return [
     `[GSD: create PR for ${tickets}] ${AUTONOMY_PREFIX}`,
     "",
     `You are on merge branch "${mergeBranch}" with all changes already committed and merged.`,
-    `The base branch is "${base}".${depNote}`,
+    `The base branch is "${base}".${depNote}${screenshotNote}`,
     `Skill("/create-pr 'create a Draft PR and keep description concise'")`,
   ].join("\n");
 }
