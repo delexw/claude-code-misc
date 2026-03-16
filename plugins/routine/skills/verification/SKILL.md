@@ -43,9 +43,41 @@ Output a JSON summary:
 ```json
 {
   "status": "passed | fixed | skipped",
-  "summary": "Rich markdown summary of what was verified and any fixes applied",
+  "summary": "<rich markdown — use template below>",
   "screenshots": ["path/to/screenshot1.png", "path/to/screenshot2.png"]
 }
 ```
 
 The `screenshots` array must contain **absolute paths** to all screenshots captured during QA web testing. If no screenshots were taken, return an empty array `[]`.
+
+### Summary Template
+
+Use this structure for the `summary` field. Omit sections that don't apply.
+
+```markdown
+## Verification Report
+
+**Status:** {✅ passed | 🔧 fixed | ⏭️ skipped} | **Iterations:** {n}
+
+### Code Review
+
+| Area | Finding | Severity | Resolution |
+|------|---------|----------|------------|
+| {area} | {description} | Critical/Warning/Info | Fixed/Acknowledged/N/A |
+
+### Visual QA
+
+| Viewport | Page/Component | Result | Notes |
+|----------|---------------|--------|-------|
+| {width}px | {target} | Pass/Fail/Fixed | {details} |
+
+### Fixes Applied
+
+- **{file_path}**: {what changed} — {why}
+
+### Screenshots
+
+- `{path}` — {viewport}px {page/component}
+```
+
+**Guidelines:** Be specific — reference file paths, line numbers, component names. Group findings by area (accessibility, layout, logic, types). Show before/after for non-trivial fixes.
