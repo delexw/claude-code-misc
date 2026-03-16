@@ -274,7 +274,7 @@ Analyze the checkpoint prompts from the **${baseRepoName}** project. Extract:
 
 1. **User corrections** — things the agent did wrong that the user had to correct
 2. **Domain-specific patterns** — conventions, approaches, gotchas specific to this codebase
-3. **Workflow preferences** — how the user prefers things done
+3. **Workflow preferences** — how the user prefers things done but keep the analysis conservative (exlcude automatable patterns)
 
 ## Reference Files
 
