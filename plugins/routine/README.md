@@ -104,7 +104,7 @@ These skills are depended on but not bundled. Install them separately.
 
 | Skill | CLI / Tool | Env Vars | Install |
 |---|---|---|---|
-| `pinchtab` ★ | `pinchtab` | `PINCHTAB_TOKEN` (optional) | `brew install pinchtab/tap/pinchtab` / [pinchtab](https://github.com/pinchtab/pinchtab) |
+| `pinchtab` ★ | `pinchtab`, Chrome/Chromium | `PINCHTAB_TOKEN` (optional) | `brew install pinchtab/tap/pinchtab` / [pinchtab](https://github.com/pinchtab/pinchtab) — requires Chrome or Chromium installed |
 | `autoresearch` ★ | — | — | [autoresearch](https://github.com/jmadden/autoresearch) — `npx skills add https://github.com/jmadden/autoresearch` |
 | `codex-review` ★ | `codex` | `OPENAI_API_KEY` | [Codex CLI](https://github.com/openai/codex) |
 
