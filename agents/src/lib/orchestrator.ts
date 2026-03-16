@@ -1,7 +1,7 @@
 /**
  * GSD Orchestrator — coordinates the full get-shit-done workflow.
  *
- * Steps: discover → classify → prioritize (or resume) → process → summarize
+ * Steps: discover → prioritize → process → summarize
  */
 
 import type { LogFn } from "./claude-runner.js";
@@ -12,11 +12,13 @@ import type { ProcessedTracker } from "./processed-tracker.js";
 import type { RunState } from "./run-state.js";
 import type { GroupedLayer } from "./prioritizer.js";
 import type { GroupStates } from "./dag.js";
-import { classifyTickets, prioritizeTickets } from "./prioritizer.js";
+import type { SprintDiscovery, DiscoverResult } from "./discovery.js";
+import { prioritizeTickets } from "./prioritizer.js";
 import { processLayers } from "./pipeline.js";
-import { discoverRepos, resetReposToMain } from "./repos.js";
+import { resetReposToMain } from "./repos.js";
 
 export interface OrchestratorDeps {
+  discovery: SprintDiscovery;
   jira: JiraClient;
   tracker: ProcessedTracker;
   runState: RunState;
@@ -27,13 +29,6 @@ export interface OrchestratorDeps {
   log: LogFn;
 }
 
-interface DiscoverResult {
-  allKeys: string[];
-  unprocessed: string[];
-  repos: string[];
-  skippedCount: number;
-}
-
 interface PrioritizeResult {
   layers: GroupedLayer[];
   skipped: Array<{ key: string; reason: string }>;
@@ -42,6 +37,7 @@ interface PrioritizeResult {
 }
 
 export class GSDOrchestrator {
+  private readonly discovery: SprintDiscovery;
   private readonly jira: JiraClient;
   private readonly tracker: ProcessedTracker;
   private readonly runState: RunState;
@@ -52,6 +48,7 @@ export class GSDOrchestrator {
   private readonly log: LogFn;
 
   constructor(deps: OrchestratorDeps) {
+    this.discovery = deps.discovery;
     this.jira = deps.jira;
     this.tracker = deps.tracker;
     this.runState = deps.runState;
@@ -62,48 +59,7 @@ export class GSDOrchestrator {
     this.log = deps.log;
   }
 
-  /** Step 1: Fetch sprint tickets and classify into unprocessed vs already-done. */
-  async discover(): Promise<DiscoverResult | null> {
-    const sprint = await this.jira.getActiveSprint();
-    if (!sprint) return null;
-
-    const allTickets = await this.jira.fetchSprintTickets(sprint);
-    if (allTickets.length === 0) return null;
-
-    const processed = this.tracker.load();
-    const repos = discoverRepos(this.baseRepos).map((r) => r.repo);
-
-    this.log(`Found ${allTickets.length} ticket(s) in sprint.`);
-
-    const { pending } = classifyTickets(allTickets);
-    const unprocessed: string[] = [];
-    let skippedCount = 0;
-
-    for (const t of pending) {
-      if (processed.has(t.key)) {
-        this.log(`SKIP: ${t.key} (already processed today)`);
-        skippedCount++;
-      } else {
-        unprocessed.push(t.key);
-      }
-    }
-
-    this.log(`Pending: ${pending.length}, Total: ${allTickets.length}`);
-
-    if (unprocessed.length === 0) {
-      this.log(`No unprocessed pending tickets.`);
-      return null;
-    }
-
-    return {
-      allKeys: allTickets.map((t) => t.key),
-      unprocessed,
-      repos,
-      skippedCount,
-    };
-  }
-
-  /** Step 2: Prioritize tickets, guided by previous run if available. */
+  /** Step 1: Prioritize tickets, guided by previous run if available. */
   async prioritize(allKeys: string[]): Promise<PrioritizeResult> {
     resetReposToMain(this.baseRepos, this.log);
 
@@ -174,7 +130,7 @@ export class GSDOrchestrator {
 
   /** Run the full workflow: discover → prioritize → process → summarize. */
   async run(): Promise<void> {
-    const discovery = await this.discover();
+    const discovery = await this.discovery.discover(this.log);
     if (!discovery) return;
 
     const prioritization = await this.prioritize(discovery.allKeys);

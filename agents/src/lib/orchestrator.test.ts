@@ -4,6 +4,7 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { GSDOrchestrator, type OrchestratorDeps } from "./orchestrator.js";
+import { SprintDiscovery } from "./discovery.js";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
@@ -59,68 +60,26 @@ function makeDevServers(): DevServerManager {
   } as unknown as DevServerManager;
 }
 
-function makeDeps(
-  overrides: Partial<OrchestratorDeps> = {},
-): OrchestratorDeps & { logs: string[] } {
+function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps & { logs: string[] } {
   const { logs, log } = collectLogs();
   const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
+  const jira = overrides.jira ?? makeJira();
+  const tracker = overrides.tracker ?? makeTracker();
+  const baseRepos = overrides.baseRepos ?? [];
   return {
-    jira: makeJira(),
-    tracker: makeTracker(),
+    discovery: new SprintDiscovery(jira, tracker, baseRepos),
+    jira,
+    tracker,
     runState: new RunState(join(tmpDir, "run-state.json")),
     runner: makeRunner(),
     devServers: makeDevServers(),
-    baseRepos: [],
+    baseRepos,
     scriptDir: tmpDir,
     log,
     logs,
     ...overrides,
   };
 }
-
-// ─── discover ─────────────────────────────────────────────────────────────────
-
-void describe("GSDOrchestrator.discover", () => {
-  void it("returns null when no active sprint", async () => {
-    const deps = makeDeps({ jira: makeJira(null) });
-    const orch = new GSDOrchestrator(deps);
-    assert.equal(await orch.discover(), null);
-  });
-
-  void it("returns null when sprint has no tickets", async () => {
-    const deps = makeDeps({ jira: makeJira("Sprint 1", []) });
-    const orch = new GSDOrchestrator(deps);
-    assert.equal(await orch.discover(), null);
-  });
-
-  void it("returns null when all pending tickets are already processed", async () => {
-    const deps = makeDeps({
-      jira: makeJira("Sprint 1", [
-        { key: "EC-1", status: "To Do" },
-        { key: "EC-2", status: "In Progress" },
-      ]),
-      tracker: makeTracker(["EC-1"]),
-    });
-    const orch = new GSDOrchestrator(deps);
-    assert.equal(await orch.discover(), null);
-  });
-
-  void it("returns discovery result with unprocessed tickets", async () => {
-    const deps = makeDeps({
-      jira: makeJira("Sprint 1", [
-        { key: "EC-1", status: "To Do" },
-        { key: "EC-2", status: "Backlog" },
-        { key: "EC-3", status: "In Progress" },
-      ]),
-    });
-    const orch = new GSDOrchestrator(deps);
-
-    const result = await orch.discover();
-    assert.ok(result);
-    assert.deepEqual(result.allKeys, ["EC-1", "EC-2", "EC-3"]);
-    assert.deepEqual(result.unprocessed, ["EC-1", "EC-2"]);
-  });
-});
 
 // ─── prioritize ──────────────────────────────────────────────────────────────
 
