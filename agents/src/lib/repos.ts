@@ -42,9 +42,11 @@ export function discoverRepos(baseRepos: string[]): Array<{ repo: string; baseRe
 export function resetReposToMain(baseRepos: string[], log: (msg: string) => void): void {
   for (const repo of baseRepos) {
     try {
+      execFileSync("git", ["checkout", "."], { cwd: repo, stdio: "ignore" });
       execFileSync("git", ["checkout", "main"], { cwd: repo, stdio: "ignore" });
+      execFileSync("git", ["pull", "origin", "main"], { cwd: repo, stdio: "ignore" });
     } catch {
-      log(`WARN: could not checkout main in ${repo}`);
+      log(`WARN: could not reset to main in ${repo}`);
     }
   }
 }
