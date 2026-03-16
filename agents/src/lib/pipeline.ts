@@ -121,6 +121,7 @@ export async function mergeAndVerify(
         const { code, stdout } = await runner.run(buildCommitPrompt(forge.ticketKey), {
           cwd: wt.worktreePath,
           continueSession: true,
+          model: "sonnet",
           taskName: `get-shit-done: commit ${forge.ticketKey}`,
         });
         runner.writeLog("commit", forge.ticketKey, stdout);
@@ -141,6 +142,7 @@ export async function mergeAndVerify(
         buildMergePrompt(primaryTicket, wtPaths, baseBranch),
         {
           cwd: repoRoot,
+          model: "sonnet",
           taskName: `get-shit-done: merge ${primaryTicket} in ${repoRoot}`,
         },
       );
@@ -178,6 +180,8 @@ export async function mergeAndVerify(
     {
       cwd: mergedBranches[0].repoRoot,
       continueSession: true,
+      model: "opus",
+      effort: "low",
       taskName: `get-shit-done: verify ${primaryTicket}`,
     },
   );
@@ -206,6 +210,7 @@ export async function mergeAndVerify(
         {
           cwd: mb.repoRoot,
           continueSession: true,
+          model: "sonnet",
           taskName: `get-shit-done: pr ${primaryTicket} in ${mb.repoRoot}`,
         },
       );
