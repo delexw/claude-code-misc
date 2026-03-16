@@ -167,10 +167,9 @@ export class GSDOrchestrator {
     );
   }
 
-  /** Step 4: Log summary and clean up state on full success. */
+  /** Step 4: Log summary. State is preserved for next-run guidance. */
   summarize(succeeded: number, skippedCount: number, failed: number): void {
     this.log(`=== Summary: processed=${succeeded} skipped=${skippedCount} failed=${failed} ===`);
-    if (failed === 0) this.runState.clear();
   }
 
   /** Run the full workflow: discover → prioritize → process → summarize. */

@@ -89,7 +89,7 @@ export class RunState {
     }
   }
 
-  /** Clear saved state (call on clean completion). */
+  /** Clear saved state entirely. */
   clear(): void {
     try {
       unlinkSync(this.filePath);

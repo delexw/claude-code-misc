@@ -227,13 +227,13 @@ void describe("GSDOrchestrator.prioritize", () => {
 // ─── summarize ───────────────────────────────────────────────────────────────
 
 void describe("GSDOrchestrator.summarize", () => {
-  void it("clears run state when no failures", () => {
+  void it("preserves all state on success for next-run guidance", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
     runState.save({
       layers: [
         {
-          group: [],
+          group: [{ key: "EC-1", repos: [] }],
           relation: null,
           verification: { required: false, reason: "" },
           dependsOn: null,
@@ -242,11 +242,18 @@ void describe("GSDOrchestrator.summarize", () => {
       skipped: [],
       excluded: [],
     });
+    runState.updateGroupStates(
+      new Map([["EC-1", { branches: new Map([["/r", "b"]]), prUrls: new Map() }]]),
+    );
 
     const deps = makeDeps({ runState });
     const orch = new GSDOrchestrator(deps);
     orch.summarize(1, 0, 0);
-    assert.equal(runState.load(), null);
+
+    const loaded = runState.load();
+    assert.ok(loaded, "state should be preserved");
+    assert.equal(loaded.groupStates.size, 1, "groupStates preserved for merge chain");
+    assert.equal(loaded.prioritizerResult.layers.length, 1, "prioritizerResult preserved for guidance");
   });
 
   void it("preserves run state when there are failures", () => {
