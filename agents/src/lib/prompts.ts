@@ -53,12 +53,22 @@ export function buildMergePrompt(
 ): string {
   const worktrees = worktreePaths.map((wt) => `  ${wt}`).join("\n");
   const base = baseBranch ?? "main";
+  const stackedNote =
+    baseBranch
+      ? [
+          "",
+          `IMPORTANT: This is a stacked merge. The base branch "${baseBranch}" contains changes from a prior layer`,
+          "that the worktrees were NOT aware of (they were forked from main). Expect conflicts or overlapping",
+          "edits — resolve them so that both the prior layer's changes and this layer's changes work together.",
+        ].join("\n")
+      : "";
 
   return [
     `[GSD: merge ${primaryTicket}] ${AUTONOMY_PREFIX}`,
     "",
     "Worktrees to merge:",
     worktrees,
+    stackedNote,
     "",
     "Steps:",
     `1. Create a merge branch from "${base}" (NOT from a worktree) named "${primaryTicket}-merge"`,
