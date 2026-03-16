@@ -1,6 +1,6 @@
 # Step 3a: Codebase Analysis
 
-Launch a **Task subagent** for codebase analysis. The Task must save its output to `.codebase-analysis-tmp/report.md`.
+Spawn a subagent with `Agent` tool for codebase analysis. Save output to `.codebase-analysis-tmp/report.md`.
 
 Perform codebase analysis in all current working directories (any additional directories added via `--add-dir`):
 

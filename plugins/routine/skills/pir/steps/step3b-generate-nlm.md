@@ -1,10 +1,6 @@
 # Step 3b: Generate PIR via NotebookLM
 
-Launch a **subagent** (via the Agent tool) to run the nlm-skill. The subagent must return the notebook ID.
-
-First, check if `nlm-skill` is installed (run `/skills`). If it is NOT listed, **stop and inform the user**: "The `nlm-skill` is required for PIR report generation but is not installed. Please install it first."
-
-Use the Agent tool to invoke `Skill("nlm-skill")` with the following instructions:
+Spawn a subagent with `Agent` tool to invoke `Skill("nlm-skill")` with the following instructions:
 
 1. **Create a notebook** named `"PIR: {investigation_query} — {today's date}"`
 2. **Upload all discovery reports** that exist as text sources to the notebook:

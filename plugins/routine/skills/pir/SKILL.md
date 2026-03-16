@@ -74,11 +74,11 @@ See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
 
 ### Step 3a: Codebase Analysis
 See [step3a-codebase-analysis.md](steps/step3a-codebase-analysis.md)
-— Task subagent. Analyses git history across working directories, correlates with incident timeline from discovery reports.
+— Analyses git history across working directories, correlates with incident timeline from discovery reports.
 
 ### Step 3b: Generate PIR via NotebookLM
 See [step3b-generate-nlm.md](steps/step3b-generate-nlm.md)
-— Task subagent. Runs after 3a. Creates NotebookLM notebook, uploads all discovery and codebase reports, generates report, infographic, and slide deck. Returns notebook ID.
+— Runs after 3a. Creates NotebookLM notebook, uploads all discovery and codebase reports, generates report, infographic, and slide deck. Returns notebook ID.
 
 ### Step 4: Clean Up and Present Results
 See [step4-present-results.md](steps/step4-present-results.md)
