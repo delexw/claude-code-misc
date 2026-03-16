@@ -108,24 +108,3 @@ export class ForgeService {
   }
 }
 
-// ─── Backward-compatible free functions ─────────────────────────────────────
-
-export async function forgeTicket(
-  ticket: TicketAssignment,
-  devServerInfo: string,
-  runner: ClaudeRunner,
-  jira: JiraClient,
-  log: LogFn,
-): Promise<ForgeResult> {
-  return new ForgeService({ runner, jira, log }).forgeTicket(ticket, devServerInfo);
-}
-
-export async function forgeGroup(
-  group: TicketAssignment[],
-  devServerInfo: string,
-  runner: ClaudeRunner,
-  jira: JiraClient,
-  log: LogFn,
-): Promise<ForgeResult[]> {
-  return new ForgeService({ runner, jira, log }).forgeGroup(group, devServerInfo);
-}

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { forgeTicket, forgeGroup } from "./forge.js";
+import { ForgeService } from "./forge.js";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { JiraClient } from "./jira.js";
 
@@ -26,20 +26,25 @@ function collectLogs(): { logs: string[]; log: LogFn } {
   return { logs, log: (msg: string) => logs.push(msg) };
 }
 
+function makeForge(
+  runner: ClaudeRunner,
+  log: LogFn,
+  jira?: JiraClient,
+): ForgeService {
+  return new ForgeService({ runner, jira: jira ?? makeJira(), log });
+}
+
 // ─── forgeTicket ─────────────────────────────────────────────────────────────
 
 void describe("forgeTicket", () => {
   void it("returns success with worktree path on exit code 0", async () => {
     const runner = makeRunner({ code: 0, stdout: "some output" });
-    const jira = makeJira();
     const { log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    const result = await forgeTicket(
+    const result = await forge.forgeTicket(
       { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.equal(result.ticketKey, "EC-1");
@@ -51,15 +56,12 @@ void describe("forgeTicket", () => {
 
   void it("returns failed on non-zero exit code", async () => {
     const runner = makeRunner({ code: 1, stdout: "error" });
-    const jira = makeJira();
     const { log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    const result = await forgeTicket(
+    const result = await forge.forgeTicket(
       { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.equal(result.status, "failed");
@@ -68,15 +70,12 @@ void describe("forgeTicket", () => {
 
   void it("logs forging start and result", async () => {
     const runner = makeRunner({ code: 0, stdout: "" });
-    const jira = makeJira();
     const { logs, log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    await forgeTicket(
+    await forge.forgeTicket(
       { key: "EC-3", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.ok(logs.some((l) => l.includes("FORGING: EC-3")));
@@ -85,15 +84,12 @@ void describe("forgeTicket", () => {
 
   void it("logs failure message on non-zero exit", async () => {
     const runner = makeRunner({ code: 1, stdout: "" });
-    const jira = makeJira();
     const { logs, log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    await forgeTicket(
+    await forge.forgeTicket(
       { key: "EC-4", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.ok(logs.some((l) => l.includes("FORGE FAILED: EC-4")));
@@ -111,13 +107,11 @@ void describe("forgeTicket", () => {
     } as unknown as ClaudeRunner;
     const jira = makeJira("https://custom.jira");
     const { log } = collectLogs();
+    const forge = makeForge(runner, log, jira);
 
-    await forgeTicket(
+    await forge.forgeTicket(
       { key: "EC-5", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.ok(capturedPrompt.includes("https://custom.jira/browse/EC-5"));
@@ -135,15 +129,12 @@ void describe("forgeTicket", () => {
       },
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as ClaudeRunner;
-    const jira = makeJira();
     const { log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    await forgeTicket(
+    await forge.forgeTicket(
       { key: "EC-6", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.equal(loggedPrefix, "task");
@@ -156,18 +147,15 @@ void describe("forgeTicket", () => {
 void describe("forgeGroup", () => {
   void it("returns results for all tickets in group", async () => {
     const runner = makeRunner({ code: 0, stdout: "" });
-    const jira = makeJira();
     const { log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    const results = await forgeGroup(
+    const results = await forge.forgeGroup(
       [
         { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
       ],
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.equal(results.length, 2);
@@ -177,18 +165,15 @@ void describe("forgeGroup", () => {
 
   void it("logs group start", async () => {
     const runner = makeRunner({ code: 0, stdout: "" });
-    const jira = makeJira();
     const { logs, log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    await forgeGroup(
+    await forge.forgeGroup(
       [
         { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
       ],
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.ok(logs.some((l) => l.includes("FORGING GROUP: EC-1, EC-2")));
@@ -205,18 +190,15 @@ void describe("forgeGroup", () => {
       writeLog: () => "/fake",
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as ClaudeRunner;
-    const jira = makeJira();
     const { log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    const results = await forgeGroup(
+    const results = await forge.forgeGroup(
       [
         { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
         { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
       ],
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.equal(results[0].status, "success");
@@ -231,15 +213,12 @@ void describe("forgeGroup", () => {
       writeLog: () => "/fake",
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as ClaudeRunner;
-    const jira = makeJira();
     const { log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    const results = await forgeGroup(
+    const results = await forge.forgeGroup(
       [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] }],
       "",
-      runner,
-      jira,
-      log,
     );
 
     assert.equal(results[0].status, "failed");
@@ -249,10 +228,10 @@ void describe("forgeGroup", () => {
 
   void it("handles empty group", async () => {
     const runner = makeRunner({ code: 0, stdout: "" });
-    const jira = makeJira();
     const { log } = collectLogs();
+    const forge = makeForge(runner, log);
 
-    const results = await forgeGroup([], "", runner, jira, log);
+    const results = await forge.forgeGroup([], "");
 
     assert.equal(results.length, 0);
   });

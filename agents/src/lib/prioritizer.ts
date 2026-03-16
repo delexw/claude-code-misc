@@ -255,23 +255,6 @@ export class Prioritizer {
   }
 }
 
-// ─── Backward-compatible free function ──────────────────────────────────────
-
-export async function prioritizeTickets(
-  allTickets: string[],
-  repos: string[],
-  runner: ClaudeRunner,
-  scriptDir: string,
-  log: LogFn,
-  previousResult?: PrioritizeResult,
-): Promise<PrioritizeResult> {
-  return new Prioritizer({ runner, scriptDir, log }).prioritize(
-    allTickets,
-    repos,
-    previousResult,
-  );
-}
-
 // ─── Internal helpers ───────────────────────────────────────────────────────
 
 function resolveAndValidateRepos(result: PrioritizeResult, baseRepos: string[]): void {
