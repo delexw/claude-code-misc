@@ -13,7 +13,7 @@ import {
 } from "./prompts.js";
 import { filterGroup, ticketKeys } from "./prioritizer.js";
 import { parseJson } from "./json.js";
-import { forgeGroup } from "./forge.js";
+import { ForgeService } from "./forge.js";
 import type { RunState } from "./run-state.js";
 import { Dag, type GroupStates, type LayerState, type RepoMap, primaryKey } from "./dag.js";
 
@@ -96,6 +96,7 @@ export class Pipeline {
   private readonly jira: JiraClient;
   private readonly tracker: ProcessedTracker;
   private readonly log: LogFn;
+  private readonly forge: ForgeService;
 
   constructor(deps: PipelineDeps) {
     this.runner = deps.runner;
@@ -103,6 +104,7 @@ export class Pipeline {
     this.jira = deps.jira;
     this.tracker = deps.tracker;
     this.log = deps.log;
+    this.forge = new ForgeService({ runner: deps.runner, jira: deps.jira, log: deps.log });
   }
 
   async mergeAndVerify(
@@ -292,7 +294,7 @@ export class Pipeline {
     if (verification.required) await this.devServers.startAll();
 
     const devServerInfo = verification.required ? this.devServers.devUrl : "";
-    const forgeResults = await forgeGroup(group, devServerInfo, this.runner, this.jira, this.log);
+    const forgeResults = await this.forge.forgeGroup(group, devServerInfo);
     const result = await this.mergeAndVerify(forgeResults, group, repos, verification, prevState);
 
     if (verification.required) this.devServers.stopAll();
