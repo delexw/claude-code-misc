@@ -118,7 +118,13 @@ export function buildCommitPrompt(ticketKey: string): string {
   return [
     `[GSD: commit ${ticketKey}] ${AUTONOMY_PREFIX}`,
     "",
-    `Commit all changes in this worktree for ${ticketKey}.`,
+    `Commit only ticket-related code changes in this worktree for ${ticketKey}.`,
+    "",
+    "Before committing, discard any test artifacts that should not be committed:",
+    "  git checkout -- '**/*.png' '**/*.jpg' '**/*.jpeg' '**/*.webp' '**/*.gif'",
+    "  git checkout -- '**/screenshots/**' '**/test-results/**' '**/playwright-report/**'",
+    "Only stage and commit source code, tests, configs, and documentation.",
+    "",
     `Skill("/git-commit")`,
   ].join("\n");
 }
@@ -134,24 +140,19 @@ export function buildPrPrompt(
   ticketKeys: string[],
   mergeBranch: string,
   dependency?: PrDependency,
-  screenshots?: string[],
+  _screenshots?: string[],
 ): string {
   const tickets = ticketKeys.join(", ");
   const base = dependency?.baseBranch ?? "main";
-  const depNote =
-    dependency
-      ? `\n\nThis is a stacked PR. Set the PR base branch to "${dependency.baseBranch}" (not main). Add to the PR description: "Depends on ${dependency.prUrl} — merge that first."`
-      : "";
-  const screenshotNote =
-    screenshots && screenshots.length > 0
-      ? `\n\nAttach these verification screenshots to the PR description:\n${screenshots.map((s) => `- ${s}`).join("\n")}`
-      : "";
+  const depNote = dependency
+    ? `\n\nThis is a stacked PR. Set the PR base branch to "${dependency.baseBranch}" (not main). Add to the PR description: "Depends on ${dependency.prUrl} — merge that first."`
+    : "";
 
   return [
     `[GSD: create PR for ${tickets}] ${AUTONOMY_PREFIX}`,
     "",
     `You are on merge branch "${mergeBranch}" with all changes already committed and merged.`,
-    `The base branch is "${base}".${depNote}${screenshotNote}`,
+    `The base branch is "${base}".${depNote}`,
     `Skill("/create-pr 'create a Draft PR and keep description concise'")`,
   ].join("\n");
 }
