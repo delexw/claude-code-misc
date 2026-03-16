@@ -17,32 +17,16 @@ import { forgeGroup } from "./forge.js";
 import type { RunState } from "./run-state.js";
 import { Dag, type GroupStates, type LayerState, type RepoMap, primaryKey } from "./dag.js";
 
-/**
- * Group worktree infos by their repo root path.
- */
-function groupWorktreesByRepo(forges: ForgeResult[]): Map<string, string[]> {
-  const byRepo = new Map<string, string[]>();
-  for (const forge of forges) {
-    for (const wt of forge.worktrees) {
-      const paths = byRepo.get(wt.repoPath) ?? [];
-      paths.push(wt.worktreePath);
-      byRepo.set(wt.repoPath, paths);
-    }
-  }
-  return byRepo;
-}
-
 // Re-export DAG types for consumers that previously imported from pipeline
 export type { GroupStates, LayerState, RepoMap } from "./dag.js";
+
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 interface GroupResult {
   succeeded: string[];
   failed: string[];
-  /** Per-repo state produced by this group (branches + PR URLs). */
   layerState: LayerState;
 }
-
-// ─── PR output parsing ──────────────────────────────────────────────────────
 
 interface VerifyOutput {
   status: "passed" | "fixed" | "skipped";
@@ -78,12 +62,297 @@ function isPrOutput(v: unknown): v is PrOutput {
   );
 }
 
-/** Extract pr_url from the create-pr skill's JSON output. */
 function parsePrUrl(stdout: string): string {
   return parseJson(stdout, isPrOutput)?.pr_url ?? "";
 }
 
-// ─── Merge + Verify + PR ─────────────────────────────────────────────────────
+function groupWorktreesByRepo(forges: ForgeResult[]): Map<string, string[]> {
+  const byRepo = new Map<string, string[]>();
+  for (const forge of forges) {
+    for (const wt of forge.worktrees) {
+      const paths = byRepo.get(wt.repoPath) ?? [];
+      paths.push(wt.worktreePath);
+      byRepo.set(wt.repoPath, paths);
+    }
+  }
+  return byRepo;
+}
+
+// ─── Pipeline deps ──────────────────────────────────────────────────────────
+
+export interface PipelineDeps {
+  runner: ClaudeRunner;
+  devServers: DevServerManager;
+  jira: JiraClient;
+  tracker: ProcessedTracker;
+  log: LogFn;
+}
+
+// ─── Pipeline class ─────────────────────────────────────────────────────────
+
+export class Pipeline {
+  private readonly runner: ClaudeRunner;
+  private readonly devServers: DevServerManager;
+  private readonly jira: JiraClient;
+  private readonly tracker: ProcessedTracker;
+  private readonly log: LogFn;
+
+  constructor(deps: PipelineDeps) {
+    this.runner = deps.runner;
+    this.devServers = deps.devServers;
+    this.jira = deps.jira;
+    this.tracker = deps.tracker;
+    this.log = deps.log;
+  }
+
+  async mergeAndVerify(
+    forges: ForgeResult[],
+    group: TicketAssignment[],
+    repos: string[],
+    verification: Verification,
+    prevState: LayerState,
+  ): Promise<GroupResult> {
+    const keys = ticketKeys(group);
+    const successful = forges.filter((r) => r.status !== "failed" && r.worktrees.length > 0);
+    const failedKeys = forges.filter((r) => r.status === "failed").map((r) => r.ticketKey);
+
+    if (successful.length === 0) {
+      this.log(`GROUP FAILED: no successful forges for ${keys.join(", ")}`);
+      return { succeeded: [], failed: keys, layerState: prevState };
+    }
+
+    const primaryTicket = keys[0];
+
+    // Step 1: Commit each worktree
+    this.log(`COMMITTING: ${primaryTicket} (${successful.length} ticket(s))`);
+    await Promise.all(
+      successful.flatMap((forge) =>
+        forge.worktrees.map(async (wt) => {
+          const { code, stdout } = await this.runner.run(buildCommitPrompt(forge.ticketKey), {
+            cwd: wt.worktreePath,
+            continueSession: true,
+            model: "sonnet",
+            taskName: `get-shit-done: commit ${forge.ticketKey}`,
+          });
+          this.runner.writeLog("commit", forge.ticketKey, stdout);
+          if (code !== 0)
+            this.log(`COMMIT WARN: ${forge.ticketKey} in ${wt.worktreePath} (exit code: ${code})`);
+        }),
+      ),
+    );
+
+    // Step 2: Merge committed worktrees per repo in parallel
+    const worktreesByRepo = groupWorktreesByRepo(successful);
+    this.log(`MERGING: ${primaryTicket} across ${worktreesByRepo.size} repo(s)`);
+
+    const mergeResults = await Promise.all(
+      [...worktreesByRepo.entries()].map(async ([repoRoot, wtPaths]) => {
+        const baseBranch = prevState.branches.get(repoRoot);
+        const { code, stdout } = await this.runner.run(
+          buildMergePrompt(primaryTicket, wtPaths, baseBranch),
+          {
+            cwd: repoRoot,
+            model: "sonnet",
+            taskName: `get-shit-done: merge ${primaryTicket} in ${repoRoot}`,
+          },
+        );
+        this.runner.writeLog("merge", primaryTicket, stdout);
+        const branch = stdout.trim().split("\n").pop()?.trim() || "";
+        return { repoRoot, code, branch };
+      }),
+    );
+
+    const mergedBranches = mergeResults.filter((r) => r.code === 0 && r.branch);
+    if (mergedBranches.length === 0) {
+      this.log(`MERGE FAILED: ${primaryTicket} — all repos failed or produced empty branch names`);
+      return {
+        succeeded: [],
+        failed: [...failedKeys, ...successful.map((r) => r.ticketKey)],
+        layerState: prevState,
+      };
+    }
+    for (const r of mergeResults) {
+      if (r.code !== 0) this.log(`MERGE FAILED: ${primaryTicket} in ${r.repoRoot}`);
+      else if (!r.branch)
+        this.log(`MERGE WARN: ${primaryTicket} in ${r.repoRoot} — empty branch name`);
+    }
+
+    // Step 3: Restart servers on merge branch (only when UI verification needed)
+    const mergeBranch = mergedBranches[0].branch;
+    this.log(`MERGE BRANCH: ${mergeBranch}`);
+    if (verification.required) {
+      await this.devServers.restartOnBranch(mergeBranch);
+    }
+
+    // Step 4: Verify
+    this.log(
+      `VERIFYING: ${primaryTicket} (ui required: ${verification.required}, reason: ${verification.reason})`,
+    );
+    const { code: verifyCode, stdout: verifyOut } = await this.runner.run(
+      buildVerifyPrompt(
+        primaryTicket,
+        verification.required ? this.devServers.devUrl : "",
+        mergeBranch,
+        verification,
+      ),
+      {
+        cwd: mergedBranches[0].repoRoot,
+        continueSession: true,
+        model: "opus",
+        effort: "low",
+        taskName: `get-shit-done: verify ${primaryTicket}`,
+      },
+    );
+    this.runner.writeLog("verify", primaryTicket, verifyOut);
+
+    const verifyResult = parseJson(verifyOut, isVerifyOutput);
+    if (verifyCode !== 0) {
+      this.log(`VERIFY FAILED: ${primaryTicket} (exit code: ${verifyCode})`);
+    } else if (verifyResult) {
+      this.log(
+        `VERIFY ${verifyResult.status.toUpperCase()}: ${primaryTicket} — ${verifyResult.summary}`,
+      );
+    }
+
+    // Step 5: Create PRs per repo
+    const succeededKeys = successful.map((r) => r.ticketKey);
+    const screenshots = verifyResult?.screenshots ?? [];
+    const nextPrUrls: RepoMap = new Map(prevState.prUrls);
+
+    await Promise.all(
+      mergedBranches.map(async (mb) => {
+        const baseBranch = prevState.branches.get(mb.repoRoot);
+        const basePrUrl = prevState.prUrls.get(mb.repoRoot);
+        const dep: PrDependency | undefined = baseBranch
+          ? { baseBranch, prUrl: basePrUrl ?? baseBranch }
+          : undefined;
+        this.log(
+          `CREATING PR: ${primaryTicket} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`,
+        );
+        const { code: prCode, stdout: prOut } = await this.runner.run(
+          buildPrPrompt(succeededKeys, mb.branch, dep, screenshots),
+          {
+            cwd: mb.repoRoot,
+            continueSession: true,
+            model: "sonnet",
+            taskName: `get-shit-done: pr ${primaryTicket} in ${mb.repoRoot}`,
+          },
+        );
+        this.runner.writeLog("pr", primaryTicket, prOut);
+        if (prCode !== 0) {
+          this.log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
+        } else {
+          const prUrl = parsePrUrl(prOut);
+          if (prUrl) {
+            nextPrUrls.set(mb.repoRoot, prUrl);
+            if (verifyResult?.summary) {
+              try {
+                const body = `## Verification (${verifyResult.status})\n\n${verifyResult.summary}`;
+                execSync(`gh pr comment "${prUrl}" --body-file -`, {
+                  cwd: mb.repoRoot,
+                  input: body,
+                });
+              } catch {
+                this.log(`WARN: Could not add verification comment to ${prUrl}`);
+              }
+            }
+          }
+        }
+      }),
+    );
+
+    // Step 6: Update JIRA
+    const promotedParents = new Set<string>();
+    await Promise.all(
+      successful.map(async (r) => {
+        this.log(`SUCCESS: ${r.ticketKey}`);
+        await this.jira.promoteToReview(r.ticketKey, this.log, promotedParents);
+        this.tracker.mark(r.ticketKey);
+      }),
+    );
+
+    const nextBranches: RepoMap = new Map(prevState.branches);
+    for (const mb of mergedBranches) {
+      nextBranches.set(mb.repoRoot, mb.branch);
+    }
+
+    return {
+      succeeded: successful.map((r) => r.ticketKey),
+      failed: failedKeys,
+      layerState: { branches: nextBranches, prUrls: nextPrUrls },
+    };
+  }
+
+  async processGroup(
+    group: TicketAssignment[],
+    repos: string[],
+    verification: Verification,
+    prevState: LayerState,
+  ): Promise<GroupResult> {
+    if (verification.required) await this.devServers.startAll();
+
+    const devServerInfo = verification.required ? this.devServers.devUrl : "";
+    const forgeResults = await forgeGroup(group, devServerInfo, this.runner, this.jira, this.log);
+    const result = await this.mergeAndVerify(forgeResults, group, repos, verification, prevState);
+
+    if (verification.required) this.devServers.stopAll();
+
+    return result;
+  }
+
+  async processLayers(
+    layers: GroupedLayer[],
+    unprocessedSet: Set<string>,
+    skippedKeys: Set<string>,
+    excludedKeys: Set<string>,
+    repos: string[],
+    initialGroupStates?: GroupStates,
+    runState?: RunState,
+  ): Promise<{ succeeded: number; failed: number }> {
+    let succeeded = 0;
+    let failed = 0;
+
+    const dag = new Dag(layers, this.log, initialGroupStates);
+
+    /* oxlint-disable no-await-in-loop -- layers are sequential; each depends on the prior layer */
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
+      const group = filterGroup(layer.group, unprocessedSet, skippedKeys, excludedKeys);
+      if (group.length === 0) continue;
+
+      const pk = primaryKey(layer);
+      const depLabel = layer.dependsOn ? ` →${layer.dependsOn}` : "";
+      this.log(
+        `Layer ${i}: [${ticketKeys(group).join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}${depLabel}`,
+      );
+
+      const prevState = dag.resolve(layer.dependsOn);
+      if (prevState === "skip") {
+        dag.fail(pk);
+        failed += group.length;
+        continue;
+      }
+
+      const result = await this.processGroup(group, repos, layer.verification, prevState);
+      succeeded += result.succeeded.length;
+      failed += result.failed.length;
+
+      if (result.succeeded.length === 0) {
+        this.log(`Layer ${i} group ${pk} failed — downstream dependents will be skipped`);
+        dag.fail(pk);
+      } else {
+        dag.record(pk, result.layerState);
+        runState?.updateGroupStates(dag.snapshot());
+      }
+    }
+
+    /* oxlint-enable no-await-in-loop */
+
+    return { succeeded, failed };
+  }
+}
+
+// ─── Backward-compatible free functions ─────────────────────────────────────
 
 export async function mergeAndVerify(
   forges: ForgeResult[],
@@ -97,179 +366,14 @@ export async function mergeAndVerify(
   tracker: ProcessedTracker,
   log: LogFn,
 ): Promise<GroupResult> {
-  const keys = ticketKeys(group);
-  const successful = forges.filter((r) => r.status !== "failed" && r.worktrees.length > 0);
-  const failedKeys = forges.filter((r) => r.status === "failed").map((r) => r.ticketKey);
-
-  if (successful.length === 0) {
-    log(`GROUP FAILED: no successful forges for ${keys.join(", ")}`);
-    return { succeeded: [], failed: keys, layerState: prevState };
-  }
-
-  // Filtered group's first ticket — used for branch naming, logs, and task names.
-  // Distinct from the unfiltered primaryKey(layer) used as groupStates key in processLayers.
-  const primaryTicket = keys[0];
-
-  // Step 1: Commit each worktree (continue from forge session)
-  log(`COMMITTING: ${primaryTicket} (${successful.length} ticket(s))`);
-  await Promise.all(
-    successful.flatMap((forge) =>
-      forge.worktrees.map(async (wt) => {
-        const { code, stdout } = await runner.run(buildCommitPrompt(forge.ticketKey), {
-          cwd: wt.worktreePath,
-          continueSession: true,
-          model: "sonnet",
-          taskName: `get-shit-done: commit ${forge.ticketKey}`,
-        });
-        runner.writeLog("commit", forge.ticketKey, stdout);
-        if (code !== 0)
-          log(`COMMIT WARN: ${forge.ticketKey} in ${wt.worktreePath} (exit code: ${code})`);
-      }),
-    ),
+  return new Pipeline({ runner, devServers, jira, tracker, log }).mergeAndVerify(
+    forges,
+    group,
+    repos,
+    verification,
+    prevState,
   );
-
-  // Step 2: Merge committed worktrees per repo in parallel
-  const worktreesByRepo = groupWorktreesByRepo(successful);
-  log(`MERGING: ${primaryTicket} across ${worktreesByRepo.size} repo(s)`);
-
-  const mergeResults = await Promise.all(
-    [...worktreesByRepo.entries()].map(async ([repoRoot, wtPaths]) => {
-      const baseBranch = prevState.branches.get(repoRoot);
-      const { code, stdout } = await runner.run(
-        buildMergePrompt(primaryTicket, wtPaths, baseBranch),
-        {
-          cwd: repoRoot,
-          model: "sonnet",
-          taskName: `get-shit-done: merge ${primaryTicket} in ${repoRoot}`,
-        },
-      );
-      runner.writeLog("merge", primaryTicket, stdout);
-      const branch = stdout.trim().split("\n").pop()?.trim() || "";
-      return { repoRoot, code, branch };
-    }),
-  );
-
-  const mergedBranches = mergeResults.filter((r) => r.code === 0 && r.branch);
-  if (mergedBranches.length === 0) {
-    log(`MERGE FAILED: ${primaryTicket} — all repos failed or produced empty branch names`);
-    return {
-      succeeded: [],
-      failed: [...failedKeys, ...successful.map((r) => r.ticketKey)],
-      layerState: prevState,
-    };
-  }
-  for (const r of mergeResults) {
-    if (r.code !== 0) log(`MERGE FAILED: ${primaryTicket} in ${r.repoRoot}`);
-    else if (!r.branch) log(`MERGE WARN: ${primaryTicket} in ${r.repoRoot} — empty branch name`);
-  }
-
-  // Step 3: Restart servers on merge branch (only when UI verification needed)
-  const mergeBranch = mergedBranches[0].branch;
-  log(`MERGE BRANCH: ${mergeBranch}`);
-  if (verification.required) {
-    await devServers.restartOnBranch(mergeBranch);
-  }
-
-  // Step 4: Verify — always run; the skill decides what to check based on verification context
-  log(
-    `VERIFYING: ${primaryTicket} (ui required: ${verification.required}, reason: ${verification.reason})`,
-  );
-  const { code: verifyCode, stdout: verifyOut } = await runner.run(
-    buildVerifyPrompt(
-      primaryTicket,
-      verification.required ? devServers.devUrl : "",
-      mergeBranch,
-      verification,
-    ),
-    {
-      cwd: mergedBranches[0].repoRoot,
-      continueSession: true,
-      model: "opus",
-      effort: "low",
-      taskName: `get-shit-done: verify ${primaryTicket}`,
-    },
-  );
-  runner.writeLog("verify", primaryTicket, verifyOut);
-
-  const verifyResult = parseJson(verifyOut, isVerifyOutput);
-  if (verifyCode !== 0) {
-    log(`VERIFY FAILED: ${primaryTicket} (exit code: ${verifyCode})`);
-  } else if (verifyResult) {
-    log(`VERIFY ${verifyResult.status.toUpperCase()}: ${primaryTicket} — ${verifyResult.summary}`);
-  }
-
-  // Step 5: Create PRs per repo (continue from forge session for full context)
-  const succeededKeys = successful.map((r) => r.ticketKey);
-  const screenshots = verifyResult?.screenshots ?? [];
-  const nextPrUrls: RepoMap = new Map(prevState.prUrls);
-
-  await Promise.all(
-    mergedBranches.map(async (mb) => {
-      const baseBranch = prevState.branches.get(mb.repoRoot);
-      const basePrUrl = prevState.prUrls.get(mb.repoRoot);
-      const dep: PrDependency | undefined = baseBranch
-        ? { baseBranch, prUrl: basePrUrl ?? baseBranch }
-        : undefined;
-      log(
-        `CREATING PR: ${primaryTicket} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`,
-      );
-      const { code: prCode, stdout: prOut } = await runner.run(
-        buildPrPrompt(succeededKeys, mb.branch, dep, screenshots),
-        {
-          cwd: mb.repoRoot,
-          continueSession: true,
-          model: "sonnet",
-          taskName: `get-shit-done: pr ${primaryTicket} in ${mb.repoRoot}`,
-        },
-      );
-      runner.writeLog("pr", primaryTicket, prOut);
-      if (prCode !== 0) {
-        log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
-      } else {
-        const prUrl = parsePrUrl(prOut);
-        if (prUrl) {
-          nextPrUrls.set(mb.repoRoot, prUrl);
-          // Add verification summary as PR comment
-          if (verifyResult?.summary) {
-            try {
-              const body = `## Verification (${verifyResult.status})\n\n${verifyResult.summary}`;
-              execSync(`gh pr comment "${prUrl}" --body-file -`, {
-                cwd: mb.repoRoot,
-                input: body,
-              });
-            } catch {
-              log(`WARN: Could not add verification comment to ${prUrl}`);
-            }
-          }
-        }
-      }
-    }),
-  );
-
-  // Step 6: Update JIRA — move tickets to In Review, promote parent if all sub-tasks done
-  const promotedParents = new Set<string>();
-  await Promise.all(
-    successful.map(async (r) => {
-      log(`SUCCESS: ${r.ticketKey}`);
-      await jira.promoteToReview(r.ticketKey, log, promotedParents);
-      tracker.mark(r.ticketKey);
-    }),
-  );
-
-  // Build updated per-repo state — carry forward, override with new merges + PR URLs
-  const nextBranches: RepoMap = new Map(prevState.branches);
-  for (const mb of mergedBranches) {
-    nextBranches.set(mb.repoRoot, mb.branch);
-  }
-
-  return {
-    succeeded: successful.map((r) => r.ticketKey),
-    failed: failedKeys,
-    layerState: { branches: nextBranches, prUrls: nextPrUrls },
-  };
 }
-
-// ─── Group processing (forge → merge → verify → PR) ─────────────────────────
 
 export async function processGroup(
   group: TicketAssignment[],
@@ -282,29 +386,13 @@ export async function processGroup(
   tracker: ProcessedTracker,
   log: LogFn,
 ): Promise<GroupResult> {
-  if (verification.required) await devServers.startAll();
-
-  const devServerInfo = verification.required ? devServers.devUrl : "";
-  const forgeResults = await forgeGroup(group, devServerInfo, runner, jira, log);
-  const result = await mergeAndVerify(
-    forgeResults,
+  return new Pipeline({ runner, devServers, jira, tracker, log }).processGroup(
     group,
     repos,
     verification,
     prevState,
-    runner,
-    devServers,
-    jira,
-    tracker,
-    log,
   );
-
-  if (verification.required) devServers.stopAll();
-
-  return result;
 }
-
-// ─── Process layers (dependency DAG) ─────────────────────────────────────────
 
 export async function processLayers(
   layers: GroupedLayer[],
@@ -320,56 +408,13 @@ export async function processLayers(
   initialGroupStates?: GroupStates,
   runState?: RunState,
 ): Promise<{ succeeded: number; failed: number }> {
-  let succeeded = 0;
-  let failed = 0;
-
-  const dag = new Dag(layers, log, initialGroupStates);
-
-  /* oxlint-disable no-await-in-loop -- layers are sequential; each depends on the prior layer */
-  for (let i = 0; i < layers.length; i++) {
-    const layer = layers[i];
-    const group = filterGroup(layer.group, unprocessedSet, skippedKeys, excludedKeys);
-    if (group.length === 0) continue;
-
-    // Unfiltered primary key — stable identifier for groupStates and dependsOn resolution.
-    // Branch naming uses the filtered group's first ticket (inside mergeAndVerify).
-    const pk = primaryKey(layer);
-    const depLabel = layer.dependsOn ? ` →${layer.dependsOn}` : "";
-    log(
-      `Layer ${i}: [${ticketKeys(group).join(", ")}]${layer.relation ? ` (${layer.relation})` : ""}${depLabel}`,
-    );
-
-    const prevState = dag.resolve(layer.dependsOn);
-    if (prevState === "skip") {
-      dag.fail(pk);
-      failed += group.length;
-      continue;
-    }
-
-    const result = await processGroup(
-      group,
-      repos,
-      layer.verification,
-      prevState,
-      runner,
-      devServers,
-      jira,
-      tracker,
-      log,
-    );
-    succeeded += result.succeeded.length;
-    failed += result.failed.length;
-
-    if (result.succeeded.length === 0) {
-      log(`Layer ${i} group ${pk} failed — downstream dependents will be skipped`);
-      dag.fail(pk);
-    } else {
-      dag.record(pk, result.layerState);
-      runState?.updateGroupStates(dag.snapshot());
-    }
-  }
-
-  /* oxlint-enable no-await-in-loop */
-
-  return { succeeded, failed };
+  return new Pipeline({ runner, devServers, jira, tracker, log }).processLayers(
+    layers,
+    unprocessedSet,
+    skippedKeys,
+    excludedKeys,
+    repos,
+    initialGroupStates,
+    runState,
+  );
 }
