@@ -133,10 +133,10 @@ void describe("Prioritizer.prioritize", () => {
     const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    // Empty layers is technically valid parse, but resolveAndValidateRepos won't complain
-    // The result will have empty layers — this is the actual behavior
-    const result = await prioritizer.prioritize(["EC-1", "EC-2"], REPOS);
-    assert.equal(result.layers.length, 0);
+    await assert.rejects(
+      () => prioritizer.prioritize(["EC-1", "EC-2"], REPOS),
+      /parse failed/,
+    );
   });
 
   void it("logs prioritization summary on success", async () => {
