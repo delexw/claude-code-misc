@@ -54,9 +54,12 @@ const devServers = new DevServerManager(
   join(HOME, ".claude/scheduler/logs/.bootstrap"),
   log,
 );
+let cleanExit = false;
+
 process.on("exit", () => {
   try { postRunCleanup(SCRIPT_DIR, LOG_BASE, devServers, log); } catch { /* best effort */ }
-  releaseLock();
+  if (cleanExit) releaseLock();
+  else log("ERROR: retaining lock to prevent retry — manual intervention required");
 });
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -126,6 +129,8 @@ async function main() {
   log(`=== Summary: processed=${succeeded} skipped=${skippedCount} failed=${failed} ===`);
 }
 
-main().catch((err: unknown) => {
-  log(`FATAL: ${err instanceof Error ? err.message : String(err)}`);
-});
+main()
+  .then(() => { cleanExit = true; })
+  .catch((err: unknown) => {
+    log(`FATAL: ${err instanceof Error ? err.message : String(err)}`);
+  });

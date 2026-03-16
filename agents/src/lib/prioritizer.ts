@@ -196,13 +196,10 @@ export async function prioritizeTickets(
       logPrioritizeResult(result, log);
       return result;
     }
-    log(`WARN: Prioritizer output parse failed`);
+    throw new Error("Prioritizer output parse failed — terminating");
   } else {
-    log(`WARN: Prioritizer exited with code ${code}`);
+    throw new Error(`Prioritizer exited with code ${code} — terminating`);
   }
-
-  log(`WARN: Falling back to unprioritized order`);
-  return fallbackResult(allTickets);
 }
 
 /**
