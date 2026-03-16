@@ -8,6 +8,11 @@ interface WatchdogOpts {
   pollMs?: number;
 }
 
+export interface WatchdogHandle {
+  hung: Promise<"hung">;
+  cancel: () => void;
+}
+
 /**
  * Watches for a worktree directory to appear on disk.
  * If it doesn't appear within the timeout, resolves as "hung".
@@ -22,26 +27,27 @@ export class WorktreeWatchdog {
     this.pollMs = opts?.pollMs ?? DEFAULT_POLL_MS;
   }
 
-  /**
-   * Returns a promise that resolves to "hung" if the path never appears
-   * within the timeout. If the path does appear, the promise never resolves
-   * (allowing Promise.race callers to proceed with the real work).
-   */
-  watch(path: string): Promise<"hung"> {
-    return new Promise((resolve) => {
+  watch(path: string): WatchdogHandle {
+    let intervalId: ReturnType<typeof setInterval>;
+    const hung = new Promise<"hung">((resolve) => {
       const deadline = Date.now() + this.timeoutMs;
-      const interval = setInterval(() => {
+      intervalId = setInterval(() => {
         if (existsSync(path)) {
-          clearInterval(interval);
+          clearInterval(intervalId);
           return;
         }
         if (Date.now() >= deadline) {
-          clearInterval(interval);
+          clearInterval(intervalId);
           resolve("hung");
         }
       }, this.pollMs);
-      if (typeof interval === "object" && "unref" in interval) interval.unref();
+      if (typeof intervalId === "object" && "unref" in intervalId) intervalId.unref();
     });
+
+    return {
+      hung,
+      cancel: () => clearInterval(intervalId),
+    };
   }
 
   get timeoutSec(): number {

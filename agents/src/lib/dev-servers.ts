@@ -1,4 +1,4 @@
-import { readFileSync, mkdirSync, openSync } from "node:fs";
+import { readFileSync, mkdirSync, openSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { createConnection } from "node:net";
 import { spawn, execSync, type ChildProcess } from "node:child_process";
@@ -152,6 +152,18 @@ export class DevServerManager {
       this.killServer(server);
     }
     this.running = [];
+  }
+
+  cleanupLogs(log: (msg: string) => void): void {
+    try {
+      const entries = readdirSync(this.logDir);
+      for (const entry of entries) {
+        rmSync(join(this.logDir, entry), { force: true });
+      }
+      if (entries.length > 0) log(`CLEANUP: removed ${entries.length} bootstrap log(s)`);
+    } catch {
+      // ignore
+    }
   }
 
   // ─── Restart non-fixed-branch servers on a merge branch ──────────────────

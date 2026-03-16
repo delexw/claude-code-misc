@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 import {
   acquireLock,
+  releaseLock,
   registerChildPid,
   unregisterChildPid,
   _resetForTest,
@@ -142,6 +143,25 @@ void describe("lock", () => {
     data = readLockData(lockFile);
     assert.equal(data.children.length, 1);
     assert.ok(data.children.includes(s2.pid));
+  });
+
+  void it("releaseLock removes the lock file", () => {
+    acquireLock(lockFile);
+    assert.equal(existsSync(lockFile), true);
+
+    releaseLock();
+    assert.equal(existsSync(lockFile), false);
+  });
+
+  void it("releaseLock is safe when no lock acquired", () => {
+    releaseLock(); // should not throw
+  });
+
+  void it("releaseLock is safe to call twice", () => {
+    acquireLock(lockFile);
+    releaseLock();
+    releaseLock(); // should not throw
+    assert.equal(existsSync(lockFile), false);
   });
 
   void it("kills orphaned children when reclaiming stale lock", async () => {

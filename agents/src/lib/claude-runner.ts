@@ -59,10 +59,13 @@ export class ClaudeRunner {
     // If the worktree directory never appears, the CLI is stuck — kill and retry once.
     if (opts.worktree) {
       const wtPath = worktreePath(opts.cwd ?? this.cwd, opts.worktree);
+      const wd = this.watchdog.watch(wtPath);
       const result = await Promise.race([
         handle.result.then((r) => ({ kind: "done" as const, ...r })),
-        this.watchdog.watch(wtPath).then((kind) => ({ kind })),
+        wd.hung.then((kind) => ({ kind })),
       ]);
+
+      wd.cancel();
 
       if (result.kind === "hung") {
         await handle.kill();

@@ -89,13 +89,18 @@ export function acquireLock(lockFile: string): boolean {
   currentLockFile = lockFile;
   writeLock(lockFile, { pid: process.pid, children: [] });
 
-  const cleanup = () => {
-    try {
-      unlinkSync(lockFile);
-    } catch {}
-  };
-  process.on("exit", cleanup);
+  // Convert signals to exit so process.on("exit") handlers fire
   process.on("SIGINT", () => process.exit(1));
   process.on("SIGTERM", () => process.exit(1));
   return true;
+}
+
+/** Remove the lock file. Call this in process.on("exit") from the entry point. */
+export function releaseLock(): void {
+  if (currentLockFile) {
+    try {
+      unlinkSync(currentLockFile);
+    } catch {}
+    currentLockFile = null;
+  }
 }

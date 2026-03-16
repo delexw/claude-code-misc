@@ -9,15 +9,16 @@
 import { mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createLogger, makeTimestamp, cleanupOldLogs } from "./lib/logger.js";
+import { createLogger, makeTimestamp } from "./lib/logger.js";
 import { parseRepos, discoverRepos, resetReposToMain } from "./lib/repos.js";
-import { acquireLock } from "./lib/lock.js";
+import { acquireLock, releaseLock } from "./lib/lock.js";
 import { JiraClient } from "./lib/jira.js";
 import { ProcessedTracker } from "./lib/processed-tracker.js";
 import { DevServerManager } from "./lib/dev-servers.js";
 import { ClaudeRunner } from "./lib/claude-runner.js";
 import { classifyTickets, prioritizeTickets } from "./lib/prioritizer.js";
 import { processLayers } from "./lib/pipeline.js";
+import { postRunCleanup } from "./lib/cleanup.js";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -53,17 +54,21 @@ const devServers = new DevServerManager(
   join(HOME, ".claude/scheduler/logs/.bootstrap"),
   log,
 );
+process.on("exit", () => {
+  try { postRunCleanup(SCRIPT_DIR, LOG_BASE, devServers, log); } catch { /* best effort */ }
+  releaseLock();
+});
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (!acquireLock(join(STATE_DIR, "lock"))) process.exit(0);
+  if (!acquireLock(join(STATE_DIR, "lock"))) return;
 
   const sprint = await jira.getActiveSprint();
-  if (!sprint) process.exit(0);
+  if (!sprint) return;
 
   const allTickets = await jira.fetchSprintTickets(sprint);
-  if (allTickets.length === 0) process.exit(0);
+  if (allTickets.length === 0) return;
 
   const processed = tracker.load();
   const repos = discoverRepos(baseRepos).map((r) => r.repo);
@@ -87,7 +92,7 @@ async function main() {
 
   if (unprocessed.length === 0) {
     log(`No unprocessed pending tickets.`);
-    process.exit(0);
+    return;
   }
 
   const allKeys = allTickets.map((t) => t.key);
@@ -119,10 +124,8 @@ async function main() {
   );
 
   log(`=== Summary: processed=${succeeded} skipped=${skippedCount} failed=${failed} ===`);
-  cleanupOldLogs(LOG_BASE, [], 7);
 }
 
 main().catch((err: unknown) => {
   log(`FATAL: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
 });

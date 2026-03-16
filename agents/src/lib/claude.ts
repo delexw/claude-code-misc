@@ -59,14 +59,20 @@ export function spawnClaude(args: string[], opts: SpawnClaudeOptions): SpawnClau
     });
 
     if (child.pid) registerChildPid(child.pid);
+
+    let closed = false;
+    const closedPromise = new Promise<void>((r) => child.on("close", () => r()));
+
     killFn = async () => {
+      if (closed) return;
       child.kill("SIGTERM");
-      // Wait for graceful exit, then force-kill
-      const exited = new Promise<void>((r) => child.on("close", () => r()));
-      const timeout = new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 5_000));
-      if ((await Promise.race([exited, timeout])) === "timeout") {
+      const waited = await Promise.race([
+        closedPromise.then(() => "exited" as const),
+        new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 5_000)),
+      ]);
+      if (waited === "timeout") {
         child.kill("SIGKILL");
-        await exited;
+        await closedPromise;
       }
     };
 
@@ -80,10 +86,11 @@ export function spawnClaude(args: string[], opts: SpawnClaudeOptions): SpawnClau
     });
 
     const timer = setTimeout(() => {
-      child.kill("SIGTERM");
+      void killFn();
     }, timeoutMs);
 
     child.on("close", (code) => {
+      closed = true;
       clearTimeout(timer);
       if (child.pid) unregisterChildPid(child.pid);
       const stdout = Buffer.concat(chunks).toString();
