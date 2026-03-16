@@ -44,7 +44,7 @@ async function main() {
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
     ["--permission-mode", "acceptEdits", "--add-dir", ...REPOS, "-p", prompt],
     { cwd: SCRIPT_DIR, taskName: "pir-analyzer", timeoutMs: 24 * 60 * 60 * 1000 },
-  );
+  ).result;
 
   log(`Claude CLI exited with code: ${exitCode}`);
   log("--- Response ---");

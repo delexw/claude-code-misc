@@ -31,10 +31,18 @@ interface SpawnClaudeResult {
   stdout: string;
 }
 
-export function spawnClaude(args: string[], opts: SpawnClaudeOptions): Promise<SpawnClaudeResult> {
+export interface SpawnClaudeHandle {
+  result: Promise<SpawnClaudeResult>;
+  /** Send SIGTERM, wait up to 5s for exit, then SIGKILL. Resolves when the process is dead. */
+  kill: () => Promise<void>;
+}
+
+export function spawnClaude(args: string[], opts: SpawnClaudeOptions): SpawnClaudeHandle {
   const { cwd, taskName, timeoutMs = 30 * 60 * 1000, stderrToLog } = opts;
 
-  return new Promise((resolve) => {
+  let killFn: () => Promise<void> = async () => {};
+
+  const result = new Promise<SpawnClaudeResult>((resolve) => {
     const child = spawn(CLAUDE_CLI, args, {
       cwd,
       env: {
@@ -51,6 +59,16 @@ export function spawnClaude(args: string[], opts: SpawnClaudeOptions): Promise<S
     });
 
     if (child.pid) registerChildPid(child.pid);
+    killFn = async () => {
+      child.kill("SIGTERM");
+      // Wait for graceful exit, then force-kill
+      const exited = new Promise<void>((r) => child.on("close", () => r()));
+      const timeout = new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 5_000));
+      if ((await Promise.race([exited, timeout])) === "timeout") {
+        child.kill("SIGKILL");
+        await exited;
+      }
+    };
 
     const chunks: Buffer[] = [];
     const stderrChunks: Buffer[] = [];
@@ -76,4 +94,6 @@ export function spawnClaude(args: string[], opts: SpawnClaudeOptions): Promise<S
       });
     });
   });
+
+  return { result, kill: () => killFn() }; // returns Promise<void>
 }

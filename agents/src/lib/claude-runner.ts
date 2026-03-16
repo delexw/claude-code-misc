@@ -1,6 +1,8 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnClaude } from "./claude.js";
+import { WorktreeWatchdog } from "./worktree-watchdog.js";
+import { worktreePath } from "./prompts.js";
 
 export type LogFn = (msg: string) => void;
 
@@ -15,7 +17,11 @@ interface RunOpts {
   continueSession?: boolean;
 }
 
+const WORKTREE_MAX_ATTEMPTS = 2;
+
 export class ClaudeRunner {
+  private readonly watchdog = new WorktreeWatchdog();
+
   constructor(
     private readonly cwd: string,
     private readonly logDir: string,
@@ -23,6 +29,14 @@ export class ClaudeRunner {
   ) {}
 
   async run(prompt: string, opts: RunOpts): Promise<{ code: number; stdout: string }> {
+    return this.runOnce(prompt, opts);
+  }
+
+  private async runOnce(
+    prompt: string,
+    opts: RunOpts,
+    attempt = 1,
+  ): Promise<{ code: number; stdout: string }> {
     const args = [
       ...(opts.model ? ["--model", opts.model] : []),
       ...(opts.effort ? ["--effort", opts.effort] : []),
@@ -34,12 +48,33 @@ export class ClaudeRunner {
     if (!opts.worktree && opts.repos) args.push("--add-dir", ...opts.repos);
     args.push("-p", prompt);
 
-    return spawnClaude(args, {
+    const handle = spawnClaude(args, {
       cwd: opts.cwd ?? this.cwd,
       taskName: opts.taskName,
       timeoutMs: opts.timeoutMs ?? 24 * 60 * 60 * 1000,
       stderrToLog: this.logFile,
     });
+
+    // When using a worktree, race against a watchdog that detects hung CLI processes.
+    // If the worktree directory never appears, the CLI is stuck — kill and retry once.
+    if (opts.worktree) {
+      const wtPath = worktreePath(opts.cwd ?? this.cwd, opts.worktree);
+      const result = await Promise.race([
+        handle.result.then((r) => ({ kind: "done" as const, ...r })),
+        this.watchdog.watch(wtPath).then((kind) => ({ kind })),
+      ]);
+
+      if (result.kind === "hung") {
+        await handle.kill();
+        if (attempt < WORKTREE_MAX_ATTEMPTS) {
+          return this.runOnce(prompt, opts, attempt + 1);
+        }
+        return { code: 1, stdout: `HUNG: worktree never created after ${WORKTREE_MAX_ATTEMPTS} attempts` };
+      }
+      return { code: result.code, stdout: result.stdout };
+    }
+
+    return handle.result;
   }
 
   writeLog(prefix: string, id: string, content: string): string {

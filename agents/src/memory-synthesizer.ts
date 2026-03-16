@@ -186,7 +186,7 @@ When removing a promoted entry:
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
     ["--permission-mode", "acceptEdits", "-p", `/${skillName}`],
     { cwd: SCRIPT_DIR, taskName: "memory-synthesizer", timeoutMs: 5 * 60 * 60 * 1000 },
-  );
+  ).result;
 
   log(`Claude CLI exited with code: ${exitCode}`);
   if (claudeOutput) log(`--- Response ---\n${claudeOutput}`);

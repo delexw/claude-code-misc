@@ -140,7 +140,7 @@ async function main() {
     cwd: SCRIPT_DIR,
     taskName: "jsonl-compat-checker-fetch",
     timeoutMs: 2 * 60 * 1000,
-  });
+  }).result;
 
   if (rnExitCode !== 0 || !releaseNotes.trim()) {
     log(`ERROR: Failed to fetch release notes (exit code: ${rnExitCode})`);
@@ -160,7 +160,7 @@ async function main() {
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
     ["--permission-mode", "acceptEdits", "-p", fullPrompt],
     { cwd: SCRIPT_DIR, taskName: "jsonl-compat-checker", timeoutMs: 10 * 60 * 1000 },
-  );
+  ).result;
 
   // Cleanup temp file
   try {

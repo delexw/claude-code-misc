@@ -80,7 +80,7 @@ void describe("forgeTicket", () => {
     );
 
     assert.ok(logs.some((l) => l.includes("FORGING: EC-3")));
-    assert.ok(logs.some((l) => l.includes("FORGED: EC-3")));
+    assert.ok(logs.some((l) => l.includes("FORGED (success): EC-3")));
   });
 
   void it("logs failure message on non-zero exit", async () => {

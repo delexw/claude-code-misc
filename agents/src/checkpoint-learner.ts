@@ -366,7 +366,7 @@ and replace the inline content with index links. Only include sections that have
     const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
       ["--permission-mode", "acceptEdits", "-p", `/${skillName}`],
       { cwd: SCRIPT_DIR, taskName: "checkpoint-learner", timeoutMs: 5 * 60 * 60 * 1000 },
-    );
+    ).result;
 
     log(`Claude CLI exited with code: ${exitCode}`);
     if (claudeOutput) log(`--- Response ---\n${claudeOutput}`);
