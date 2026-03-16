@@ -112,7 +112,7 @@ export function parsePrioritizerOutput(raw: string): PrioritizeResult | null {
 }
 
 /**
- * Build a single-layer fallback when prioritization fails or is skipped.
+ * Build a single-layer fallback when there is only one ticket (prioritization skipped).
  */
 export function fallbackResult(tickets: string[]): PrioritizeResult {
   return {
@@ -164,6 +164,7 @@ export async function prioritizeTickets(
   runner: ClaudeRunner,
   scriptDir: string,
   log: LogFn,
+  processedKeys?: Set<string>,
 ): Promise<PrioritizeResult> {
   if (allTickets.length <= 1) return fallbackResult(allTickets);
 
@@ -171,13 +172,23 @@ export async function prioritizeTickets(
 
   const ticketList = allTickets.join(",");
   const repoList = repos.join("\n");
+
+  const processedNote =
+    processedKeys && processedKeys.size > 0
+      ? [
+          "",
+          `IMPORTANT: The following tickets were already forged in a previous run and should be treated as COMPLETED for dependency resolution, regardless of their current JIRA status:`,
+          [...processedKeys].join(", "),
+        ].join("\n")
+      : "";
+
   const { code, stdout } = await runner.run(
     [
       `[GSD: prioritize ${allTickets.length} tickets] ${AUTONOMY_PREFIX}`,
       "",
       `Invoke Skill("/jira-ticket-prioritizer 'Prioritize tickets ${ticketList} and assign each to one of these repos:`,
       repoList,
-      `Use the repo basename in output (not the full path).'").`,
+      `Use the repo basename in output (not the full path).${processedNote}'").`,
       "",
       "Return json ONLY without code fence",
     ].join("\n"),

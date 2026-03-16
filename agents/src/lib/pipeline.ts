@@ -14,6 +14,7 @@ import {
 import { filterGroup, ticketKeys } from "./prioritizer.js";
 import { parseJson } from "./json.js";
 import { forgeGroup } from "./forge.js";
+import type { RunState } from "./run-state.js";
 
 /**
  * Group worktree infos by their repo root path.
@@ -312,12 +313,15 @@ export async function processLayers(
   jira: JiraClient,
   tracker: ProcessedTracker,
   log: LogFn,
+  initialState?: LayerState,
+  runState?: RunState,
 ): Promise<{ succeeded: number; failed: number }> {
   let succeeded = 0;
   let failed = 0;
 
   // Tracks per-repo merge branches + PR URLs — next layer inherits (stacked PRs).
-  let layerState: LayerState = { branches: new Map(), prUrls: new Map() };
+  // Seed from persisted state on restart so the merge chain is preserved.
+  let layerState: LayerState = initialState ?? { branches: new Map(), prUrls: new Map() };
 
   /* oxlint-disable no-await-in-loop -- layers are sequential; each depends on the prior layer */
   for (let i = 0; i < layers.length; i++) {
@@ -351,6 +355,7 @@ export async function processLayers(
 
     // Carry forward state so the next layer inherits this layer's branches + PR URLs
     layerState = result.layerState;
+    runState?.updateLayerState(layerState);
   }
 
   /* oxlint-enable no-await-in-loop */
