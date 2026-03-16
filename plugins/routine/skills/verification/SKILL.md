@@ -29,11 +29,11 @@ Invoke `Skill("autoresearch")` with the verification process as context — let 
 ```
 Verify implementation changes on the current branch.
 
-Available verification tools:
-- Skill("codex-review", "review the uncommitted changes against main branch")
-- Skill("qa-web-test", "{dev_url}") — visual QA web testing (only if Web UI verification required and dev server found)
+Each iteration MUST run these skills in order:
+1. Skill("codex-review", "review the uncommitted changes against main branch") — use OpenAI Codex CLI (always run)
+2. Skill("qa-web-test", "{dev_url}") — visual QA web testing (only if dev server found)
 
-Fix all issues found until verification passes clean.
+Fix all issues found, then loop until verification pass clean.
 ```
 
 ## Output
