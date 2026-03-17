@@ -29,7 +29,7 @@ Infer from the arguments:
 
 Follow these steps in order. Read each step file for detailed instructions.
 
-1. **[Connect and navigate](steps/step-01-connect.md)** — Navigate to target URL
+1. **[Connect and navigate](steps/step-01-connect.md)** — Navigate to target URL (includes auth check and login if needed)
 2. **[Determine breakpoints](steps/step-02-breakpoints.md)** — Choose viewport widths to test
 3. **[Emulate and capture](steps/step-03-emulate-and-capture.md)** — Set viewport, screenshot, inspect dimensions
 4. **[CSS inspection](steps/step-04-css-inspection.md)** — Inspect computed styles and container queries

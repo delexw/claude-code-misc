@@ -19,17 +19,16 @@ Infer from the arguments:
 - TARGET_URL: the URL to inspect
 - OUT_DIR: output directory, or `./page-inspector-output` if not provided
 
-## Prerequisites
-
-If the page requires authentication, attempt to find credentials from environment variables. If none are found or authentication fails, skip the inspection.
-
 ## Execution
 
-### 1. Navigate & Snapshot
+### 1. Navigate & Authenticate
 
-- Navigate to TARGET_URL
-- Take an interactive snapshot to confirm the page loaded
-- If auth is needed, fill login form fields and submit, then re-snapshot
+- Navigate to TARGET_URL and take an interactive snapshot to confirm the page loaded.
+- If the page requires authentication:
+  1. **Check the system prompt** for any guidance on where to find credentials.
+  2. **Check environment variables** — run `env | grep -iE 'USER|PASS|LOGIN|AUTH|TOKEN|CRED|SECRET|API_KEY' | sed 's/=.*/=***/'` to list available credential env vars (mask values in output).
+  3. If credentials are found, fill the login form and submit, then re-snapshot.
+  4. If none are found, use the `AskUserQuestion` tool to ask where credentials can be found (skip this in autonomous mode). If credentials cannot be obtained, **skip the entire skill** and note: "Skipped — page requires authentication but no credentials found."
 
 ### 2. Capture Desktop Screenshot
 
