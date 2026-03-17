@@ -4,7 +4,13 @@
 ## Link Scanning
 - Read `SKILL_DIR/references/dossier.json` to get the `links` object and identify categorized URLs
 - Additionally scan the description text for any URLs not captured in `links`
-- Visit each link — **invoke all link visits in a single message** for parallelism:
+- **Filter links before fetching** — only fetch links that are likely to contain spec, design, or documentation content. Skip:
+  - JIRA ticket keys mentioned only incidentally in description prose or comments
+  - CI/CD links (Jenkins, GitHub Actions runs, CircleCI, BuildKite, Datadog pipelines)
+  - Slack threads or message permalinks
+  - Internal monitoring/alerting links (PagerDuty, Grafana, Sentry alerts)
+  - Duplicate links already covered by another category
+- Visit each **relevant** link — **invoke all link visits in a single message** for parallelism:
    - Confluence pages (`links.confluence`): invoke `Skill("confluence-page-viewer")` with the page URL and `SKILL_DIR/references/intel/scrolls/{index}` as the output directory
    - Jira tickets: invoke `Skill("jira-ticket-viewer")` with the linked ticket key and `SKILL_DIR/references/intel/dossiers/{linked_key}` as the output directory
    - GitHub links (`links.github`): use `gh pr view` for PRs, `gh api` for files — write output to `SKILL_DIR/references/intel/scraps/github-{index}.md`
