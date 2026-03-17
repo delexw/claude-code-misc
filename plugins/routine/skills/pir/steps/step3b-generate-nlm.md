@@ -36,4 +36,5 @@ Spawn a subagent with `Agent` tool to invoke `Skill("nlm-skill")` with the follo
 5. **Generate a report** using the "Create Your Own" format with a custom prompt requesting a structured PIR with incident timeline, severity classification, and evidence sources
 6. **Generate an infographic** (landscape, detailed, professional style)
 7. **Generate a slide deck** summarizing the incident (timeline, root cause, affected services, severity, remediation steps) for team review and presentation
-8. **Return the notebook ID** so Step 4 can reference it
+8. **Query the notebook for a short poem** inspired by the incidents and findings, and save it as a note in the notebook
+9. **Return the notebook ID** so Step 4 can reference it
