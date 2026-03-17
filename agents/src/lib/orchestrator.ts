@@ -148,8 +148,9 @@ export class GSDOrchestrator {
     const discovery = await this.discovery.discover(this.log);
     if (!discovery) return;
 
-    if (this.runState.resetIfSprintChanged(discovery.sprint)) {
-      this.log(`SPRINT CHANGED: ${discovery.sprint} — cleared previous run state`);
+    const pruned = this.runState.pruneMergedGroups();
+    for (const key of pruned) {
+      this.log(`PRUNED: ${key} — PR merged, removed from run state`);
     }
 
     this.resumeInFlightTickets(discovery);

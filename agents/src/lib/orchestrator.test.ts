@@ -229,11 +229,11 @@ void describe("GSDOrchestrator.run", () => {
     assert.ok(!deps.logs.some((l) => l.includes("PRIORITIZ")));
   });
 
-  void it("clears state when sprint changes", async () => {
+  void it("preserves cross-sprint state when PRs are not yet merged", async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
 
-    // Save state from Sprint 1
+    // Save state from Sprint 1 with a PR in flight
     runState.save(
       JSON.stringify({
         layers: [
@@ -259,7 +259,7 @@ void describe("GSDOrchestrator.run", () => {
       ]),
     );
 
-    // Now sprint changes — EC-2 is in Sprint 2
+    // Sprint 2: EC-2 depends on EC-1's branch
     const jira = makeJira("Sprint 2", [{ key: "EC-2", status: "To Do" }]);
 
     const prioritizer = {
@@ -288,9 +288,9 @@ void describe("GSDOrchestrator.run", () => {
     const orch = new GSDOrchestrator(deps);
     await orch.run();
 
-    assert.ok(deps.logs.some((l) => l.includes("SPRINT CHANGED")));
-    // Previous state should be cleared — completedTicketKeys should be empty
-    assert.equal(runState.completedTicketKeys().size, 0);
+    // EC-1 PR not merged — state preserved across sprint boundary
+    assert.ok(!deps.logs.some((l) => l.includes("PRUNED")));
+    assert.equal(runState.completedTicketKeys().has("EC-1"), true);
   });
 
   void it("re-includes in-flight tickets from previous run on restart", async () => {

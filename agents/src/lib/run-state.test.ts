@@ -233,6 +233,130 @@ void describe("RunState", () => {
     assert.equal(raw.layerState, undefined);
   });
 
+  // ─── pruneMergedGroups ────────────────────────────────────────────────────
+
+  void it("prunes fully merged groups across multiple groups", () => {
+    state.save(makeRawJson(["EC-1", "EC-2"]));
+    state.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+        [
+          "EC-2",
+          {
+            branches: new Map([["/repo", "ec-2-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/2"]]),
+          },
+        ],
+      ]),
+    );
+
+    // EC-1 merged, EC-2 open
+    const pruned = state.pruneMergedGroups((url) => url === "https://pr/1");
+    assert.deepEqual(pruned, ["EC-1"]);
+
+    const loaded = state.load();
+    assert.ok(loaded);
+    assert.equal(loaded.groupStates.has("EC-1"), false);
+    assert.equal(loaded.groupStates.has("EC-2"), true);
+  });
+
+  void it("removes only the merged repo from a group with mixed PR states", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([
+              ["/frontend", "ec-1-fe-merge"],
+              ["/backend", "ec-1-be-merge"],
+            ]),
+            prUrls: new Map([
+              ["/frontend", "https://pr/fe"],
+              ["/backend", "https://pr/be"],
+            ]),
+          },
+        ],
+      ]),
+    );
+
+    // Frontend merged, backend still open
+    const pruned = state.pruneMergedGroups((url) => url === "https://pr/fe");
+    assert.deepEqual(pruned, []); // group not fully pruned
+
+    const loaded = state.load();
+    assert.ok(loaded);
+    // Frontend removed — downstream won't re-use its branch
+    assert.equal(loaded.groupStates.get("EC-1")?.prUrls.has("/frontend"), false);
+    assert.equal(loaded.groupStates.get("EC-1")?.branches.has("/frontend"), false);
+    // Backend preserved
+    assert.equal(loaded.groupStates.get("EC-1")?.prUrls.get("/backend"), "https://pr/be");
+    assert.equal(loaded.groupStates.get("EC-1")?.branches.get("/backend"), "ec-1-be-merge");
+  });
+
+  void it("clears file entirely when all groups are pruned", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+      ]),
+    );
+
+    state.pruneMergedGroups(() => true);
+    assert.equal(existsSync(stateFile), false);
+  });
+
+  void it("does not prune groups with no PR URLs", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.updateGroupStates(
+      new Map([["EC-1", { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map() }]]),
+    );
+
+    const pruned = state.pruneMergedGroups(() => true);
+    assert.deepEqual(pruned, []);
+    assert.ok(existsSync(stateFile));
+  });
+
+  void it("removes pruned keys from extraCompleted", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+      ]),
+    );
+    state.markCompleted("EC-2"); // extra key
+
+    const pruned = state.pruneMergedGroups((url) => url === "https://pr/1");
+    assert.deepEqual(pruned, ["EC-1"]);
+
+    // EC-2 still in extraCompleted, file still exists
+    const loaded = state.load();
+    assert.ok(loaded);
+  });
+
+  void it("returns empty array and is safe when no state file exists", () => {
+    const pruned = state.pruneMergedGroups(() => true);
+    assert.deepEqual(pruned, []);
+  });
+
   // ─── backward compat ──────────────────────────────────────────────────────
 
   void it("returns null for old format with prioritizerResult instead of prioritizerRawJson", () => {

@@ -4,6 +4,7 @@
  */
 
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import type { GroupStates, RepoMap } from "./dag.js";
 import type { RawPrioritizeOutput } from "./prioritizer.js";
 
@@ -73,18 +74,74 @@ export class RunState {
     }
   }
 
-  /** Clear state and return true if the sprint has changed since last save. */
-  resetIfSprintChanged(currentSprint: string): boolean {
+  /**
+   * Prune merged repos from group state entries.
+   *
+   * For each repo within a group, if its PR is merged, that repo is removed
+   * from both `prUrls` and `branches` — so downstream dependents no longer
+   * inherit it as a base branch (it's already in main).
+   *
+   * A group is removed entirely once all its repos are pruned.
+   * Returns the keys of fully-pruned groups.
+   *
+   * @param checkMerged - override for testing; defaults to `gh pr view` check
+   */
+  pruneMergedGroups(checkMerged?: (url: string) => boolean): string[] {
+    const isMerged =
+      checkMerged ??
+      ((url: string) => {
+        try {
+          const state = execFileSync(
+            "gh",
+            ["pr", "view", url, "--json", "state", "--jq", ".state"],
+            { encoding: "utf-8" },
+          ).trim();
+          return state === "MERGED";
+        } catch {
+          return false;
+        }
+      });
+
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
-      if (raw.sprint && raw.sprint !== currentSprint) {
-        this.clear();
-        return true;
+      const fullyPruned: string[] = [];
+      let changed = false;
+
+      for (const [key, state] of Object.entries(raw.groupStates ?? {})) {
+        for (const [repo, prUrl] of Object.entries(state.prUrls)) {
+          if (isMerged(prUrl)) {
+            delete state.prUrls[repo];
+            delete state.branches[repo];
+            changed = true;
+          }
+        }
+
+        const remaining = Object.keys(state.prUrls).length + Object.keys(state.branches).length;
+        if (remaining === 0) {
+          delete raw.groupStates[key];
+          fullyPruned.push(key);
+        }
       }
+
+      if (!changed) return [];
+
+      if (raw.extraCompleted) {
+        raw.extraCompleted = raw.extraCompleted.filter((k) => !fullyPruned.includes(k));
+      }
+
+      const remainingGroups = Object.keys(raw.groupStates).length;
+      const remainingExtra = (raw.extraCompleted ?? []).length;
+
+      if (remainingGroups === 0 && remainingExtra === 0) {
+        this.clear();
+      } else {
+        writeFileSync(this.filePath, JSON.stringify(raw, null, 2));
+      }
+
+      return fullyPruned;
     } catch {
-      // No state file — nothing to reset
+      return [];
     }
-    return false;
   }
 
   /** Save prioritizer raw output, preserving existing group states and sprint. */
