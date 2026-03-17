@@ -40,7 +40,7 @@ void describe("forgeTicket", () => {
     const forge = makeForge(runner, log);
 
     const result = await forge.forgeTicket(
-      { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
     );
 
@@ -57,7 +57,7 @@ void describe("forgeTicket", () => {
     const forge = makeForge(runner, log);
 
     const result = await forge.forgeTicket(
-      { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
+      { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
       "",
     );
 
@@ -71,7 +71,7 @@ void describe("forgeTicket", () => {
     const forge = makeForge(runner, log);
 
     await forge.forgeTicket(
-      { key: "EC-3", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      { key: "EC-3", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
     );
 
@@ -85,7 +85,7 @@ void describe("forgeTicket", () => {
     const forge = makeForge(runner, log);
 
     await forge.forgeTicket(
-      { key: "EC-4", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      { key: "EC-4", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
     );
 
@@ -107,7 +107,7 @@ void describe("forgeTicket", () => {
     const forge = makeForge(runner, log, jira);
 
     await forge.forgeTicket(
-      { key: "EC-5", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      { key: "EC-5", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
     );
 
@@ -130,7 +130,7 @@ void describe("forgeTicket", () => {
     const forge = makeForge(runner, log);
 
     await forge.forgeTicket(
-      { key: "EC-6", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+      { key: "EC-6", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
       "",
     );
 
@@ -149,8 +149,8 @@ void describe("forgeGroup", () => {
 
     const results = await forge.forgeGroup(
       [
-        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
-        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
       ],
       "",
     );
@@ -167,8 +167,8 @@ void describe("forgeGroup", () => {
 
     await forge.forgeGroup(
       [
-        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
-        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
       ],
       "",
     );
@@ -192,8 +192,8 @@ void describe("forgeGroup", () => {
 
     const results = await forge.forgeGroup(
       [
-        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
-        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-2-fix-bug" }] },
       ],
       "",
     );
@@ -214,7 +214,7 @@ void describe("forgeGroup", () => {
     const forge = makeForge(runner, log);
 
     const results = await forge.forgeGroup(
-      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] }],
+      [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix-bug" }] }],
       "",
     );
 

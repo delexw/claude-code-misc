@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import type { TicketComplexity } from "./prioritizer.js";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -29,17 +30,29 @@ export function worktreePath(repoAbsPath: string, branch: string): string {
 
 // ─── Forge prompt ────────────────────────────────────────────────────────────
 
+const COMPLEXITY_HINTS: Record<TicketComplexity, string> = {
+  trivial:
+    "complexity=trivial: small, focused change (e.g. config, copy, single-file fix). Read only the ticket and go straight to implementation. Do not scan the codebase for domain knowledge, fetch linked resources, inspect pages, or optimize the prompt.",
+  moderate:
+    "complexity=moderate: contained change within a single area. Read the ticket, scan relevant parts of the codebase, and fetch linked resources. Only inspect browser pages if the ticket explicitly mentions UI, frontend, or visual changes.",
+  complex:
+    "complexity=complex: spans multiple areas, involves migrations/feature flags, or has ambiguous requirements. Gather full context — codebase scan, linked resources, page inspection, and prompt clarification — before implementing.",
+};
+
 export function buildForgePrompt(
   ticketKey: string,
   ticketUrl: string,
   devServerInfo: string,
+  complexity: TicketComplexity,
 ): string {
-  const devCtx = devServerInfo ? `\nDev servers are already running: ${devServerInfo}` : "";
+  const devCtx = devServerInfo ? `Dev servers are already running: ${devServerInfo}` : "";
+  const complexityCtx = COMPLEXITY_HINTS[complexity];
+  const extra = [devCtx, complexityCtx].filter(Boolean).join("\n");
 
   return [
     `[GSD: forge ${ticketKey}] ${AUTONOMY_PREFIX}`,
     "",
-    `Invoke Skill("/forge ${ticketUrl}${devCtx}'")`,
+    `Invoke Skill("/forge ${ticketUrl}${extra ? ` '${extra}'` : ""}")`,
     "",
     "Report completion as plain text.",
   ].join("\n");

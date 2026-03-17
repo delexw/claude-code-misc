@@ -34,11 +34,12 @@ export class ForgeService {
     ticketUrl: string,
     assignment: RepoAssignment,
     devServerInfo: string,
+    complexity: TicketAssignment["complexity"],
   ): Promise<{ ok: boolean; wt: WorktreeInfo | null; affectedUrls: string[] }> {
     this.log(`  FORGING ${ticketKey} in ${assignment.repoPath} (worktree: ${assignment.branch})`);
 
     const { code, stdout } = await this.runner.run(
-      buildForgePrompt(ticketKey, ticketUrl, devServerInfo),
+      buildForgePrompt(ticketKey, ticketUrl, devServerInfo, complexity),
       {
         cwd: assignment.repoPath,
         worktree: assignment.branch,
@@ -83,7 +84,7 @@ export class ForgeService {
 
     const [results] = await Promise.all([
       Promise.all(
-        ticket.repos.map((r) => this.forgeInRepo(ticket.key, ticketUrl, r, devServerInfo)),
+        ticket.repos.map((r) => this.forgeInRepo(ticket.key, ticketUrl, r, devServerInfo, ticket.complexity)),
       ),
       this.jira.moveTicket(ticket.key, "In Progress").then((ok) => {
         if (!ok) this.log(`WARN: Could not move ${ticket.key} to In Progress`);

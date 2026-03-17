@@ -106,8 +106,8 @@ void describe("mergeAndVerify", () => {
     const result = await pipeline.mergeAndVerify(
       successForges,
       [
-        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
-        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       VERIFY,
       NO_BASE,
@@ -131,8 +131,8 @@ void describe("mergeAndVerify", () => {
     await pipeline.mergeAndVerify(
       successForges,
       [
-        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
-        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       VERIFY,
       NO_BASE,
@@ -152,7 +152,7 @@ void describe("mergeAndVerify", () => {
 
     const result = await pipeline.mergeAndVerify(
       forges,
-      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+      [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       VERIFY,
       NO_BASE,
     );
@@ -173,8 +173,8 @@ void describe("mergeAndVerify", () => {
     const result = await pipeline.mergeAndVerify(
       successForges,
       [
-        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
-        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       VERIFY,
       NO_BASE,
@@ -207,8 +207,8 @@ void describe("mergeAndVerify", () => {
     const result = await pipeline.mergeAndVerify(
       mixed,
       [
-        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
-        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       VERIFY,
       NO_BASE,
@@ -247,8 +247,8 @@ void describe("mergeAndVerify", () => {
     await pipeline.mergeAndVerify(
       successForges,
       [
-        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
-        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
       ],
       VERIFY,
       NO_BASE,
@@ -272,7 +272,7 @@ void describe("mergeAndVerify", () => {
 
     await pipeline.mergeAndVerify(
       [successForges[0]],
-      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+      [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       NO_VERIFY,
       NO_BASE,
     );
@@ -304,7 +304,7 @@ void describe("mergeAndVerify", () => {
 
     await pipeline.mergeAndVerify(
       [successForges[0]],
-      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+      [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       VERIFY,
       NO_BASE,
     );
@@ -334,7 +334,7 @@ void describe("mergeAndVerify", () => {
 
     await pipeline.mergeAndVerify(
       [successForges[0]],
-      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+      [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       NO_VERIFY,
       NO_BASE,
     );
@@ -365,7 +365,7 @@ void describe("mergeAndVerify", () => {
 
     await pipeline.mergeAndVerify(
       [successForges[0]],
-      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+      [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       VERIFY,
       NO_BASE,
     );
@@ -385,7 +385,7 @@ void describe("mergeAndVerify", () => {
 
     const result = await pipeline.mergeAndVerify(
       [successForges[0]],
-      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+      [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       VERIFY,
       NO_BASE,
     );
@@ -405,7 +405,7 @@ void describe("mergeAndVerify", () => {
 
     const result = await pipeline.mergeAndVerify(
       [successForges[0]],
-      [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+      [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
       VERIFY,
       NO_BASE,
     );
@@ -433,13 +433,13 @@ void describe("processLayers", () => {
   void it("processes all layers and counts results", async () => {
     const layers: GroupedLayer[] = [
       {
-        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        group: [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
         verification: { required: false, reason: "test" },
         dependsOn: null,
       },
       {
-        group: [{ key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        group: [{ key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
         verification: { required: false, reason: "test" },
         dependsOn: null,
@@ -463,13 +463,13 @@ void describe("processLayers", () => {
   void it("skips empty layers after filtering", async () => {
     const layers: GroupedLayer[] = [
       {
-        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        group: [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
         verification: { required: false, reason: "test" },
         dependsOn: null,
       },
       {
-        group: [{ key: "EC-99", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        group: [{ key: "EC-99", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
         verification: { required: false, reason: "test" },
         dependsOn: null,
@@ -489,9 +489,9 @@ void describe("processLayers", () => {
     const layers: GroupedLayer[] = [
       {
         group: [
-          { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
-          { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
-          { key: "EC-3", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+          { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+          { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+          { key: "EC-3", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
         ],
         relation: null,
         verification: { required: false, reason: "test" },
@@ -516,7 +516,7 @@ void describe("processLayers", () => {
   void it("counts failures from forge errors", async () => {
     const layers: GroupedLayer[] = [
       {
-        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        group: [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
         verification: { required: false, reason: "test" },
         dependsOn: null,
@@ -546,7 +546,7 @@ void describe("processLayers", () => {
   void it("logs layer info with relation", async () => {
     const layers: GroupedLayer[] = [
       {
-        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        group: [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: "same-epic",
         verification: { required: false, reason: "test" },
         dependsOn: null,
@@ -564,7 +564,7 @@ void describe("processLayers", () => {
   void it("logs layer info without relation when null", async () => {
     const layers: GroupedLayer[] = [
       {
-        group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
+        group: [{ key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
         relation: null,
         verification: { required: false, reason: "test" },
         dependsOn: null,
@@ -584,13 +584,13 @@ void describe("processLayers", () => {
   void it("threads baseBranch and PR URL via dependsOn (stacked chain)", async () => {
     const layers: GroupedLayer[] = [
       {
-        group: [{ key: "EC-10", repos: [{ repoPath: "/repo", branch: "ec-10-auth" }] }],
+        group: [{ key: "EC-10", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-10-auth" }] }],
         relation: null,
         verification: { required: false, reason: "test" },
         dependsOn: null,
       },
       {
-        group: [{ key: "EC-20", repos: [{ repoPath: "/repo", branch: "ec-20-rate-limit" }] }],
+        group: [{ key: "EC-20", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-20-rate-limit" }] }],
         relation: null,
         verification: { required: false, reason: "test" },
         dependsOn: "EC-10",
@@ -656,13 +656,13 @@ void describe("real-world: EC-10798 team tabs resume", () => {
 
     const layers: GroupedLayer[] = [
       {
-        group: [{ key: "EC-10798", repos: [{ repoPath: "/repo-sf", branch: "ec-10798-tabs" }] }],
+        group: [{ key: "EC-10798", complexity: "moderate", repos: [{ repoPath: "/repo-sf", branch: "ec-10798-tabs" }] }],
         relation: null,
         verification: { required: true, reason: "UI" },
         dependsOn: null,
       },
       {
-        group: [{ key: "EC-10800", repos: [{ repoPath: "/repo-sf", branch: "ec-10800-fix" }] }],
+        group: [{ key: "EC-10800", complexity: "moderate", repos: [{ repoPath: "/repo-sf", branch: "ec-10800-fix" }] }],
         relation: "same-epic",
         verification: { required: true, reason: "UI" },
         dependsOn: "EC-10798",
@@ -696,13 +696,13 @@ void describe("real-world: EC-10798 team tabs resume", () => {
   void it("skips downstream group when dependency group fails", async () => {
     const layers: GroupedLayer[] = [
       {
-        group: [{ key: "EC-10798", repos: [{ repoPath: "/repo", branch: "ec-10798-tabs" }] }],
+        group: [{ key: "EC-10798", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-10798-tabs" }] }],
         relation: null,
         verification: { required: false, reason: "test" },
         dependsOn: null,
       },
       {
-        group: [{ key: "EC-10800", repos: [{ repoPath: "/repo", branch: "ec-10800-fix" }] }],
+        group: [{ key: "EC-10800", complexity: "moderate", repos: [{ repoPath: "/repo", branch: "ec-10800-fix" }] }],
         relation: "same-epic",
         verification: { required: false, reason: "test" },
         dependsOn: "EC-10798",

@@ -13,9 +13,12 @@ export interface RepoAssignment {
   branch: string; // slugified branch name (e.g. "ec-123-fix-payment-bug")
 }
 
+export type TicketComplexity = "trivial" | "moderate" | "complex";
+
 export interface TicketAssignment {
   key: string;
   repos: RepoAssignment[]; // one or more repos this ticket touches
+  complexity: TicketComplexity;
 }
 
 export function ticketKeys(group: TicketAssignment[]): string[] {
@@ -57,6 +60,7 @@ interface RawRepo {
 }
 interface RawTicket {
   key: string;
+  complexity: string;
   repos: RawRepo[];
 }
 interface RawVerification {
@@ -89,11 +93,17 @@ function isRawOutput(v: unknown): v is RawPrioritizeOutput {
   );
 }
 
+function toComplexity(raw: string): TicketComplexity {
+  if (raw === "trivial" || raw === "moderate" || raw === "complex") return raw;
+  return "moderate";
+}
+
 function toGroupedLayer(raw: RawLayer): GroupedLayer {
   return {
     group: raw.group.map((t) => ({
       key: t.key,
       repos: (t.repos ?? []).map((r) => ({ repoPath: r.repo, branch: r.branch })),
+      complexity: toComplexity(t.complexity),
     })),
     relation: raw.relation ?? null,
     verification: {
@@ -129,7 +139,7 @@ export function fallbackResult(tickets: string[]): PrioritizeResult {
   return {
     layers: [
       {
-        group: tickets.map((key) => ({ key, repos: [] })),
+        group: tickets.map((key) => ({ key, repos: [], complexity: "moderate" as TicketComplexity })),
         relation: null,
         verification: { required: true, reason: "fallback — assuming verification needed" },
         dependsOn: null,

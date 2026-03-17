@@ -20,25 +20,25 @@ void describe("worktreePath", () => {
 
 void describe("buildForgePrompt", () => {
   void it("includes ticket key and URL", () => {
-    const result = buildForgePrompt("EC-123", "https://jira/EC-123", "");
+    const result = buildForgePrompt("EC-123", "https://jira/EC-123", "", "moderate");
     assert.ok(result.includes("[GSD: forge EC-123]"));
     assert.ok(result.includes("https://jira/EC-123"));
   });
 
   void it("appends dev server info when provided", () => {
     const devInfo = '{"urls": ["http://localhost:3000", "http://localhost:3500"]}';
-    const result = buildForgePrompt("EC-1", "url", devInfo);
+    const result = buildForgePrompt("EC-1", "url", devInfo, "moderate");
     assert.ok(result.includes("Dev servers are already running:"));
     assert.ok(result.includes(devInfo));
   });
 
   void it("omits dev server context when empty", () => {
-    const result = buildForgePrompt("EC-1", "url", "");
+    const result = buildForgePrompt("EC-1", "url", "", "moderate");
     assert.ok(!result.includes("Dev servers are already running"));
   });
 
   void it("includes autonomy prefix", () => {
-    const result = buildForgePrompt("EC-1", "url", "");
+    const result = buildForgePrompt("EC-1", "url", "", "moderate");
     assert.ok(result.includes(AUTONOMY_PREFIX));
   });
 });
