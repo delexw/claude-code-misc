@@ -160,10 +160,21 @@ export class RunState {
     }
   }
 
-  /** Mark a ticket key as completed (for tickets outside group processing). */
+  /** Mark a ticket key as completed (skips keys already covered by groupStates). */
   markCompleted(key: string): void {
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
+      // Skip if already tracked via groupStates (as primary or member of a completed group)
+      if (raw.groupStates) {
+        for (const layer of raw.prioritizerRaw?.layers ?? []) {
+          const pk = layer.group[0]?.key;
+          if (!pk) continue;
+          const gs = raw.groupStates[pk];
+          if (gs && Object.keys(gs.prUrls).length > 0) {
+            if (layer.group.some((t) => t.key === key)) return;
+          }
+        }
+      }
       const extra = new Set(raw.extraCompleted ?? []);
       extra.add(key);
       raw.extraCompleted = [...extra];
