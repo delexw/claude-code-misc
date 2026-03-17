@@ -14,7 +14,6 @@ export function parseRepos(envVar: string): string[] {
     .map((r) => (r.startsWith("/") ? r : join(HOME, r)));
 }
 
-
 /**
  * Ensure all base repos are checked out on main.
  * Must run at the start of each scheduler invocation so that

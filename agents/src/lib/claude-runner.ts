@@ -72,7 +72,10 @@ export class ClaudeRunner {
         if (attempt < WORKTREE_MAX_ATTEMPTS) {
           return this.runOnce(prompt, opts, attempt + 1);
         }
-        return { code: 1, stdout: `HUNG: worktree never created after ${WORKTREE_MAX_ATTEMPTS} attempts` };
+        return {
+          code: 1,
+          stdout: `HUNG: worktree never created after ${WORKTREE_MAX_ATTEMPTS} attempts`,
+        };
       }
       return { code: result.code, stdout: result.stdout };
     }

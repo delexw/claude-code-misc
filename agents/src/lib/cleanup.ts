@@ -33,7 +33,9 @@ function removeTempDirs(scriptDir: string, log: LogFn): void {
       rmSync(dir, { recursive: true, force: true });
       log(`CLEANUP: removed ${dir}`);
     } catch (err) {
-      log(`CLEANUP WARN: failed to remove ${dir}: ${err instanceof Error ? err.message : String(err)}`);
+      log(
+        `CLEANUP WARN: failed to remove ${dir}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 }

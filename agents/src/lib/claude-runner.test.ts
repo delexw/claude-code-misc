@@ -64,7 +64,10 @@ async function runWithWatchdog(
     if (attempt < WORKTREE_MAX_ATTEMPTS) {
       return runWithWatchdog(spawnFn, watchdog, wtPath, attempt + 1);
     }
-    return { code: 1, stdout: `HUNG: worktree never created after ${WORKTREE_MAX_ATTEMPTS} attempts` };
+    return {
+      code: 1,
+      stdout: `HUNG: worktree never created after ${WORKTREE_MAX_ATTEMPTS} attempts`,
+    };
   }
   return { code: result.code, stdout: result.stdout };
 }
@@ -110,7 +113,9 @@ void describe("watchdog retry logic", () => {
         // First attempt: never resolve (simulates hung process)
         return {
           result: new Promise(() => {}),
-          kill: async () => { killCount++; },
+          kill: async () => {
+            killCount++;
+          },
         };
       }
       // Second attempt: create the dir and resolve
@@ -145,7 +150,9 @@ void describe("watchdog retry logic", () => {
       spawnCount++;
       return {
         result: new Promise(() => {}), // always hang
-        kill: async () => { killCount++; },
+        kill: async () => {
+          killCount++;
+        },
       };
     };
 

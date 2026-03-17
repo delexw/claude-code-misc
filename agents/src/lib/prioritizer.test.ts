@@ -356,4 +356,3 @@ void describe("filterGroup", () => {
     assert.deepEqual(result, [ta("EC-1"), ta("EC-3")]);
   });
 });
-

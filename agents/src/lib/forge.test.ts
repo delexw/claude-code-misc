@@ -26,11 +26,7 @@ function collectLogs(): { logs: string[]; log: LogFn } {
   return { logs, log: (msg: string) => logs.push(msg) };
 }
 
-function makeForge(
-  runner: ClaudeRunner,
-  log: LogFn,
-  jira?: JiraClient,
-): ForgeService {
+function makeForge(runner: ClaudeRunner, log: LogFn, jira?: JiraClient): ForgeService {
   return new ForgeService({ runner, jira: jira ?? makeJira(), log });
 }
 

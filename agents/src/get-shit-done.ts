@@ -50,7 +50,11 @@ let devServers: DevServerManager | null = null;
 
 process.on("exit", () => {
   if (devServers) {
-    try { postRunCleanup(SCRIPT_DIR, LOG_BASE, devServers, log); } catch { /* best effort */ }
+    try {
+      postRunCleanup(SCRIPT_DIR, LOG_BASE, devServers, log);
+    } catch {
+      /* best effort */
+    }
   }
   if (cleanExit) releaseLock();
   else {
@@ -96,7 +100,9 @@ async function main() {
 }
 
 main()
-  .then(() => { cleanExit = true; })
+  .then(() => {
+    cleanExit = true;
+  })
   .catch((err: unknown) => {
     log(`FATAL: ${err instanceof Error ? err.message : String(err)}`);
   });

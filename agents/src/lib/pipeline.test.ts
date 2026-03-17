@@ -477,12 +477,7 @@ void describe("processLayers", () => {
     const { logs, log } = collectLogs();
     const pipeline = makePipeline(runner, log);
 
-    const result = await pipeline.processLayers(
-      layers,
-      new Set(["EC-1"]),
-      new Set(),
-      new Set(),
-    );
+    const result = await pipeline.processLayers(layers, new Set(["EC-1"]), new Set(), new Set());
 
     assert.equal(result.succeeded, 1);
     assert.ok(!logs.some((l) => l.includes("EC-99")));
@@ -529,12 +524,7 @@ void describe("processLayers", () => {
     const { log } = collectLogs();
     const pipeline = makePipeline(runner, log);
 
-    const result = await pipeline.processLayers(
-      layers,
-      new Set(["EC-1"]),
-      new Set(),
-      new Set(),
-    );
+    const result = await pipeline.processLayers(layers, new Set(["EC-1"]), new Set(), new Set());
 
     assert.equal(result.succeeded, 0);
     assert.equal(result.failed, 1);
@@ -624,12 +614,7 @@ void describe("processLayers", () => {
     const { log } = collectLogs();
     const pipeline = makePipeline(runner, log);
 
-    await pipeline.processLayers(
-      layers,
-      new Set(["EC-10", "EC-20"]),
-      new Set(),
-      new Set(),
-    );
+    await pipeline.processLayers(layers, new Set(["EC-10", "EC-20"]), new Set(), new Set());
 
     // Find the merge call for EC-20 — it should reference the base branch from EC-10
     const ec20Merge = capturedOpts.find(
@@ -695,13 +680,7 @@ void describe("real-world: EC-10798 team tabs resume", () => {
     const pipeline = makePipeline(runner, log);
 
     // First group is already done (in savedStates), only EC-10800 is unprocessed
-    await pipeline.processLayers(
-      layers,
-      new Set(["EC-10800"]),
-      new Set(),
-      new Set(),
-      savedStates,
-    );
+    await pipeline.processLayers(layers, new Set(["EC-10800"]), new Set(), new Set(), savedStates);
 
     // EC-10800's merge should use EC-10798's branch as base
     const ec10800Merge = capturedMergePrompts.find((p) => p.includes("EC-10800"));
@@ -729,7 +708,7 @@ void describe("real-world: EC-10798 team tabs resume", () => {
     ];
 
     const runner = {
-      run: async (_prompt: string, opts: { taskName: string }) => {
+      run: async (_prompt: string, _opts: { taskName: string }) => {
         return { code: 1, stdout: "" }; // everything fails
       },
       writeLog: () => "/fake",

@@ -92,9 +92,7 @@ export class ForgeService {
 
   async forgeGroup(group: TicketAssignment[], devServerInfo: string): Promise<ForgeResult[]> {
     this.log(`FORGING GROUP: ${ticketKeys(group).join(", ")}`);
-    const results = await Promise.allSettled(
-      group.map((t) => this.forgeTicket(t, devServerInfo)),
-    );
+    const results = await Promise.allSettled(group.map((t) => this.forgeTicket(t, devServerInfo)));
 
     return results.map((r, i) =>
       r.status === "fulfilled"
@@ -107,4 +105,3 @@ export class ForgeService {
     );
   }
 }
-

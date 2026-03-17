@@ -131,7 +131,10 @@ void describe("Dag", () => {
 
 void describe("validateDependsOn", () => {
   void it("returns no warnings for valid DAG", () => {
-    assert.deepEqual(validateDependsOn([dn("EC-1", null), dn("EC-2", "EC-1"), dn("EC-3", "EC-2")]), []);
+    assert.deepEqual(
+      validateDependsOn([dn("EC-1", null), dn("EC-2", "EC-1"), dn("EC-3", "EC-2")]),
+      [],
+    );
   });
 
   void it("returns no warnings for all-root groups", () => {
@@ -139,7 +142,10 @@ void describe("validateDependsOn", () => {
   });
 
   void it("returns no warnings for diamond DAG", () => {
-    assert.deepEqual(validateDependsOn([dn("EC-1", null), dn("EC-2", "EC-1"), dn("EC-3", "EC-1")]), []);
+    assert.deepEqual(
+      validateDependsOn([dn("EC-1", null), dn("EC-2", "EC-1"), dn("EC-3", "EC-1")]),
+      [],
+    );
   });
 
   void it("returns no warnings when dependsOn references non-primary ticket in earlier group", () => {

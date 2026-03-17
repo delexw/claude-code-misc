@@ -52,12 +52,7 @@ export class JiraClient {
 
   /** Get the parent ticket key for a sub-task, or null if none. */
   async getParentKey(ticketKey: string): Promise<string | null> {
-    const { ok, stdout } = await exec(this.cli, [
-      "issue",
-      "view",
-      ticketKey,
-      "--raw",
-    ]);
+    const { ok, stdout } = await exec(this.cli, ["issue", "view", ticketKey, "--raw"]);
     if (!ok || !stdout) return null;
     try {
       const data = JSON.parse(stdout) as { fields?: { parent?: { key?: string } } };

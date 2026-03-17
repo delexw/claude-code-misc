@@ -62,7 +62,9 @@ function makeDevServers(): DevServerManager {
   } as unknown as DevServerManager;
 }
 
-function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps & { logs: string[] } {
+function makeDeps(
+  overrides: Partial<OrchestratorDeps> = {},
+): OrchestratorDeps & { logs: string[] } {
   const { logs, log } = collectLogs();
   const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
   const jira = overrides.jira ?? makeJira();
@@ -72,12 +74,8 @@ function makeDeps(overrides: Partial<OrchestratorDeps> = {}): OrchestratorDeps &
   const devServers = makeDevServers();
   return {
     discovery: new SprintDiscovery(jira, tracker, baseRepos),
-    prioritizer:
-      overrides.prioritizer ??
-      new Prioritizer({ runner, scriptDir: tmpDir, log }),
-    pipeline:
-      overrides.pipeline ??
-      new Pipeline({ runner, devServers, jira, tracker, log }),
+    prioritizer: overrides.prioritizer ?? new Prioritizer({ runner, scriptDir: tmpDir, log }),
+    pipeline: overrides.pipeline ?? new Pipeline({ runner, devServers, jira, tracker, log }),
     jira,
     tracker,
     runState: new RunState(join(tmpDir, "run-state.json")),
@@ -144,7 +142,7 @@ void describe("GSDOrchestrator.prioritize", () => {
       writeLog: () => "/fake",
     } as unknown as ClaudeRunner;
 
-    const { logs, log } = collectLogs();
+    const { log } = collectLogs();
     const deps = makeDeps({
       runState,
       prioritizer: new Prioritizer({ runner, scriptDir: tmpDir, log }),
@@ -182,7 +180,7 @@ void describe("GSDOrchestrator.prioritize", () => {
       writeLog: () => "/fake",
     } as unknown as ClaudeRunner;
 
-    const { logs, log } = collectLogs();
+    const { log } = collectLogs();
     const deps = makeDeps({
       runState: new RunState(join(tmpDir, "run-state.json")),
       prioritizer: new Prioritizer({ runner, scriptDir: tmpDir, log }),
@@ -225,7 +223,11 @@ void describe("GSDOrchestrator.summarize", () => {
     const loaded = runState.load();
     assert.ok(loaded, "state should be preserved");
     assert.equal(loaded.groupStates.size, 1, "groupStates preserved for merge chain");
-    assert.equal(loaded.prioritizerResult.layers.length, 1, "prioritizerResult preserved for guidance");
+    assert.equal(
+      loaded.prioritizerResult.layers.length,
+      1,
+      "prioritizerResult preserved for guidance",
+    );
   });
 
   void it("preserves run state when there are failures", () => {

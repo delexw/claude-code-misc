@@ -177,7 +177,7 @@ void describe("lock", () => {
     acquireLock(lockFile);
     retainLock();
 
-    const raw = JSON.parse(readFileSync(lockFile, "utf-8"));
+    const raw = JSON.parse(readFileSync(lockFile, "utf-8")) as { retained?: boolean };
     assert.equal(raw.retained, true);
   });
 
