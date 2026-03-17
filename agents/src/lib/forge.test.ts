@@ -17,6 +17,7 @@ function makeRunner(response: { code: number; stdout: string }): ClaudeRunner {
 function makeJira(server = "https://jira.test"): JiraClient {
   return {
     ticketUrl: (key: string) => `${server}/browse/${key}`,
+    moveTicket: async () => true,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
   } as unknown as JiraClient;
 }

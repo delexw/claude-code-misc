@@ -72,9 +72,14 @@ export class ForgeService {
     const ticketUrl = this.jira.ticketUrl(ticket.key);
     this.log(`FORGING: ${ticket.key} -> ${ticketUrl} (${ticket.repos.length} repo(s))`);
 
-    const results = await Promise.all(
-      ticket.repos.map((r) => this.forgeInRepo(ticket.key, ticketUrl, r, devServerInfo)),
-    );
+    const [results] = await Promise.all([
+      Promise.all(
+        ticket.repos.map((r) => this.forgeInRepo(ticket.key, ticketUrl, r, devServerInfo)),
+      ),
+      this.jira.moveTicket(ticket.key, "In Progress").then((ok) => {
+        if (!ok) this.log(`WARN: Could not move ${ticket.key} to In Progress`);
+      }),
+    ]);
 
     const worktrees: WorktreeInfo[] = results.flatMap((r) => (r.wt ? [r.wt] : []));
     const allOk = results.every((r) => r.ok);
