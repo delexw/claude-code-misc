@@ -92,6 +92,10 @@ export function buildMergePrompt(
     "   - git merge or cherry-pick from each worktree branch",
     "   - Resolve any conflicts",
     "4. Verify the merged code compiles and has no obvious issues",
+    "5. Clean up all worktree branches used in this merge:",
+    "   - For each worktree branch: git worktree remove <path> --force",
+    "   - Then delete the local branch: git branch -D <branch>",
+    "   - Do NOT ask for confirmation — always force clean up",
     "",
     "Return ONLY the merge branch name as plain text.",
   ].join("\n");
