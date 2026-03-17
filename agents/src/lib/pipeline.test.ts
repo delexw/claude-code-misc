@@ -117,6 +117,33 @@ void describe("mergeAndVerify", () => {
     assert.deepEqual(result.failed, []);
   });
 
+  void it("logs all ticket keys in group, not just primary", async () => {
+    const runner = makeRunner([
+      { code: 0, stdout: "" }, // commit EC-1
+      { code: 0, stdout: "" }, // commit EC-2
+      { code: 0, stdout: "EC-1-merge-branch" }, // merge
+      { code: 0, stdout: "verify ok" }, // verify
+      { code: 0, stdout: "pr created" }, // PR
+    ]);
+    const { logs, log } = collectLogs();
+    const pipeline = makePipeline(runner, log);
+
+    await pipeline.mergeAndVerify(
+      successForges,
+      [
+        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
+      ],
+      VERIFY,
+      NO_BASE,
+    );
+
+    assert.ok(logs.some((l) => l.includes("COMMITTING: EC-1, EC-2")));
+    assert.ok(logs.some((l) => l.includes("MERGING: EC-1, EC-2")));
+    assert.ok(logs.some((l) => l.includes("VERIFYING: EC-1, EC-2")));
+    assert.ok(logs.some((l) => l.includes("CREATING PR: EC-1, EC-2")));
+  });
+
   void it("returns all failed when no successful forges", async () => {
     const forges: ForgeResult[] = [{ ticketKey: "EC-1", status: "failed", worktrees: [], affectedUrls: [] }];
     const runner = makeRunner([]);

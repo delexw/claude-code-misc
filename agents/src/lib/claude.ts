@@ -24,6 +24,7 @@ interface SpawnClaudeOptions {
   taskName: string;
   timeoutMs?: number;
   stderrToLog?: string; // log file path to write stderr to
+  suppressNotify?: boolean; // suppress scheduler notification on session end
 }
 
 interface SpawnClaudeResult {
@@ -37,6 +38,22 @@ export interface SpawnClaudeHandle {
   kill: () => Promise<void>;
 }
 
+/** Build the env object for a spawned Claude process. Exported for testing. */
+export function buildSpawnEnv(
+  taskName: string,
+  suppressNotify?: boolean,
+): Record<string, string | undefined> {
+  return {
+    ...process.env,
+    CLAUDECODE: undefined,
+    CLAUDE_SCHEDULER_TASK: taskName,
+    CLAUDE_SCHEDULER_SUPPRESS_NOTIFY: suppressNotify ? "1" : "",
+    SHELL: process.env.SHELL || "/bin/zsh",
+    TERM: process.env.TERM || "xterm-256color",
+    PATH: buildClaudePath(),
+  };
+}
+
 export function spawnClaude(args: string[], opts: SpawnClaudeOptions): SpawnClaudeHandle {
   const { cwd, taskName, timeoutMs = 30 * 60 * 1000, stderrToLog } = opts;
 
@@ -45,16 +62,7 @@ export function spawnClaude(args: string[], opts: SpawnClaudeOptions): SpawnClau
   const result = new Promise<SpawnClaudeResult>((resolve) => {
     const child = spawn(CLAUDE_CLI, args, {
       cwd,
-      env: {
-        ...process.env,
-        CLAUDECODE: undefined,
-        CLAUDE_SCHEDULER_TASK: taskName,
-        // Ensure Claude Code uses zsh (not sh) for Bash tool and has a proper TERM
-        SHELL: process.env.SHELL || "/bin/zsh",
-        TERM: process.env.TERM || "xterm-256color",
-        // Clean PATH so asdf shims resolve per-project .tool-versions
-        PATH: buildClaudePath(),
-      },
+      env: buildSpawnEnv(taskName, opts.suppressNotify),
       stdio: ["ignore", "pipe", "pipe"],
     });
 

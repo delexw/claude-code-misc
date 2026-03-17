@@ -48,11 +48,14 @@ export class ClaudeRunner {
     if (!opts.worktree && opts.repos) args.push("--add-dir", ...opts.repos);
     args.push("-p", prompt);
 
+    // Suppress notifications on non-final attempts (will be killed and retried)
+    const canRetry = opts.worktree && attempt < WORKTREE_MAX_ATTEMPTS;
     const handle = spawnClaude(args, {
       cwd: opts.cwd ?? this.cwd,
       taskName: opts.taskName,
       timeoutMs: opts.timeoutMs ?? 24 * 60 * 60 * 1000,
       stderrToLog: this.logFile,
+      suppressNotify: canRetry || false,
     });
 
     // When using a worktree, race against a watchdog that detects hung CLI processes.

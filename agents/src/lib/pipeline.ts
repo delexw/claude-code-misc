@@ -90,13 +90,14 @@ export class Pipeline {
     }
 
     const primaryTicket = keys[0];
+    const groupLabel = keys.join(", ");
     const affectedUrls = successful.flatMap((r) => r.affectedUrls);
 
-    await this.commitWorktrees(primaryTicket, successful);
+    await this.commitWorktrees(groupLabel, successful);
 
-    const mergedBranches = await this.mergeWorktrees(primaryTicket, successful, prevState);
+    const mergedBranches = await this.mergeWorktrees(primaryTicket, groupLabel, successful, prevState);
     if (mergedBranches.length === 0) {
-      this.log(`MERGE FAILED: ${primaryTicket} — all repos failed or produced empty branch names`);
+      this.log(`MERGE FAILED: ${groupLabel} — all repos failed or produced empty branch names`);
       return {
         succeeded: [],
         failed: [...failedKeys, ...successful.map((r) => r.ticketKey)],
@@ -109,6 +110,7 @@ export class Pipeline {
 
     const verifyResult = await this.verify(
       primaryTicket,
+      groupLabel,
       mergeBranch,
       mergedBranches[0].repoRoot,
       verification,
@@ -117,6 +119,7 @@ export class Pipeline {
 
     const nextPrUrls = await this.createPullRequests(
       primaryTicket,
+      groupLabel,
       successful.map((r) => r.ticketKey),
       mergedBranches,
       prevState,
@@ -208,8 +211,8 @@ export class Pipeline {
   // ─── Private steps ──────────────────────────────────────────────────────────
 
   /** Step 1: Commit each worktree (continue from forge session). */
-  private async commitWorktrees(primaryTicket: string, successful: ForgeResult[]): Promise<void> {
-    this.log(`COMMITTING: ${primaryTicket} (${successful.length} ticket(s))`);
+  private async commitWorktrees(groupLabel: string, successful: ForgeResult[]): Promise<void> {
+    this.log(`COMMITTING: ${groupLabel} (${successful.length} ticket(s))`);
     await Promise.all(
       successful.flatMap((forge) =>
         forge.worktrees.map(async (wt) => {
@@ -230,11 +233,12 @@ export class Pipeline {
   /** Step 2: Merge committed worktrees per repo in parallel. */
   private async mergeWorktrees(
     primaryTicket: string,
+    groupLabel: string,
     successful: ForgeResult[],
     prevState: LayerState,
   ): Promise<MergeResult[]> {
     const worktreesByRepo = Pipeline.groupWorktreesByRepo(successful);
-    this.log(`MERGING: ${primaryTicket} across ${worktreesByRepo.size} repo(s)`);
+    this.log(`MERGING: ${groupLabel} across ${worktreesByRepo.size} repo(s)`);
 
     const mergeResults = await Promise.all(
       [...worktreesByRepo.entries()].map(async ([repoRoot, wtPaths]) => {
@@ -255,9 +259,9 @@ export class Pipeline {
 
     const mergedBranches = mergeResults.filter((r) => r.code === 0 && r.branch);
     for (const r of mergeResults) {
-      if (r.code !== 0) this.log(`MERGE FAILED: ${primaryTicket} in ${r.repoRoot}`);
+      if (r.code !== 0) this.log(`MERGE FAILED: ${groupLabel} in ${r.repoRoot}`);
       else if (!r.branch)
-        this.log(`MERGE WARN: ${primaryTicket} in ${r.repoRoot} — empty branch name`);
+        this.log(`MERGE WARN: ${groupLabel} in ${r.repoRoot} — empty branch name`);
     }
 
     this.log(`MERGE BRANCH: ${mergedBranches[0]?.branch ?? "(none)"}`);
@@ -277,13 +281,14 @@ export class Pipeline {
   /** Step 4: Run verification skill. */
   private async verify(
     primaryTicket: string,
+    groupLabel: string,
     mergeBranch: string,
     cwd: string,
     verification: Verification,
     affectedUrls: string[] = [],
   ): Promise<VerifyOutput | null> {
     this.log(
-      `VERIFYING: ${primaryTicket} (ui required: ${verification.required}, reason: ${verification.reason})`,
+      `VERIFYING: ${groupLabel} (ui required: ${verification.required}, reason: ${verification.reason})`,
     );
     const { code, stdout } = await this.runner.run(
       buildVerifyPrompt(
@@ -298,16 +303,16 @@ export class Pipeline {
         continueSession: true,
         model: "opus",
         effort: "low",
-        taskName: `get-shit-done: verify ${primaryTicket}`,
+        taskName: `get-shit-done: verify ${groupLabel}`,
       },
     );
     this.runner.writeLog("verify", primaryTicket, stdout);
 
     const result = parseJson(stdout, (v): v is VerifyOutput => Pipeline.isVerifyOutput(v));
     if (code !== 0) {
-      this.log(`VERIFY FAILED: ${primaryTicket} (exit code: ${code})`);
+      this.log(`VERIFY FAILED: ${groupLabel} (exit code: ${code})`);
     } else if (result) {
-      this.log(`VERIFY ${result.status.toUpperCase()}: ${primaryTicket} — ${result.summary}`);
+      this.log(`VERIFY ${result.status.toUpperCase()}: ${groupLabel} — ${result.summary}`);
     }
     return result;
   }
@@ -315,6 +320,7 @@ export class Pipeline {
   /** Step 5: Create PRs per repo. */
   private async createPullRequests(
     primaryTicket: string,
+    groupLabel: string,
     succeededKeys: string[],
     mergedBranches: MergeResult[],
     prevState: LayerState,
@@ -331,7 +337,7 @@ export class Pipeline {
           ? { baseBranch, prUrl: basePrUrl ?? baseBranch }
           : undefined;
         this.log(
-          `CREATING PR: ${primaryTicket} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`,
+          `CREATING PR: ${groupLabel} in ${mb.repoRoot}${baseBranch ? ` (base: ${baseBranch})` : ""}`,
         );
         const { code, stdout } = await this.runner.run(
           buildPrPrompt(succeededKeys, mb.branch, dep, screenshots),
@@ -339,12 +345,12 @@ export class Pipeline {
             cwd: mb.repoRoot,
             continueSession: true,
             model: "sonnet",
-            taskName: `get-shit-done: pr ${primaryTicket} in ${mb.repoRoot}`,
+            taskName: `get-shit-done: pr ${groupLabel} in ${mb.repoRoot}`,
           },
         );
         this.runner.writeLog("pr", primaryTicket, stdout);
         if (code !== 0) {
-          this.log(`PR CREATION FAILED: ${primaryTicket} in ${mb.repoRoot}`);
+          this.log(`PR CREATION FAILED: ${groupLabel} in ${mb.repoRoot}`);
         } else {
           const prUrl = Pipeline.parsePrUrl(stdout);
           if (prUrl) {

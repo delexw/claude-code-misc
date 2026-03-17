@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { buildSpawnEnv } from "./claude.js";
 
 /**
  * Minimal reimplementation of spawnClaude's handle pattern for testability.
@@ -46,6 +47,33 @@ function spawnTestProcess(
 
   return { result, kill: () => killFn() };
 }
+
+void describe("buildSpawnEnv", () => {
+  void it("sets CLAUDE_SCHEDULER_TASK to taskName", () => {
+    const env = buildSpawnEnv("get-shit-done: forge EC-123");
+    assert.equal(env.CLAUDE_SCHEDULER_TASK, "get-shit-done: forge EC-123");
+  });
+
+  void it("sets CLAUDE_SCHEDULER_SUPPRESS_NOTIFY=1 when suppressNotify is true", () => {
+    const env = buildSpawnEnv("task", true);
+    assert.equal(env.CLAUDE_SCHEDULER_SUPPRESS_NOTIFY, "1");
+  });
+
+  void it("sets CLAUDE_SCHEDULER_SUPPRESS_NOTIFY to empty when suppressNotify is false", () => {
+    const env = buildSpawnEnv("task", false);
+    assert.equal(env.CLAUDE_SCHEDULER_SUPPRESS_NOTIFY, "");
+  });
+
+  void it("sets CLAUDE_SCHEDULER_SUPPRESS_NOTIFY to empty when suppressNotify is undefined", () => {
+    const env = buildSpawnEnv("task");
+    assert.equal(env.CLAUDE_SCHEDULER_SUPPRESS_NOTIFY, "");
+  });
+
+  void it("unsets CLAUDECODE", () => {
+    const env = buildSpawnEnv("task");
+    assert.equal(env.CLAUDECODE, undefined);
+  });
+});
 
 void describe("spawnClaude handle pattern", () => {
   void it("captures stdout and exit code 0", async () => {
