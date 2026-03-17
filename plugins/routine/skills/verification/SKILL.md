@@ -43,7 +43,7 @@ Output a JSON summary:
 ```json
 {
   "status": "passed | fixed | skipped",
-  "summary": "<rich markdown — use template below>",
+  "summary": "<build a report using the Summary Template below, then write a short funny poem reflecting what was reviewed and what was fixed — return the poem here as the summary>",
   "screenshots": ["path/to/screenshot1.png", "path/to/screenshot2.png"]
 }
 ```
