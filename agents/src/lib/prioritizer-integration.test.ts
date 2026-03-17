@@ -44,11 +44,11 @@ void describe("Prioritizer.prioritize", () => {
     const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    const result = await prioritizer.prioritize(["EC-1"], REPOS);
+    const { resolved } = await prioritizer.prioritize(["EC-1"], REPOS);
 
     assert.equal(called, false);
-    assert.equal(result.layers.length, 1);
-    assert.deepEqual(keys(result.layers[0].group), ["EC-1"]);
+    assert.equal(resolved.layers.length, 1);
+    assert.deepEqual(keys(resolved.layers[0].group), ["EC-1"]);
   });
 
   void it("returns fallback for empty tickets without calling runner", async () => {
@@ -64,10 +64,10 @@ void describe("Prioritizer.prioritize", () => {
     const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    const result = await prioritizer.prioritize([], REPOS);
+    const { resolved } = await prioritizer.prioritize([], REPOS);
 
     assert.equal(called, false);
-    assert.deepEqual(keys(result.layers[0].group), []);
+    assert.deepEqual(keys(resolved.layers[0].group), []);
   });
 
   void it("parses successful prioritizer output", async () => {
@@ -94,15 +94,124 @@ void describe("Prioritizer.prioritize", () => {
     const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    const result = await prioritizer.prioritize(
+    const { resolved } = await prioritizer.prioritize(
       ["EC-1", "EC-2", "EC-3", "EC-4", "EC-5"],
       REPOS,
     );
 
-    assert.equal(result.layers.length, 2);
-    assert.deepEqual(keys(result.layers[0].group), ["EC-1", "EC-2"]);
-    assert.equal(result.skipped.length, 1);
-    assert.equal(result.excluded.length, 1);
+    assert.equal(resolved.layers.length, 2);
+    assert.deepEqual(keys(resolved.layers[0].group), ["EC-1", "EC-2"]);
+    assert.equal(resolved.skipped.length, 1);
+    assert.equal(resolved.excluded.length, 1);
+  });
+
+  void it("raw contains basenames while resolved contains full paths", async () => {
+    const output = JSON.stringify({
+      layers: [
+        {
+          group: [{ key: "EC-1", repos: [{ repo: "repo-a", branch: "ec-1-fix" }] }],
+          relation: null,
+          verification: { required: false, reason: "test" },
+        },
+      ],
+      skipped: [],
+      excluded: [],
+    });
+    const runner = makeRunner({ code: 0, stdout: output });
+    const { log } = collectLogs();
+    const prioritizer = makePrioritizer(runner, log);
+
+    const { resolved, raw } = await prioritizer.prioritize(["EC-1", "EC-2"], REPOS);
+
+    // resolved has full paths
+    assert.equal(resolved.layers[0].group[0].repos[0].repoPath, "/repo-a");
+    // raw has basenames
+    assert.equal(raw.layers[0].group[0].repos[0].repoPath, "repo-a");
+  });
+
+  void it("raw and resolved are independent copies", async () => {
+    const output = JSON.stringify({
+      layers: [
+        {
+          group: [{ key: "EC-1", repos: [{ repo: "repo-a", branch: "ec-1-fix" }] }],
+          relation: null,
+          verification: { required: false, reason: "test" },
+        },
+      ],
+      skipped: [],
+      excluded: [],
+    });
+    const runner = makeRunner({ code: 0, stdout: output });
+    const { log } = collectLogs();
+    const prioritizer = makePrioritizer(runner, log);
+
+    const { resolved, raw } = await prioritizer.prioritize(["EC-1", "EC-2"], REPOS);
+
+    // mutating resolved does not affect raw
+    resolved.layers[0].group[0].repos[0].repoPath = "/mutated";
+    assert.equal(raw.layers[0].group[0].repos[0].repoPath, "repo-a");
+  });
+
+  void it("raw preserves all fields across multiple layers and repos", async () => {
+    const output = JSON.stringify({
+      layers: [
+        {
+          group: [
+            { key: "EC-1", repos: [{ repo: "repo-a", branch: "ec-1-fix" }] },
+            { key: "EC-2", repos: [{ repo: "repo-b", branch: "ec-2-fix" }] },
+          ],
+          relation: "same-epic",
+          verification: { required: true, reason: "UI change" },
+          depends_on: null,
+        },
+        {
+          group: [{ key: "EC-3", repos: [{ repo: "repo-a", branch: "ec-3-fix" }] }],
+          relation: null,
+          verification: { required: false, reason: "API-only" },
+          depends_on: "EC-1",
+        },
+      ],
+      skipped: [{ key: "EC-4", reason: "blocked" }],
+      excluded: [{ key: "EC-5", reason: "Done" }],
+    });
+    const runner = makeRunner({ code: 0, stdout: output });
+    const { log } = collectLogs();
+    const prioritizer = makePrioritizer(runner, log);
+
+    const { resolved, raw } = await prioritizer.prioritize(
+      ["EC-1", "EC-2", "EC-3", "EC-4", "EC-5"],
+      REPOS,
+    );
+
+    // raw basenames for all tickets across layers
+    assert.equal(raw.layers[0].group[0].repos[0].repoPath, "repo-a");
+    assert.equal(raw.layers[0].group[1].repos[0].repoPath, "repo-b");
+    assert.equal(raw.layers[1].group[0].repos[0].repoPath, "repo-a");
+
+    // resolved full paths for all
+    assert.equal(resolved.layers[0].group[0].repos[0].repoPath, "/repo-a");
+    assert.equal(resolved.layers[0].group[1].repos[0].repoPath, "/repo-b");
+    assert.equal(resolved.layers[1].group[0].repos[0].repoPath, "/repo-a");
+
+    // non-repo fields preserved in both
+    assert.equal(raw.layers[0].relation, "same-epic");
+    assert.equal(raw.layers[1].dependsOn, "EC-1");
+    assert.deepEqual(raw.skipped, [{ key: "EC-4", reason: "blocked" }]);
+    assert.deepEqual(raw.excluded, [{ key: "EC-5", reason: "Done" }]);
+    assert.equal(raw.layers[0].group[0].repos[0].branch, "ec-1-fix");
+  });
+
+  void it("fallback single ticket returns same raw and resolved", async () => {
+    const runner = makeRunner({ code: 0, stdout: "" });
+    const { log } = collectLogs();
+    const prioritizer = makePrioritizer(runner, log);
+
+    const { resolved, raw } = await prioritizer.prioritize(["EC-1"], REPOS);
+
+    assert.deepEqual(keys(resolved.layers[0].group), ["EC-1"]);
+    assert.deepEqual(keys(raw.layers[0].group), ["EC-1"]);
+    // fallback has no repos to resolve, so both should match
+    assert.deepEqual(resolved.layers.length, raw.layers.length);
   });
 
   void it("throws on non-zero exit code", async () => {
@@ -121,10 +230,7 @@ void describe("Prioritizer.prioritize", () => {
     const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    await assert.rejects(
-      () => prioritizer.prioritize(["EC-1", "EC-2"], REPOS),
-      /parse failed/,
-    );
+    await assert.rejects(() => prioritizer.prioritize(["EC-1", "EC-2"], REPOS), /parse failed/);
   });
 
   void it("throws when output has empty layers", async () => {
@@ -133,10 +239,7 @@ void describe("Prioritizer.prioritize", () => {
     const { log } = collectLogs();
     const prioritizer = makePrioritizer(runner, log);
 
-    await assert.rejects(
-      () => prioritizer.prioritize(["EC-1", "EC-2"], REPOS),
-      /parse failed/,
-    );
+    await assert.rejects(() => prioritizer.prioritize(["EC-1", "EC-2"], REPOS), /parse failed/);
   });
 
   void it("logs prioritization summary on success", async () => {

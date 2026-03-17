@@ -60,17 +60,17 @@ export class GSDOrchestrator {
 
     const saved = this.runState.load();
 
-    const result = await this.prioritizer.prioritize(
+    const { resolved, raw } = await this.prioritizer.prioritize(
       allKeys,
       this.baseRepos,
       saved?.prioritizerResult,
     );
-    this.runState.save(result);
+    this.runState.save(raw);
 
     return {
-      layers: result.layers,
-      skipped: result.skipped,
-      excluded: result.excluded,
+      layers: resolved.layers,
+      skipped: resolved.skipped,
+      excluded: resolved.excluded,
       initialGroupStates: saved?.groupStates,
     };
   }
@@ -93,6 +93,7 @@ export class GSDOrchestrator {
     const excludedPending = excluded.filter((e) => unprocessedSet.has(e.key));
     if (excludedPending.length > 0) {
       const promotedParents = new Set<string>();
+      /* oxlint-disable no-await-in-loop -- sequential: promotedParents dedup requires ordering */
       for (const e of excludedPending) {
         const hasUnfinished = await this.jira.hasUnfinishedSubtasks(e.key);
         if (hasUnfinished) {
@@ -103,6 +104,7 @@ export class GSDOrchestrator {
         }
         this.tracker.mark(e.key);
       }
+      /* oxlint-enable no-await-in-loop */
     }
 
     return this.pipeline.processLayers(

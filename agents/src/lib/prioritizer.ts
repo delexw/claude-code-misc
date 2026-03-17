@@ -182,7 +182,6 @@ export class Prioritizer {
   private readonly runner: ClaudeRunner;
   private readonly scriptDir: string;
   private readonly log: LogFn;
-
   constructor(deps: PrioritizerDeps) {
     this.runner = deps.runner;
     this.scriptDir = deps.scriptDir;
@@ -193,8 +192,11 @@ export class Prioritizer {
     allTickets: string[],
     repos: string[],
     previousResult?: PrioritizeResult,
-  ): Promise<PrioritizeResult> {
-    if (allTickets.length <= 1) return fallbackResult(allTickets);
+  ): Promise<{ resolved: PrioritizeResult; raw: PrioritizeResult }> {
+    if (allTickets.length <= 1) {
+      const result = fallbackResult(allTickets);
+      return { resolved: result, raw: structuredClone(result) };
+    }
 
     this.log(
       `PRIORITIZING: ${allTickets.length} ticket(s)${previousResult ? " (guided by previous run)" : ""}`,
@@ -244,10 +246,13 @@ export class Prioritizer {
     if (code === 0) {
       const result = parsePrioritizerOutput(stdout);
       if (result) {
-        resolveAndValidateRepos(result, repos);
         for (const w of validateDependsOn(result.layers)) this.log(`WARN: ${w}`);
+        // Clone raw output (basenames) before resolving to full paths,
+        // so guidance passed to future runs matches the prompt format.
+        const raw = structuredClone(result);
+        resolveAndValidateRepos(result, repos);
         logPrioritizeResult(result, this.log);
-        return result;
+        return { resolved: result, raw };
       }
       throw new Error("Prioritizer output parse failed — terminating");
     } else {
