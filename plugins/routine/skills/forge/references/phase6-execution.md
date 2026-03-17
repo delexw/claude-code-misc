@@ -5,7 +5,7 @@
 
 ## Output
 
-Before cleanup, read `SKILL_DIR/references/mugshots/affected-urls.json` if it exists to populate the `affected_urls` field below. Then delete the dynamic skill directory:
+Before cleanup, read `SKILL_DIR/references/affected-urls.json` if it exists to populate the `affected_urls` field below. Then delete the dynamic skill directory:
 
 ```bash
 rm -rf ~/.claude/skills/{ticket_id}
@@ -19,7 +19,7 @@ Then output a JSON summary as the skill's response:
   "branch": "EC-1234-fix-payment-checkout-bug",
   "status": "completed | partial | failed",
   "summary": "Brief description of what was implemented",
-  "affected_urls": ["https://localhost:1234/affected/page"],
+  "affected_urls": ["https://domain:1234/affected/page"],
   "errors": []
 }
 ```

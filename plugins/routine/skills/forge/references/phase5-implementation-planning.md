@@ -51,6 +51,18 @@ All context files are under `SKILL_DIR/references/`. Read these files as needed 
 Follow `SKILL_DIR/battle-plan.md` step by step. Complete each phase fully before starting the next.
 
 Ensure UI changes comply with design specs. Ensure code follows project conventions.
+
+## Output
+
+After completing all implementation phases, save the affected page URLs to `SKILL_DIR/references/affected-urls.json` based on what you actually changed:
+
+e.g.
+
+```json
+["http://domain:3000/affected/page", "http://domain:3000/other/page"]
+```
+
+If no UI-visible pages are affected, save `[]`.
 ```
 
 ## 5c: Present Plan

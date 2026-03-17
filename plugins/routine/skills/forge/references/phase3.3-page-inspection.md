@@ -31,12 +31,3 @@ Combine the dev server URL with the matched route path(s) to form the full URL(s
 
 For each matched URL, invoke `Skill("page-inspector")` with the full page URL and `SKILL_DIR/references/mugshots` as the output directory.
 
-## Save Affected URLs
-
-After page inspection, save the matched full URLs to `SKILL_DIR/references/mugshots/affected-urls.json`:
-
-```json
-["{dev_server_url}/{matched_route}", "{dev_server_url}/{other_route}"]
-```
-
-This file is read by Phase 6 and included in the forge output so downstream verification can test the correct pages.
