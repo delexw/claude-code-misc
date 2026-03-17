@@ -76,7 +76,7 @@ export class GSDOrchestrator {
   }
 
   /** Step 1: Prioritize tickets, guided by previous run if available. */
-  async prioritize(allKeys: string[]): Promise<PrioritizeResult> {
+  async prioritize(allKeys: string[], sprint: string): Promise<PrioritizeResult> {
     resetReposToMain(this.baseRepos, this.log);
 
     const saved = this.runState.load();
@@ -86,7 +86,7 @@ export class GSDOrchestrator {
       this.baseRepos,
       saved?.prioritizerRawJson,
     );
-    this.runState.save(rawJson);
+    this.runState.save(rawJson, sprint);
 
     return {
       layers: resolved.layers,
@@ -148,9 +148,13 @@ export class GSDOrchestrator {
     const discovery = await this.discovery.discover(this.log);
     if (!discovery) return;
 
+    if (this.runState.resetIfSprintChanged(discovery.sprint)) {
+      this.log(`SPRINT CHANGED: ${discovery.sprint} — cleared previous run state`);
+    }
+
     this.resumeInFlightTickets(discovery);
 
-    const prioritization = await this.prioritize(discovery.allKeys);
+    const prioritization = await this.prioritize(discovery.allKeys, discovery.sprint);
     const { succeeded, failed } = await this.process(discovery, prioritization);
 
     this.summarize(succeeded, discovery.skippedCount, failed);

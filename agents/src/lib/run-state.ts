@@ -22,6 +22,8 @@ interface SerializedLayerState {
 }
 
 interface SerializedState {
+  /** Active sprint name when this state was saved. */
+  sprint?: string;
   /** Raw LLM output from prioritizer (original field names: repo, depends_on). */
   prioritizerRaw: RawPrioritizeOutput;
   /** Per-group state keyed by primary ticket key. */
@@ -71,14 +73,38 @@ export class RunState {
     }
   }
 
-  /** Save prioritizer raw output, preserving existing group states if present. */
-  save(rawJson: string): void {
+  /** Clear state and return true if the sprint has changed since last save. */
+  resetIfSprintChanged(currentSprint: string): boolean {
+    try {
+      const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
+      if (raw.sprint && raw.sprint !== currentSprint) {
+        this.clear();
+        return true;
+      }
+    } catch {
+      // No state file — nothing to reset
+    }
+    return false;
+  }
+
+  /** Save prioritizer raw output, preserving existing group states and sprint. */
+  save(rawJson: string, sprint?: string): void {
     const existing = this.load();
     const state: SerializedState = {
+      sprint: sprint ?? this.loadSprint(),
       prioritizerRaw: JSON.parse(rawJson) as RawPrioritizeOutput,
       groupStates: existing ? serializeGroupStates(existing.groupStates) : {},
     };
     writeFileSync(this.filePath, JSON.stringify(state, null, 2));
+  }
+
+  private loadSprint(): string | undefined {
+    try {
+      const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
+      return raw.sprint;
+    } catch {
+      return undefined;
+    }
   }
 
   /** Update the per-group states (call after each successful group). */

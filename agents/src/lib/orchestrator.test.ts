@@ -142,7 +142,7 @@ void describe("GSDOrchestrator.prioritize", () => {
     });
     const orch = new GSDOrchestrator(deps);
 
-    const result = await orch.prioritize(["EC-1", "EC-2"]);
+    const result = await orch.prioritize(["EC-1", "EC-2"], "Sprint 1");
 
     assert.ok(capturedPrompt.includes("PREVIOUS RUN GUIDANCE"));
     assert.ok(result.initialGroupStates);
@@ -179,7 +179,7 @@ void describe("GSDOrchestrator.prioritize", () => {
       baseRepos: ["/abs/my-repo"],
     });
     const orch = new GSDOrchestrator(deps);
-    const result = await orch.prioritize(["EC-1"]);
+    const result = await orch.prioritize(["EC-1"], "Sprint 1");
 
     assert.ok(!capturedPrompt.includes("PREVIOUS RUN GUIDANCE"));
     assert.equal(result.initialGroupStates, undefined);
@@ -227,6 +227,70 @@ void describe("GSDOrchestrator.run", () => {
     const orch = new GSDOrchestrator(deps);
     await orch.run();
     assert.ok(!deps.logs.some((l) => l.includes("PRIORITIZ")));
+  });
+
+  void it("clears state when sprint changes", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
+    const runState = new RunState(join(tmpDir, "run-state.json"));
+
+    // Save state from Sprint 1
+    runState.save(
+      JSON.stringify({
+        layers: [
+          {
+            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
+            relation: null,
+            verification: { required: false, reason: "test" },
+            depends_on: null,
+          },
+        ],
+      }),
+      "Sprint 1",
+    );
+    runState.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+      ]),
+    );
+
+    // Now sprint changes — EC-2 is in Sprint 2
+    const jira = makeJira("Sprint 2", [{ key: "EC-2", status: "To Do" }]);
+
+    const prioritizer = {
+      prioritize: async () => ({
+        resolved: {
+          layers: [
+            {
+              group: [{ key: "EC-2", repos: [{ repoPath: "/abs/my-repo", branch: "ec-2-new" }] }],
+              relation: null,
+              verification: { required: false, reason: "test" },
+              dependsOn: null,
+            },
+          ],
+          skipped: [],
+          excluded: [],
+        },
+        rawJson: "{}",
+      }),
+    } as unknown as Prioritizer;
+
+    const pipeline = {
+      processLayers: async () => ({ succeeded: 1, failed: 0 }),
+    } as unknown as Pipeline;
+
+    const deps = makeDeps({ jira, runState, prioritizer, pipeline, baseRepos: ["/abs/my-repo"] });
+    const orch = new GSDOrchestrator(deps);
+    await orch.run();
+
+    assert.ok(deps.logs.some((l) => l.includes("SPRINT CHANGED")));
+    // Previous state should be cleared — completedTicketKeys should be empty
+    assert.equal(runState.completedTicketKeys().size, 0);
   });
 
   void it("re-includes in-flight tickets from previous run on restart", async () => {

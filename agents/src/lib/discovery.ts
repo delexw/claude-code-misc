@@ -10,6 +10,7 @@ import type { RunState } from "./run-state.js";
 import { classifyTickets } from "./prioritizer.js";
 
 export interface DiscoverResult {
+  sprint: string;
   allKeys: string[];
   unprocessed: string[];
   skippedCount: number;
@@ -54,6 +55,6 @@ export class SprintDiscovery {
       return null;
     }
 
-    return { allKeys: allTickets.map((t) => t.key), unprocessed, skippedCount };
+    return { sprint, allKeys: allTickets.map((t) => t.key), unprocessed, skippedCount };
   }
 }
