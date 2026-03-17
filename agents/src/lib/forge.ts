@@ -1,7 +1,12 @@
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { JiraClient } from "./jira.js";
+import { parseJson } from "./json.js";
 import { ticketKeys, type TicketAssignment, type RepoAssignment } from "./prioritizer.js";
 import { type ForgeResult, type WorktreeInfo, worktreePath, buildForgePrompt } from "./prompts.js";
+
+interface ForgeOutput {
+  affected_urls?: string[];
+}
 
 // ─── ForgeService deps ──────────────────────────────────────────────────────
 
@@ -29,7 +34,7 @@ export class ForgeService {
     ticketUrl: string,
     assignment: RepoAssignment,
     devServerInfo: string,
-  ): Promise<{ ok: boolean; wt: WorktreeInfo | null }> {
+  ): Promise<{ ok: boolean; wt: WorktreeInfo | null; affectedUrls: string[] }> {
     this.log(`  FORGING ${ticketKey} in ${assignment.repoPath} (worktree: ${assignment.branch})`);
 
     const { code, stdout } = await this.runner.run(
@@ -47,8 +52,11 @@ export class ForgeService {
 
     if (code !== 0) {
       this.log(`  FORGE FAILED: ${ticketKey} in ${assignment.repoPath} (exit code: ${code})`);
-      return { ok: false, wt: null };
+      return { ok: false, wt: null, affectedUrls: [] };
     }
+
+    const parsed = parseJson(stdout, ForgeService.isForgeOutput);
+    const affectedUrls = parsed?.affected_urls ?? [];
 
     return {
       ok: true,
@@ -56,6 +64,7 @@ export class ForgeService {
         repoPath: assignment.repoPath,
         worktreePath: worktreePath(assignment.repoPath, assignment.branch),
       },
+      affectedUrls,
     };
   }
 
@@ -82,17 +91,22 @@ export class ForgeService {
     ]);
 
     const worktrees: WorktreeInfo[] = results.flatMap((r) => (r.wt ? [r.wt] : []));
+    const affectedUrls: string[] = results.flatMap((r) => r.affectedUrls);
     const allOk = results.every((r) => r.ok);
     const noneOk = worktrees.length === 0;
 
     if (noneOk) {
       this.log(`FORGE FAILED: ${ticket.key}`);
-      return { ticketKey: ticket.key, status: "failed", worktrees: [] };
+      return { ticketKey: ticket.key, status: "failed", worktrees: [], affectedUrls: [] };
     }
 
     const status = allOk ? "success" : "partial";
     this.log(`FORGED (${status}): ${ticket.key}`);
-    return { ticketKey: ticket.key, status, worktrees };
+    return { ticketKey: ticket.key, status, worktrees, affectedUrls };
+  }
+
+  private static isForgeOutput(v: unknown): v is ForgeOutput {
+    return typeof v === "object" && v !== null;
   }
 
   async forgeGroup(group: TicketAssignment[], devServerInfo: string): Promise<ForgeResult[]> {
@@ -106,6 +120,7 @@ export class ForgeService {
             ticketKey: group[i].key,
             status: "failed",
             worktrees: [],
+            affectedUrls: [],
           },
     );
   }

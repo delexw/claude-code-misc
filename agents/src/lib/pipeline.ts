@@ -91,6 +91,7 @@ export class Pipeline {
     }
 
     const primaryTicket = keys[0];
+    const affectedUrls = successful.flatMap((r) => r.affectedUrls);
 
     await this.commitWorktrees(primaryTicket, successful);
 
@@ -112,6 +113,7 @@ export class Pipeline {
       mergeBranch,
       mergedBranches[0].repoRoot,
       verification,
+      affectedUrls,
     );
 
     const nextPrUrls = await this.createPullRequests(
@@ -279,6 +281,7 @@ export class Pipeline {
     mergeBranch: string,
     cwd: string,
     verification: Verification,
+    affectedUrls: string[] = [],
   ): Promise<VerifyOutput | null> {
     this.log(
       `VERIFYING: ${primaryTicket} (ui required: ${verification.required}, reason: ${verification.reason})`,
@@ -289,6 +292,7 @@ export class Pipeline {
         verification.required ? this.devServers.devUrl : "",
         mergeBranch,
         verification,
+        affectedUrls,
       ),
       {
         cwd,

@@ -14,13 +14,13 @@ Verify implementation changes using the autoresearch loop pattern: review → fi
 Raw arguments: $ARGUMENTS
 
 Infer from the arguments:
-- DEV_CONTEXT: (optional) dev environment context — can be a dev server URL or empty to auto-detect
+- TARGET_URLS: one or more URLs to test — full affected page URLs or a root dev server URL. Multiple URLs are space-separated.
 
 ## Execution
 
-### Resolve Dev URL (once, before loop)
+### Resolve Target URLs (once, before loop)
 
-If DEV_CONTEXT is provided, use it to infer the dev environment setup (it may reference a skill, project, service, or directory — use your judgement to determine the dev server URL from its context). Otherwise check for a running dev server (`localhost:3000`, `localhost:5173`, `localhost:8080`). If no dev server found, QA web test will be skipped.
+If TARGET_URLS are provided, use them directly as the QA test targets. If no URLs are provided, QA web test will be skipped.
 
 ### Run Autoresearch
 
@@ -31,7 +31,7 @@ Verify implementation changes on the current branch.
 
 Each iteration MUST run these skills in order:
 1. Skill("codex-review", "review the uncommitted changes against main branch") — use OpenAI Codex CLI (always run)
-2. Skill("qa-web-test", "{dev_url}") — visual QA web testing (only if dev server found)
+2. Skill("qa-web-test", "{target_urls}") — visual QA web testing (only if dev server/URLs found). Pass ALL target URLs so each affected page is tested.
 
 Fix all issues found, then loop until verification pass clean.
 ```

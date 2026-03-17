@@ -13,6 +13,7 @@ export interface ForgeResult {
   ticketKey: string;
   status: ForgeStatus;
   worktrees: WorktreeInfo[];
+  affectedUrls: string[];
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -90,10 +91,13 @@ export function buildVerifyPrompt(
   devUrl: string,
   mergeBranch: string,
   verification: { required: boolean; reason: string },
+  affectedUrls: string[] = [],
 ): string {
   const devCtx = devUrl
     ? `Dev servers are running at ${devUrl} on merge branch "${mergeBranch}" (started externally).`
     : `No dev servers running (UI verification not required).`;
+
+  const verifyTarget = affectedUrls.length > 0 ? affectedUrls.join(" ") : devUrl;
 
   return [
     `[GSD: verify ${primaryTicket}] ${AUTONOMY_PREFIX}`,
@@ -105,7 +109,7 @@ export function buildVerifyPrompt(
     `- Web UI verification required: ${verification.required}`,
     `- Reason: ${verification.reason}`,
     "",
-    `Run: Skill("/verification${devUrl ? ` ${devUrl}` : ""}")`,
+    `Run: Skill("/verification${verifyTarget ? ` ${verifyTarget}` : ""}")`,
     "",
     "Report the result as plain text.",
   ].join("\n");

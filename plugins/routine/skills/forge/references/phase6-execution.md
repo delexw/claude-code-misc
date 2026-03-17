@@ -5,7 +5,7 @@
 
 ## Output
 
-Clean up the dynamic skill directory — only delete the exact `~/.claude/skills/{ticket_id}` directory, nothing else:
+Before cleanup, read `SKILL_DIR/references/mugshots/affected-urls.json` if it exists to populate the `affected_urls` field below. Then delete the dynamic skill directory:
 
 ```bash
 rm -rf ~/.claude/skills/{ticket_id}
@@ -19,6 +19,7 @@ Then output a JSON summary as the skill's response:
   "branch": "EC-1234-fix-payment-checkout-bug",
   "status": "completed | partial | failed",
   "summary": "Brief description of what was implemented",
+  "affected_urls": ["https://localhost:1234/affected/page"],
   "errors": []
 }
 ```
@@ -27,4 +28,5 @@ Then output a JSON summary as the skill's response:
   - `completed` — all phases succeeded, implementation done
   - `partial` — implementation done but some non-critical phases were skipped (e.g. no Figma links)
   - `failed` — a critical phase failed, implementation incomplete
+- `affected_urls` — page URLs the ticket affects. Empty array if no page inspection was run.
 - `errors` — array of error messages from any failed phases (empty if none)

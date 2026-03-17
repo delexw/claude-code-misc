@@ -68,6 +68,25 @@ void describe("buildVerifyPrompt", () => {
     assert.ok(result.includes("verification"));
     assert.ok(result.includes('merge branch "EC-1-merge"'));
   });
+
+  void it("uses affected URLs instead of root dev URL when provided", () => {
+    const result = buildVerifyPrompt("EC-1", "http://dev:3000", "EC-1-merge", {
+      required: true,
+      reason: "updates login page",
+    }, ["http://dev:3000/team/settings", "http://dev:3000/account"]);
+    assert.ok(result.includes("http://dev:3000/team/settings"));
+    assert.ok(result.includes("http://dev:3000/account"));
+    // The verification skill call should use affected URLs, not root
+    assert.ok(result.includes('/verification http://dev:3000/team/settings http://dev:3000/account'));
+  });
+
+  void it("falls back to root dev URL when no affected URLs", () => {
+    const result = buildVerifyPrompt("EC-1", "http://dev:3000", "EC-1-merge", {
+      required: true,
+      reason: "updates login page",
+    }, []);
+    assert.ok(result.includes('/verification http://dev:3000'));
+  });
 });
 
 void describe("buildPrPrompt", () => {

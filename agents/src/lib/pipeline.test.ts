@@ -85,11 +85,13 @@ void describe("mergeAndVerify", () => {
       ticketKey: "EC-1",
       status: "success",
       worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-1" }],
+      affectedUrls: [],
     },
     {
       ticketKey: "EC-2",
       status: "success",
       worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-2" }],
+      affectedUrls: [],
     },
   ];
 
@@ -119,7 +121,7 @@ void describe("mergeAndVerify", () => {
   });
 
   void it("returns all failed when no successful forges", async () => {
-    const forges: ForgeResult[] = [{ ticketKey: "EC-1", status: "failed", worktrees: [] }];
+    const forges: ForgeResult[] = [{ ticketKey: "EC-1", status: "failed", worktrees: [], affectedUrls: [] }];
     const runner = makeRunner([]);
     const { log } = collectLogs();
     const pipeline = makePipeline(runner, log);
@@ -165,8 +167,9 @@ void describe("mergeAndVerify", () => {
         ticketKey: "EC-1",
         status: "success",
         worktrees: [{ repoPath: "/repo", worktreePath: "/wt/ec-1" }],
+        affectedUrls: [],
       },
-      { ticketKey: "EC-2", status: "failed", worktrees: [] },
+      { ticketKey: "EC-2", status: "failed", worktrees: [], affectedUrls: [] },
     ];
     const runner = makeRunner([
       { code: 0, stdout: "" }, // commit EC-1
