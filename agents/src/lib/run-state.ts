@@ -136,21 +136,17 @@ export class RunState {
   }
 
   /**
-   * Extract ticket keys that belong to completed groups (groups with PR URLs)
-   * plus any extra keys marked via markCompleted().
+   * Extract ticket keys that are completed — either stored in groupStates
+   * with PR URLs, or marked via markCompleted().
    */
   completedTicketKeys(): Set<string> {
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
       const completed = new Set<string>(raw.extraCompleted ?? []);
-      if (!raw.prioritizerRaw?.layers || !raw.groupStates) return completed;
-      for (const layer of raw.prioritizerRaw.layers) {
-        const primaryKey = layer.group[0]?.key;
-        if (!primaryKey) continue;
-        const groupState = raw.groupStates[primaryKey];
-        if (groupState && Object.keys(groupState.prUrls).length > 0) {
-          for (const ticket of layer.group) {
-            completed.add(ticket.key);
+      if (raw.groupStates) {
+        for (const [key, state] of Object.entries(raw.groupStates)) {
+          if (Object.keys(state.prUrls).length > 0) {
+            completed.add(key);
           }
         }
       }
@@ -160,21 +156,12 @@ export class RunState {
     }
   }
 
-  /** Mark a ticket key as completed (skips keys already covered by groupStates). */
+  /** Mark a ticket key as completed (skips keys already in groupStates with PRs). */
   markCompleted(key: string): void {
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
-      // Skip if already tracked via groupStates (as primary or member of a completed group)
-      if (raw.groupStates) {
-        for (const layer of raw.prioritizerRaw?.layers ?? []) {
-          const pk = layer.group[0]?.key;
-          if (!pk) continue;
-          const gs = raw.groupStates[pk];
-          if (gs && Object.keys(gs.prUrls).length > 0) {
-            if (layer.group.some((t) => t.key === key)) return;
-          }
-        }
-      }
+      const gs = raw.groupStates?.[key];
+      if (gs && Object.keys(gs.prUrls).length > 0) return;
       const extra = new Set(raw.extraCompleted ?? []);
       extra.add(key);
       raw.extraCompleted = [...extra];

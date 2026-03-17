@@ -120,9 +120,11 @@ export class Dag {
     return parent;
   }
 
-  /** Record a successful group's output state. */
-  record(pk: string, state: LayerState): void {
-    this.groupStates.set(pk, state);
+  /** Record a successful group's output state for all ticket keys. */
+  record(keys: string[], state: LayerState): void {
+    for (const key of keys) {
+      this.groupStates.set(key, state);
+    }
   }
 
   /** Mark a group as failed so downstream dependents are skipped. */

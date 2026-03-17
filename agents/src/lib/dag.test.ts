@@ -57,7 +57,7 @@ void describe("Dag", () => {
 
   void it("resolve returns parent state after record", () => {
     const dag = new Dag([dn("EC-1", null), dn("EC-2", "EC-1")], () => {});
-    dag.record("EC-1", { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map() });
+    dag.record(["EC-1"], { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map() });
 
     const result = dag.resolve("EC-1");
     assert.notEqual(result, "skip");
@@ -66,7 +66,7 @@ void describe("Dag", () => {
 
   void it("resolve resolves non-primary ticket to its group", () => {
     const dag = new Dag([dn("EC-1", null, ["EC-2"]), dn("EC-3", "EC-2")], () => {});
-    dag.record("EC-1", { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map() });
+    dag.record(["EC-1"], { branches: new Map([["/repo", "ec-1-merge"]]), prUrls: new Map() });
 
     const result = dag.resolve("EC-2");
     assert.notEqual(result, "skip");
@@ -97,11 +97,25 @@ void describe("Dag", () => {
 
   void it("snapshot returns a copy of groupStates", () => {
     const dag = new Dag([dn("EC-1", null)], () => {});
-    dag.record("EC-1", { branches: new Map([["/repo", "b"]]), prUrls: new Map() });
+    dag.record(["EC-1"], { branches: new Map([["/repo", "b"]]), prUrls: new Map() });
 
     const snap = dag.snapshot();
     assert.equal(snap.get("EC-1")?.branches.get("/repo"), "b");
     assert.equal(snap.size, 1);
+  });
+
+  void it("record stores state for all ticket keys in group", () => {
+    const dag = new Dag([dn("EC-1", null, ["EC-2"])], () => {});
+    const state: LayerState = {
+      branches: new Map([["/repo", "merge-branch"]]),
+      prUrls: new Map([["/repo", "https://pr/1"]]),
+    };
+    dag.record(["EC-1", "EC-2"], state);
+
+    const snap = dag.snapshot();
+    assert.equal(snap.get("EC-1")?.prUrls.get("/repo"), "https://pr/1");
+    assert.equal(snap.get("EC-2")?.prUrls.get("/repo"), "https://pr/1");
+    assert.equal(snap.size, 2);
   });
 
   void it("seeds from initialGroupStates", () => {
@@ -118,7 +132,7 @@ void describe("Dag", () => {
   void it("ticketToGroup maps every ticket to its group primary key", () => {
     const nodes: DagNode[] = [dn("EC-1", null, ["EC-2"]), dn("EC-3", "EC-1")];
     const dag = new Dag(nodes, () => {});
-    dag.record("EC-1", { branches: new Map([["/r", "b"]]), prUrls: new Map() });
+    dag.record(["EC-1"], { branches: new Map([["/r", "b"]]), prUrls: new Map() });
 
     // EC-2 resolves to EC-1's group
     const result = dag.resolve("EC-2");

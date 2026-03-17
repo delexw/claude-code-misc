@@ -198,7 +198,7 @@ export class Pipeline {
         this.log(`Layer ${i} group ${pk} failed — downstream dependents will be skipped`);
         dag.fail(pk);
       } else {
-        dag.record(pk, result.layerState);
+        dag.record(ticketKeys(group), result.layerState);
         runState?.updateGroupStates(dag.snapshot());
       }
     }
