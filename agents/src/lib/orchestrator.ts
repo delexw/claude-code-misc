@@ -85,18 +85,24 @@ export class GSDOrchestrator {
     for (const s of skipped) this.log(`INFO: skipping ${s.key} — ${s.reason}`);
     for (const e of excluded) this.log(`INFO: excluded ${e.key} — ${e.reason}`);
 
-    // Promote excluded pending tickets (e.g. container stories whose sub-tasks are all done)
     const unprocessedSet = new Set(discovery.unprocessed);
+
+    // Promote excluded container stories whose sub-tasks are all already done.
+    // Catches the case where a previous run finished all sub-tasks but crashed
+    // before promoting the parent.
     const excludedPending = excluded.filter((e) => unprocessedSet.has(e.key));
     if (excludedPending.length > 0) {
       const promotedParents = new Set<string>();
-      await Promise.all(
-        excludedPending.map(async (e) => {
-          this.log(`PROMOTE: ${e.key} excluded but pending — checking if ready for review`);
+      for (const e of excludedPending) {
+        const hasUnfinished = await this.jira.hasUnfinishedSubtasks(e.key);
+        if (hasUnfinished) {
+          this.log(`SKIP PROMOTE: ${e.key} — still has unfinished sub-tasks`);
+        } else {
+          this.log(`PROMOTE: ${e.key} — all sub-tasks complete`);
           await this.jira.promoteToReview(e.key, this.log, promotedParents);
-          this.tracker.mark(e.key);
-        }),
-      );
+        }
+        this.tracker.mark(e.key);
+      }
     }
 
     return this.pipeline.processLayers(

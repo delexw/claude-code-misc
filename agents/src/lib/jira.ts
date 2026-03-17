@@ -69,7 +69,7 @@ export class JiraClient {
 
   /** Check if a parent ticket has any sub-tasks assigned to this user still in To Do or Backlog. */
   async hasUnfinishedSubtasks(parentKey: string): Promise<boolean> {
-    const jql = `parent = '${parentKey}' AND assignee = '${this.assignee}' AND status IN ('To Do', 'Backlog')`;
+    const jql = `parent = '${parentKey}' AND assignee = '${this.assignee}' AND status IN ('To Do', 'Backlog', 'In Progress')`;
     const { ok, stdout } = await exec(this.cli, [
       "issue",
       "list",
