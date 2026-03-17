@@ -4,6 +4,7 @@ import { parseJson } from "./json.js";
 interface LockData {
   pid: number;
   children: number[];
+  retained?: boolean;
 }
 
 export function isLockData(v: unknown): v is LockData {
@@ -73,6 +74,9 @@ export function acquireLock(lockFile: string): boolean {
   if (existsSync(lockFile)) {
     const existing = readLock(lockFile);
     if (existing) {
+      if (existing.retained) {
+        return false; // intentionally retained after error — manual intervention required
+      }
       if (isAlive(existing.pid)) {
         return false; // another instance running
       }
@@ -93,6 +97,17 @@ export function acquireLock(lockFile: string): boolean {
   process.on("SIGINT", () => process.exit(1));
   process.on("SIGTERM", () => process.exit(1));
   return true;
+}
+
+/** Mark the lock as intentionally retained so future runs won't reclaim it. */
+export function retainLock(): void {
+  if (currentLockFile) {
+    const data = readLock(currentLockFile);
+    if (data) {
+      data.retained = true;
+      writeLock(currentLockFile, data);
+    }
+  }
 }
 
 /** Remove the lock file. Call this in process.on("exit") from the entry point. */

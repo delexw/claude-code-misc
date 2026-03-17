@@ -7,6 +7,7 @@ import { spawn } from "node:child_process";
 import {
   acquireLock,
   releaseLock,
+  retainLock,
   registerChildPid,
   unregisterChildPid,
   _resetForTest,
@@ -162,6 +163,31 @@ void describe("lock", () => {
     releaseLock();
     releaseLock(); // should not throw
     assert.equal(existsSync(lockFile), false);
+  });
+
+  void it("rejects acquire when lock is retained", () => {
+    writeFileSync(lockFile, JSON.stringify({ pid: 999999, children: [], retained: true }));
+
+    const result = acquireLock(lockFile);
+    assert.equal(result, false);
+    assert.equal(existsSync(lockFile), true, "retained lock should not be deleted");
+  });
+
+  void it("retainLock marks current lock as retained", () => {
+    acquireLock(lockFile);
+    retainLock();
+
+    const raw = JSON.parse(readFileSync(lockFile, "utf-8"));
+    assert.equal(raw.retained, true);
+  });
+
+  void it("retained lock survives dead pid", () => {
+    // Simulate: process exited but lock was retained
+    writeFileSync(lockFile, JSON.stringify({ pid: 999999, children: [], retained: true }));
+
+    _resetForTest();
+    const result = acquireLock(lockFile);
+    assert.equal(result, false, "should not reclaim a retained lock even with dead pid");
   });
 
   void it("kills orphaned children when reclaiming stale lock", async () => {

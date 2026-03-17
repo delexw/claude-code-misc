@@ -11,7 +11,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLogger, makeTimestamp } from "./lib/logger.js";
 import { parseRepos } from "./lib/repos.js";
-import { acquireLock, releaseLock } from "./lib/lock.js";
+import { acquireLock, releaseLock, retainLock } from "./lib/lock.js";
 import { JiraClient } from "./lib/jira.js";
 import { ProcessedTracker } from "./lib/processed-tracker.js";
 import { DevServerManager } from "./lib/dev-servers.js";
@@ -53,7 +53,10 @@ process.on("exit", () => {
     try { postRunCleanup(SCRIPT_DIR, LOG_BASE, devServers, log); } catch { /* best effort */ }
   }
   if (cleanExit) releaseLock();
-  else log("ERROR: retaining lock to prevent retry — manual intervention required");
+  else {
+    retainLock();
+    log("ERROR: retaining lock to prevent retry — manual intervention required");
+  }
 });
 
 async function main() {
