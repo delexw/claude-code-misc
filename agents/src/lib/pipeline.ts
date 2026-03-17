@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
-import type { ProcessedTracker } from "./processed-tracker.js";
+import type { RunState } from "./run-state.js";
 import type { GroupedLayer, TicketAssignment, Verification } from "./prioritizer.js";
 import type { ForgeResult, PrDependency } from "./prompts.js";
 import {
@@ -14,7 +14,6 @@ import {
 import { filterGroup, ticketKeys } from "./prioritizer.js";
 import { parseJson } from "./json.js";
 import { ForgeService } from "./forge.js";
-import type { RunState } from "./run-state.js";
 import { Dag, type GroupStates, type LayerState, type RepoMap, primaryKey } from "./dag.js";
 
 // Re-export DAG types for consumers that previously imported from pipeline
@@ -51,7 +50,7 @@ export interface PipelineDeps {
   runner: ClaudeRunner;
   devServers: DevServerManager;
   jira: JiraClient;
-  tracker: ProcessedTracker;
+  runState: RunState;
   log: LogFn;
 }
 
@@ -61,7 +60,7 @@ export class Pipeline {
   private readonly runner: ClaudeRunner;
   private readonly devServers: DevServerManager;
   private readonly jira: JiraClient;
-  private readonly tracker: ProcessedTracker;
+  private readonly runState: RunState;
   private readonly log: LogFn;
   private readonly forge: ForgeService;
 
@@ -69,7 +68,7 @@ export class Pipeline {
     this.runner = deps.runner;
     this.devServers = deps.devServers;
     this.jira = deps.jira;
-    this.tracker = deps.tracker;
+    this.runState = deps.runState;
     this.log = deps.log;
     this.forge = new ForgeService({ runner: deps.runner, jira: deps.jira, log: deps.log });
   }
@@ -366,7 +365,7 @@ export class Pipeline {
       successful.map(async (r) => {
         this.log(`SUCCESS: ${r.ticketKey}`);
         await this.jira.promoteToReview(r.ticketKey, this.log, promotedParents);
-        this.tracker.mark(r.ticketKey);
+        this.runState.markCompleted(r.ticketKey);
       }),
     );
   }

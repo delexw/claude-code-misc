@@ -6,7 +6,7 @@
  */
 
 import type { JiraClient } from "./jira.js";
-import type { ProcessedTracker } from "./processed-tracker.js";
+import type { RunState } from "./run-state.js";
 import { classifyTickets } from "./prioritizer.js";
 
 export interface DiscoverResult {
@@ -18,7 +18,7 @@ export interface DiscoverResult {
 export class SprintDiscovery {
   constructor(
     private readonly jira: JiraClient,
-    private readonly tracker: ProcessedTracker,
+    private readonly runState: RunState,
     private readonly baseRepos: string[],
   ) {}
 
@@ -30,7 +30,7 @@ export class SprintDiscovery {
     const allTickets = await this.jira.fetchSprintTickets(sprint);
     if (allTickets.length === 0) return null;
 
-    const processed = this.tracker.load();
+    const completed = this.runState.completedTicketKeys();
 
     log?.(`Found ${allTickets.length} ticket(s) in sprint.`);
 
@@ -39,8 +39,8 @@ export class SprintDiscovery {
     let skippedCount = 0;
 
     for (const t of pending) {
-      if (processed.has(t.key)) {
-        log?.(`SKIP: ${t.key} (already processed today)`);
+      if (completed.has(t.key)) {
+        log?.(`SKIP: ${t.key} (already completed)`);
         skippedCount++;
       } else {
         unprocessed.push(t.key);

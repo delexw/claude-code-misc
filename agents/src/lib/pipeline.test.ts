@@ -5,8 +5,8 @@ import type { GroupStates, LayerState } from "./dag.js";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
-import type { ProcessedTracker } from "./processed-tracker.js";
 import type { ForgeResult } from "./prompts.js";
+import type { RunState } from "./run-state.js";
 import type { GroupedLayer, Verification } from "./prioritizer.js";
 
 const NO_BASE: LayerState = { branches: new Map(), prUrls: new Map() };
@@ -50,13 +50,11 @@ function makeJira(): JiraClient {
   } as unknown as JiraClient;
 }
 
-function makeTracker(): ProcessedTracker & { marked: string[] } {
-  const marked: string[] = [];
+function makeRunState(): RunState {
   return {
-    marked,
-    mark: (key: string) => marked.push(key),
+    markCompleted: () => {},
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
-  } as unknown as ProcessedTracker & { marked: string[] };
+  } as unknown as RunState;
 }
 
 function makePipeline(
@@ -65,14 +63,13 @@ function makePipeline(
   overrides: {
     devServers?: DevServerManager;
     jira?: JiraClient;
-    tracker?: ProcessedTracker;
   } = {},
 ): Pipeline {
   return new Pipeline({
     runner,
     devServers: overrides.devServers ?? makeDevServers(),
     jira: overrides.jira ?? makeJira(),
-    tracker: overrides.tracker ?? makeTracker(),
+    runState: makeRunState(),
     log,
   });
 }
@@ -192,31 +189,6 @@ void describe("mergeAndVerify", () => {
 
     assert.deepEqual(result.succeeded, ["EC-1"]);
     assert.deepEqual(result.failed, ["EC-2"]);
-  });
-
-  void it("marks successful tickets in tracker", async () => {
-    const runner = makeRunner([
-      { code: 0, stdout: "" }, // commit EC-1
-      { code: 0, stdout: "" }, // commit EC-2
-      { code: 0, stdout: "branch" },
-      { code: 0, stdout: "ok" },
-      { code: 0, stdout: "ok" },
-    ]);
-    const tracker = makeTracker();
-    const { log } = collectLogs();
-    const pipeline = makePipeline(runner, log, { tracker });
-
-    await pipeline.mergeAndVerify(
-      successForges,
-      [
-        { key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
-        { key: "EC-2", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] },
-      ],
-      VERIFY,
-      NO_BASE,
-    );
-
-    assert.deepEqual(tracker.marked, ["EC-1", "EC-2"]);
   });
 
   void it("moves tickets to In Review via jira", async () => {

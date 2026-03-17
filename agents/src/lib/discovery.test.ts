@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { SprintDiscovery } from "./discovery.js";
 import type { JiraClient } from "./jira.js";
-import type { ProcessedTracker } from "./processed-tracker.js";
+import type { RunState } from "./run-state.js";
 
 function makeJira(
   sprint: string | null = "Sprint 1",
@@ -14,28 +14,28 @@ function makeJira(
   } as unknown as JiraClient;
 }
 
-function makeTracker(processed: string[] = []): ProcessedTracker {
-  return { load: () => new Set(processed) } as unknown as ProcessedTracker;
+function makeRunState(completed: string[] = []): RunState {
+  return { completedTicketKeys: () => new Set(completed) } as unknown as RunState;
 }
 
 void describe("SprintDiscovery", () => {
   void it("returns null when no active sprint", async () => {
-    const d = new SprintDiscovery(makeJira(null), makeTracker(), []);
+    const d = new SprintDiscovery(makeJira(null), makeRunState(), []);
     assert.equal(await d.discover(), null);
   });
 
   void it("returns null when sprint has no tickets", async () => {
-    const d = new SprintDiscovery(makeJira("Sprint 1", []), makeTracker(), []);
+    const d = new SprintDiscovery(makeJira("Sprint 1", []), makeRunState(), []);
     assert.equal(await d.discover(), null);
   });
 
-  void it("returns null when all pending tickets are already processed", async () => {
+  void it("returns null when all pending tickets are already completed", async () => {
     const d = new SprintDiscovery(
       makeJira("Sprint 1", [
         { key: "EC-1", status: "To Do" },
         { key: "EC-2", status: "In Progress" },
       ]),
-      makeTracker(["EC-1"]),
+      makeRunState(["EC-1"]),
       [],
     );
     assert.equal(await d.discover(), null);
@@ -47,7 +47,7 @@ void describe("SprintDiscovery", () => {
         { key: "EC-1", status: "In Progress" },
         { key: "EC-2", status: "Done" },
       ]),
-      makeTracker(),
+      makeRunState(),
       [],
     );
     assert.equal(await d.discover(), null);
@@ -60,7 +60,7 @@ void describe("SprintDiscovery", () => {
         { key: "EC-2", status: "Backlog" },
         { key: "EC-3", status: "In Progress" },
       ]),
-      makeTracker(),
+      makeRunState(),
       [],
     );
 
@@ -71,14 +71,14 @@ void describe("SprintDiscovery", () => {
     assert.equal(result.skippedCount, 0);
   });
 
-  void it("separates processed from unprocessed and counts skips", async () => {
+  void it("separates completed from unprocessed and counts skips", async () => {
     const d = new SprintDiscovery(
       makeJira("Sprint 1", [
         { key: "EC-1", status: "To Do" },
         { key: "EC-2", status: "To Do" },
         { key: "EC-3", status: "Backlog" },
       ]),
-      makeTracker(["EC-1"]),
+      makeRunState(["EC-1"]),
       [],
     );
 
@@ -91,7 +91,7 @@ void describe("SprintDiscovery", () => {
   void it("logs when logger provided, silent when not", async () => {
     const d = new SprintDiscovery(
       makeJira("Sprint 1", [{ key: "EC-1", status: "To Do" }]),
-      makeTracker(),
+      makeRunState(),
       [],
     );
 

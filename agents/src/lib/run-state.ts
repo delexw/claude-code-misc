@@ -26,6 +26,8 @@ interface SerializedState {
   prioritizerRaw: RawPrioritizeOutput;
   /** Per-group state keyed by primary ticket key. */
   groupStates: { [group: GroupKey]: SerializedLayerState };
+  /** Ticket keys marked as completed outside of group processing (e.g. excluded parents). */
+  extraCompleted?: string[];
 }
 
 function serializeMap(m: RepoMap): { [repo: RepoPath]: string } {
@@ -84,6 +86,61 @@ export class RunState {
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
       raw.groupStates = serializeGroupStates(groupStates);
+      writeFileSync(this.filePath, JSON.stringify(raw, null, 2));
+    } catch {
+      // If the file doesn't exist, nothing to update
+    }
+  }
+
+  /** Extract all ticket keys from the saved prioritizer layers. */
+  previousTicketKeys(): Set<string> {
+    try {
+      const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
+      if (!raw.prioritizerRaw?.layers) return new Set();
+      const keys = new Set<string>();
+      for (const layer of raw.prioritizerRaw.layers) {
+        for (const ticket of layer.group) {
+          keys.add(ticket.key);
+        }
+      }
+      return keys;
+    } catch {
+      return new Set();
+    }
+  }
+
+  /**
+   * Extract ticket keys that belong to completed groups (groups with PR URLs)
+   * plus any extra keys marked via markCompleted().
+   */
+  completedTicketKeys(): Set<string> {
+    try {
+      const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
+      const completed = new Set<string>(raw.extraCompleted ?? []);
+      if (!raw.prioritizerRaw?.layers || !raw.groupStates) return completed;
+      for (const layer of raw.prioritizerRaw.layers) {
+        const primaryKey = layer.group[0]?.key;
+        if (!primaryKey) continue;
+        const groupState = raw.groupStates[primaryKey];
+        if (groupState && Object.keys(groupState.prUrls).length > 0) {
+          for (const ticket of layer.group) {
+            completed.add(ticket.key);
+          }
+        }
+      }
+      return completed;
+    } catch {
+      return new Set();
+    }
+  }
+
+  /** Mark a ticket key as completed (for tickets outside group processing). */
+  markCompleted(key: string): void {
+    try {
+      const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
+      const extra = new Set(raw.extraCompleted ?? []);
+      extra.add(key);
+      raw.extraCompleted = [...extra];
       writeFileSync(this.filePath, JSON.stringify(raw, null, 2));
     } catch {
       // If the file doesn't exist, nothing to update

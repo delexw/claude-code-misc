@@ -6,7 +6,6 @@
 
 import type { LogFn } from "./claude-runner.js";
 import type { JiraClient } from "./jira.js";
-import type { ProcessedTracker } from "./processed-tracker.js";
 import type { RunState } from "./run-state.js";
 import type { GroupedLayer } from "./prioritizer.js";
 import type { GroupStates } from "./dag.js";
@@ -20,7 +19,6 @@ export interface OrchestratorDeps {
   prioritizer: Prioritizer;
   pipeline: Pipeline;
   jira: JiraClient;
-  tracker: ProcessedTracker;
   runState: RunState;
   baseRepos: string[];
   log: LogFn;
@@ -38,7 +36,6 @@ export class GSDOrchestrator {
   private readonly prioritizer: Prioritizer;
   private readonly pipeline: Pipeline;
   private readonly jira: JiraClient;
-  private readonly tracker: ProcessedTracker;
   private readonly runState: RunState;
   private readonly baseRepos: string[];
   private readonly log: LogFn;
@@ -48,10 +45,34 @@ export class GSDOrchestrator {
     this.prioritizer = deps.prioritizer;
     this.pipeline = deps.pipeline;
     this.jira = deps.jira;
-    this.tracker = deps.tracker;
     this.runState = deps.runState;
     this.baseRepos = deps.baseRepos;
     this.log = deps.log;
+  }
+
+  /**
+   * Re-include in-flight tickets from a previous run that were moved to
+   * "In Progress" by forge but never completed (crash/restart scenario).
+   * Discovery drops them because classifyTickets only considers "To Do"/"Backlog".
+   * Skips tickets whose group already completed (has PRs — e.g. "In Review").
+   */
+  private resumeInFlightTickets(discovery: DiscoverResult): void {
+    const previousKeys = this.runState.previousTicketKeys();
+    if (previousKeys.size === 0) return;
+
+    const completedKeys = this.runState.completedTicketKeys();
+    const unprocessedSet = new Set(discovery.unprocessed);
+
+    for (const key of previousKeys) {
+      if (completedKeys.has(key) || unprocessedSet.has(key) || !discovery.allKeys.includes(key)) {
+        if (completedKeys.has(key) && !unprocessedSet.has(key) && discovery.allKeys.includes(key)) {
+          this.log(`SKIP RESUME: ${key} — already completed in previous run`);
+        }
+        continue;
+      }
+      discovery.unprocessed.push(key);
+      this.log(`RESUME: ${key} — in-flight from previous run, re-including`);
+    }
   }
 
   /** Step 1: Prioritize tickets, guided by previous run if available. */
@@ -102,7 +123,7 @@ export class GSDOrchestrator {
           this.log(`PROMOTE: ${e.key} — all sub-tasks complete`);
           await this.jira.promoteToReview(e.key, this.log, promotedParents);
         }
-        this.tracker.mark(e.key);
+        this.runState.markCompleted(e.key);
       }
       /* oxlint-enable no-await-in-loop */
     }
@@ -126,6 +147,8 @@ export class GSDOrchestrator {
   async run(): Promise<void> {
     const discovery = await this.discovery.discover(this.log);
     if (!discovery) return;
+
+    this.resumeInFlightTickets(discovery);
 
     const prioritization = await this.prioritize(discovery.allKeys);
     const { succeeded, failed } = await this.process(discovery, prioritization);

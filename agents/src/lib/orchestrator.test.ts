@@ -10,7 +10,6 @@ import { Pipeline } from "./pipeline.js";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
-import type { ProcessedTracker } from "./processed-tracker.js";
 import { RunState } from "./run-state.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -33,14 +32,6 @@ function makeJira(
     hasUnfinishedSubtasks: async () => true,
     promoteToReview: async () => {},
   } as unknown as JiraClient;
-}
-
-function makeTracker(processed: string[] = []): ProcessedTracker {
-  const marked: string[] = [];
-  return {
-    load: () => new Set(processed),
-    mark: (key: string) => marked.push(key),
-  } as unknown as ProcessedTracker;
 }
 
 function makeRunner(): ClaudeRunner {
@@ -68,17 +59,16 @@ function makeDeps(
   const { logs, log } = collectLogs();
   const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
   const jira = overrides.jira ?? makeJira();
-  const tracker = overrides.tracker ?? makeTracker();
   const baseRepos = overrides.baseRepos ?? [];
   const runner = makeRunner();
   const devServers = makeDevServers();
+  const runState = overrides.runState ?? new RunState(join(tmpDir, "run-state.json"));
   return {
-    discovery: new SprintDiscovery(jira, tracker, baseRepos),
+    discovery: new SprintDiscovery(jira, runState, baseRepos),
     prioritizer: overrides.prioritizer ?? new Prioritizer({ runner, scriptDir: tmpDir, log }),
-    pipeline: overrides.pipeline ?? new Pipeline({ runner, devServers, jira, tracker, log }),
+    pipeline: overrides.pipeline ?? new Pipeline({ runner, devServers, jira, runState, log }),
     jira,
-    tracker,
-    runState: new RunState(join(tmpDir, "run-state.json")),
+    runState,
     baseRepos,
     log,
     logs,
@@ -237,5 +227,164 @@ void describe("GSDOrchestrator.run", () => {
     const orch = new GSDOrchestrator(deps);
     await orch.run();
     assert.ok(!deps.logs.some((l) => l.includes("PRIORITIZ")));
+  });
+
+  void it("re-includes in-flight tickets from previous run on restart", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
+    const runState = new RunState(join(tmpDir, "run-state.json"));
+
+    // Simulate previous run: EC-1 was prioritized and forged (moved to In Progress)
+    // but never completed (crash before commit+PR).
+    runState.save(
+      JSON.stringify({
+        layers: [
+          {
+            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
+            relation: null,
+            verification: { required: false, reason: "test" },
+            depends_on: null,
+          },
+        ],
+      }),
+    );
+
+    // EC-1 is "In Progress" (forge moved it), EC-2 is "To Do"
+    // EC-1 not completed — crash happened before commit+PR
+    const jira = makeJira("Sprint 1", [
+      { key: "EC-1", status: "In Progress" },
+      { key: "EC-2", status: "To Do" },
+    ]);
+    // No extra completed keys — RunState handles this via completedTicketKeys() // nothing marked as processed
+
+    // Capture what tickets are passed to prioritize
+    const prioritizer = {
+      prioritize: async (_keys: string[]) => {
+        return {
+          resolved: {
+            layers: [
+              {
+                group: [
+                  { key: "EC-1", repos: [{ repoPath: "/abs/my-repo", branch: "ec-1-fix" }] },
+                  { key: "EC-2", repos: [{ repoPath: "/abs/my-repo", branch: "ec-2-new" }] },
+                ],
+                relation: null,
+                verification: { required: false, reason: "test" },
+                dependsOn: null,
+              },
+            ],
+            skipped: [],
+            excluded: [],
+          },
+          rawJson: "{}",
+        };
+      },
+    } as unknown as Prioritizer;
+
+    // Pipeline mock that tracks what unprocessed keys it receives
+    let capturedUnprocessed: Set<string> | null = null;
+    const pipeline = {
+      processLayers: async (
+        _layers: unknown,
+        unprocessed: Set<string>,
+      ) => {
+        capturedUnprocessed = new Set(unprocessed);
+        return { succeeded: 2, failed: 0 };
+      },
+    } as unknown as Pipeline;
+
+    const deps = makeDeps({
+      jira,
+      runState,
+      prioritizer,
+      pipeline,
+      baseRepos: ["/abs/my-repo"],
+    });
+    const orch = new GSDOrchestrator(deps);
+    await orch.run();
+
+    // EC-1 should be re-included in unprocessed despite being "In Progress"
+    assert.notEqual(capturedUnprocessed, null, "processLayers should have been called");
+    assert.ok(capturedUnprocessed!.has("EC-1"), "EC-1 should be re-included as unprocessed");
+    assert.ok(capturedUnprocessed!.has("EC-2"), "EC-2 should be unprocessed normally");
+    assert.ok(deps.logs.some((l) => l.includes("RESUME: EC-1")));
+  });
+
+  void it("does not resume tickets from completed groups (has PRs)", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
+    const runState = new RunState(join(tmpDir, "run-state.json"));
+
+    // EC-1 was fully completed in a previous run (has PR URLs)
+    runState.save(
+      JSON.stringify({
+        layers: [
+          {
+            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
+            relation: null,
+            verification: { required: false, reason: "test" },
+            depends_on: null,
+          },
+        ],
+      }),
+    );
+    runState.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://github.com/org/repo/pull/42"]]),
+          },
+        ],
+      ]),
+    );
+
+    // EC-1 is "In Review", tracker reset (new day — empty processed set)
+    const jira = makeJira("Sprint 1", [
+      { key: "EC-1", status: "In Review" },
+      { key: "EC-2", status: "To Do" },
+    ]);
+    // No extra completed keys — RunState handles this via completedTicketKeys()
+
+    let capturedUnprocessed: Set<string> | null = null;
+    const prioritizer = {
+      prioritize: async () => ({
+        resolved: {
+          layers: [
+            {
+              group: [{ key: "EC-2", repos: [{ repoPath: "/abs/my-repo", branch: "ec-2-new" }] }],
+              relation: null,
+              verification: { required: false, reason: "test" },
+              dependsOn: null,
+            },
+          ],
+          skipped: [],
+          excluded: [],
+        },
+        rawJson: "{}",
+      }),
+    } as unknown as Prioritizer;
+
+    const pipeline = {
+      processLayers: async (_layers: unknown, unprocessed: Set<string>) => {
+        capturedUnprocessed = new Set(unprocessed);
+        return { succeeded: 1, failed: 0 };
+      },
+    } as unknown as Pipeline;
+
+    const deps = makeDeps({
+      jira,
+      runState,
+      prioritizer,
+      pipeline,
+      baseRepos: ["/abs/my-repo"],
+    });
+    const orch = new GSDOrchestrator(deps);
+    await orch.run();
+
+    // EC-1 should NOT be re-included — it already has PRs
+    assert.notEqual(capturedUnprocessed, null);
+    assert.ok(!capturedUnprocessed!.has("EC-1"), "EC-1 should not be resumed — already completed");
+    assert.ok(capturedUnprocessed!.has("EC-2"), "EC-2 should be unprocessed normally");
+    assert.ok(deps.logs.some((l) => l.includes("SKIP RESUME: EC-1")));
   });
 });

@@ -13,7 +13,6 @@ import { createLogger, makeTimestamp } from "./lib/logger.js";
 import { parseRepos } from "./lib/repos.js";
 import { acquireLock, releaseLock, retainLock } from "./lib/lock.js";
 import { JiraClient } from "./lib/jira.js";
-import { ProcessedTracker } from "./lib/processed-tracker.js";
 import { DevServerManager } from "./lib/dev-servers.js";
 import { ClaudeRunner } from "./lib/claude-runner.js";
 import { postRunCleanup } from "./lib/cleanup.js";
@@ -38,9 +37,9 @@ const jira = new JiraClient(
   process.env.JIRA_ASSIGNEE || "",
   process.env.JIRA_SPRINT_PREFIX || "",
 );
-const tracker = new ProcessedTracker(join(STATE_DIR, "processed"));
 const baseRepos = parseRepos("GSD_REPOS");
-const discovery = new SprintDiscovery(jira, tracker, baseRepos);
+const runState = new RunState(join(STATE_DIR, "run-state.json"));
+const discovery = new SprintDiscovery(jira, runState, baseRepos);
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
@@ -90,10 +89,9 @@ async function main() {
   await new GSDOrchestrator({
     discovery,
     prioritizer: new Prioritizer({ runner, scriptDir: SCRIPT_DIR, log }),
-    pipeline: new Pipeline({ runner, devServers, jira, tracker, log }),
+    pipeline: new Pipeline({ runner, devServers, jira, runState, log }),
     jira,
-    tracker,
-    runState: new RunState(join(STATE_DIR, "run-state.json")),
+    runState,
     baseRepos,
     log,
   }).run();
