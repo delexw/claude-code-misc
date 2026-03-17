@@ -191,21 +191,21 @@ export class Prioritizer {
   async prioritize(
     allTickets: string[],
     repos: string[],
-    previousResult?: PrioritizeResult,
-  ): Promise<{ resolved: PrioritizeResult; raw: PrioritizeResult }> {
+    previousRawJson?: string,
+  ): Promise<{ resolved: PrioritizeResult; rawJson: string }> {
     if (allTickets.length <= 1) {
       const result = fallbackResult(allTickets);
-      return { resolved: result, raw: structuredClone(result) };
+      return { resolved: result, rawJson: JSON.stringify(result) };
     }
 
     this.log(
-      `PRIORITIZING: ${allTickets.length} ticket(s)${previousResult ? " (guided by previous run)" : ""}`,
+      `PRIORITIZING: ${allTickets.length} ticket(s)${previousRawJson ? " (guided by previous run)" : ""}`,
     );
 
     const ticketList = allTickets.join(",");
     const repoList = repos.join("\n");
 
-    const guidanceNote = previousResult
+    const guidanceNote = previousRawJson
       ? [
           "",
           "IMPORTANT — PREVIOUS RUN GUIDANCE:",
@@ -219,7 +219,7 @@ export class Prioritizer {
           "",
           "Previous result:",
           "<previous_result>",
-          JSON.stringify(previousResult),
+          previousRawJson,
           "</previous_result>",
         ].join("\n")
       : "";
@@ -247,12 +247,12 @@ export class Prioritizer {
       const result = parsePrioritizerOutput(stdout);
       if (result) {
         for (const w of validateDependsOn(result.layers)) this.log(`WARN: ${w}`);
-        // Clone raw output (basenames) before resolving to full paths,
-        // so guidance passed to future runs matches the prompt format.
-        const raw = structuredClone(result);
+        // Save raw LLM output JSON (original field names: repo, depends_on)
+        // before parsing renames them (repoPath, dependsOn) and resolves paths.
+        const rawJson = extractJson(stdout);
         resolveAndValidateRepos(result, repos);
         logPrioritizeResult(result, this.log);
-        return { resolved: result, raw };
+        return { resolved: result, rawJson };
       }
       throw new Error("Prioritizer output parse failed — terminating");
     } else {
@@ -262,6 +262,20 @@ export class Prioritizer {
 }
 
 // ─── Internal helpers ───────────────────────────────────────────────────────
+
+/** Extract the first JSON object from LLM stdout (may contain preamble text). */
+function extractJson(stdout: string): string {
+  const start = stdout.indexOf("{");
+  if (start === -1) return stdout;
+  // Find matching closing brace
+  let depth = 0;
+  for (let i = start; i < stdout.length; i++) {
+    if (stdout[i] === "{") depth++;
+    else if (stdout[i] === "}") depth--;
+    if (depth === 0) return stdout.slice(start, i + 1);
+  }
+  return stdout.slice(start);
+}
 
 function resolveAndValidateRepos(result: PrioritizeResult, baseRepos: string[]): void {
   for (const layer of result.layers) {

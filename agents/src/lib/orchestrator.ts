@@ -60,12 +60,12 @@ export class GSDOrchestrator {
 
     const saved = this.runState.load();
 
-    const { resolved, raw } = await this.prioritizer.prioritize(
+    const { resolved, rawJson } = await this.prioritizer.prioritize(
       allKeys,
       this.baseRepos,
-      saved?.prioritizerResult,
+      saved?.prioritizerRawJson,
     );
-    this.runState.save(raw);
+    this.runState.save(rawJson);
 
     return {
       layers: resolved.layers,

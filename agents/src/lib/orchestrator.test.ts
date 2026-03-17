@@ -93,19 +93,21 @@ void describe("GSDOrchestrator.prioritize", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
 
-    // Pre-save state from a previous run
-    runState.save({
-      layers: [
-        {
-          group: [{ key: "EC-1", repos: [{ repoPath: "/repo", branch: "ec-1-fix" }] }],
-          relation: null,
-          verification: { required: false, reason: "test" },
-          dependsOn: null,
-        },
-      ],
-      skipped: [],
-      excluded: [],
-    });
+    // Pre-save state from a previous run (raw LLM JSON with original field names)
+    runState.save(
+      JSON.stringify({
+        layers: [
+          {
+            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
+            relation: null,
+            verification: { required: false, reason: "test" },
+            depends_on: null,
+          },
+        ],
+        skipped: [],
+        excluded: [],
+      }),
+    );
     runState.updateGroupStates(
       new Map([
         [
@@ -200,18 +202,7 @@ void describe("GSDOrchestrator.summarize", () => {
   void it("preserves all state on success for next-run guidance", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
-    runState.save({
-      layers: [
-        {
-          group: [{ key: "EC-1", repos: [] }],
-          relation: null,
-          verification: { required: false, reason: "" },
-          dependsOn: null,
-        },
-      ],
-      skipped: [],
-      excluded: [],
-    });
+    runState.save(JSON.stringify({ layers: [{ group: [{ key: "EC-1", repos: [] }] }] }));
     runState.updateGroupStates(
       new Map([["EC-1", { branches: new Map([["/r", "b"]]), prUrls: new Map() }]]),
     );
@@ -223,28 +214,13 @@ void describe("GSDOrchestrator.summarize", () => {
     const loaded = runState.load();
     assert.ok(loaded, "state should be preserved");
     assert.equal(loaded.groupStates.size, 1, "groupStates preserved for merge chain");
-    assert.equal(
-      loaded.prioritizerResult.layers.length,
-      1,
-      "prioritizerResult preserved for guidance",
-    );
+    assert.ok(loaded.prioritizerRawJson, "raw JSON preserved for guidance");
   });
 
   void it("preserves run state when there are failures", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     const runState = new RunState(join(tmpDir, "run-state.json"));
-    runState.save({
-      layers: [
-        {
-          group: [],
-          relation: null,
-          verification: { required: false, reason: "" },
-          dependsOn: null,
-        },
-      ],
-      skipped: [],
-      excluded: [],
-    });
+    runState.save(JSON.stringify({ layers: [{ group: [] }] }));
 
     const deps = makeDeps({ runState });
     const orch = new GSDOrchestrator(deps);
