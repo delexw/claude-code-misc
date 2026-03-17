@@ -73,7 +73,7 @@ interface RawKeyReason {
   key: string;
   reason: string;
 }
-interface RawPrioritizeOutput {
+export interface RawPrioritizeOutput {
   layers: RawLayer[];
   skipped?: RawKeyReason[];
   excluded?: RawKeyReason[];

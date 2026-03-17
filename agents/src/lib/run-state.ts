@@ -5,6 +5,7 @@
 
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import type { GroupStates, RepoMap } from "./dag.js";
+import type { RawPrioritizeOutput } from "./prioritizer.js";
 
 /** Repo root absolute path (e.g. "/Users/x/Envato/seo/elements-storefront"). */
 type RepoPath = string;
@@ -21,8 +22,8 @@ interface SerializedLayerState {
 }
 
 interface SerializedState {
-  /** Raw LLM JSON from prioritizer (original field names: repo, depends_on). */
-  prioritizerRawJson: string;
+  /** Raw LLM output from prioritizer (original field names: repo, depends_on). */
+  prioritizerRaw: RawPrioritizeOutput;
   /** Per-group state keyed by primary ticket key. */
   groupStates: { [group: GroupKey]: SerializedLayerState };
 }
@@ -58,9 +59,9 @@ export class RunState {
   load(): { prioritizerRawJson: string; groupStates: GroupStates } | null {
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
-      if (!raw.prioritizerRawJson || !raw.groupStates) return null;
+      if (!raw.prioritizerRaw || !raw.groupStates) return null;
       return {
-        prioritizerRawJson: raw.prioritizerRawJson,
+        prioritizerRawJson: JSON.stringify(raw.prioritizerRaw),
         groupStates: deserializeGroupStates(raw.groupStates),
       };
     } catch {
@@ -68,11 +69,11 @@ export class RunState {
     }
   }
 
-  /** Save prioritizer raw JSON, preserving existing group states if present. */
+  /** Save prioritizer raw output, preserving existing group states if present. */
   save(rawJson: string): void {
     const existing = this.load();
     const state: SerializedState = {
-      prioritizerRawJson: rawJson,
+      prioritizerRaw: JSON.parse(rawJson) as RawPrioritizeOutput,
       groupStates: existing ? serializeGroupStates(existing.groupStates) : {},
     };
     writeFileSync(this.filePath, JSON.stringify(state, null, 2));
