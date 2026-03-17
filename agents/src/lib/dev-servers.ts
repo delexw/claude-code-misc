@@ -174,11 +174,12 @@ export class DevServerManager {
     // Stop all servers
     this.stopAll();
 
-    // Checkout merge branch for non-fixed-branch services
+    // Checkout merge branch for non-fixed-branch services (fall back to main if branch doesn't exist)
     for (const svc of this.services.filter((s) => !s.branchFixed)) {
+      const branch = this.branchExists(svc.cwd, mergeBranch) ? mergeBranch : "main";
       try {
-        execSync(`git checkout ${mergeBranch}`, { cwd: svc.cwd, stdio: "pipe" });
-        this.log(`  Checked out ${mergeBranch} in ${svc.name}`);
+        execSync(`git checkout ${branch}`, { cwd: svc.cwd, stdio: "pipe" });
+        this.log(`  Checked out ${branch} in ${svc.name}`);
       } catch (e: unknown) {
         this.log(
           `  WARN: git checkout failed for ${svc.name}: ${e instanceof Error ? e.message : String(e)}`,
@@ -191,6 +192,15 @@ export class DevServerManager {
   }
 
   // ─── Private ─────────────────────────────────────────────────────────────
+
+  private branchExists(cwd: string, branch: string): boolean {
+    try {
+      execSync(`git rev-parse --verify ${branch}`, { cwd, stdio: "pipe" });
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   private spawnService(svc: ServiceConfig): void {
     const name = svc.name;
