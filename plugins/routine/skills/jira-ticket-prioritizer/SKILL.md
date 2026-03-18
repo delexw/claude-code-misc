@@ -57,6 +57,15 @@ Infer from the arguments:
 - Re-run topological sort if new edges were added:
   - Update `all-tickets.json` with additional `softEdges` and re-run `build-dependency-graph.js`
 
+### Step 4b — Redundancy Detection
+- Read [references/redundancy-analysis.md](references/redundancy-analysis.md) for the full detection rules
+- Look at every pair of pending tickets and assess how much their scope overlaps — consider their summaries, descriptions, components, labels, ticket type, and any explicit JIRA duplicate links
+- For each pair, form a judgment on how likely they are to describe the same work: assign a weight (how much overlap) and a confidence level (how certain you are)
+- When two tickets clearly overlap, decide which one is the primary — prefer the higher-scoring ticket, or the lower-numbered one if scores are equal
+- When the overlap is strong enough to act on (high confidence, or medium confidence with substantial weight), pull the secondary ticket out of the pending set and put it in `skipped`. Write a plain-English reason that explains exactly what was found — which fields overlapped, what the textual similarity was, and why you concluded one ticket's scope is covered by the other. See [references/redundancy-analysis.md](references/redundancy-analysis.md) for evidence string guidelines
+- When the overlap is weaker (low confidence, or medium confidence with low weight), treat the tickets as independent — leave both in the layers and do not flag them
+- Tickets moved to `skipped` here must not appear in the scoring or grouping steps below
+
 ### Step 5 — Priority Scoring & Grouping
 - Only score `pending` tickets — `context` tickets are not scored or placed in layers
 - For tickets at the same dependency layer, score using weights from [references/priority-weights.md](references/priority-weights.md)
@@ -91,3 +100,4 @@ Infer from the arguments:
 | [references/priority-weights.md](references/priority-weights.md) | Step 5 — scoring rules and factor weights |
 | [references/output-format.md](references/output-format.md) | Step 6 — report template and JSON schema |
 | [references/dependency-analysis.md](references/dependency-analysis.md) | Steps 3-5 — dependency detection and grouping rules |
+| [references/redundancy-analysis.md](references/redundancy-analysis.md) | Step 4b — redundancy detection, weight/confidence rules, skipped entry format |

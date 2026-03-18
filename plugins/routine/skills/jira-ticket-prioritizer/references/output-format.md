@@ -17,7 +17,8 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
     { "group": [{"key": "PROJ-105", "complexity": "moderate", "repos": [{"repo": "acme-web", "branch": "proj-105-dashboard"}]}], "relation": null, "verification": {"required": true, "reason": "new dashboard page"}, "depends_on": null }
   ],
   "skipped": [
-    { "key": "PROJ-102", "reason": "depends on PROJ-100 (status: In Progress)" }
+    { "key": "PROJ-102", "reason": "depends on PROJ-100 (status: In Progress)" },
+    { "key": "PROJ-104", "reason": "redundant with PROJ-101 — near-identical summary and overlapping component 'AuthService'; PROJ-104 description is a subset of PROJ-101 scope (confidence: high, weight: 0.87)", "redundantWith": "PROJ-101", "weight": 0.87, "confidence": "high" }
   ],
   "excluded": [
     {
@@ -35,7 +36,9 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
 - **layers[N].verification** = object `{"required": boolean, "reason": string}` indicating whether the group's changes should be visually verified via a running dev server.
   - **required** = `true` only when changes produce **visible, reachable UI** — e.g. a component rendered on an existing page. Set to `false` when: (a) backend/API-only, (b) new component not yet mounted on any page, (c) UI behind a feature flag that is off by default, (d) purely styling tokens or test changes. Inferred semantically from ticket content.
   - **reason** = short explanation of why `required` is true or false. Used for logging and debugging orchestrator decisions.
-- **skipped** = Tickets with unresolved cross-layer dependencies. These are not processed — the next scheduler run re-evaluates them. Reason includes the dependency ticket key and its current JIRA status.
+- **skipped** = Tickets not processed this run, for one of two reasons:
+  - *Unresolved dependency*: cross-layer dependency ticket is not yet Done. Reason includes the dependency key and its current status.
+  - *Redundant*: ticket substantially overlaps with a higher-scoring ticket. Includes `redundantWith`, `weight`, and `confidence` fields. Reason is a verbose evidence string naming the specific overlapping fields.
 - **excluded** = Tickets intentionally omitted (container stories, Done/Closed/Resolved, etc.) with a reason string
 
 ### Ordering Rules
@@ -45,6 +48,7 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
 3. Tickets with status Done/Closed/Resolved are placed in `excluded`
 4. Container/parent stories with no implementable tasks of their own are placed in `excluded`
 5. Tickets whose cross-layer dependencies are not yet resolved (dependency ticket status is not "Done") are placed in `skipped`
+6. Tickets identified as redundant (confidence: high, OR confidence: medium + weight ≥ 0.60) are placed in `skipped` — the lower-scoring ticket is skipped, the higher-scoring one proceeds
 
 ### Dependency DAG Rules
 
@@ -119,6 +123,17 @@ Full analysis with scores, justifications, and dependency graph.
   "excluded": [
     { "key": "PROJ-99", "summary": "Old task", "status": "Done", "reason": "completed" }
   ],
+  "redundancies": [
+    {
+      "primary": "PROJ-101",
+      "secondary": "PROJ-104",
+      "weight": 0.87,
+      "confidence": "high",
+      "signals": ["near-identical summary", "overlapping component 'AuthService'", "description subset"],
+      "action": "skipped",
+      "evidence": "near-identical summary and overlapping component 'AuthService'; PROJ-104 description is a subset of PROJ-101 scope"
+    }
+  ],
   "warnings": [],
   "context": "focus on backend"
 }
@@ -149,9 +164,20 @@ Full analysis with scores, justifications, and dependency graph.
 - `externalDeps` — dependencies on tickets outside the input set
 
 #### skipped
-- Tickets with unresolved cross-layer dependencies
-- `dependency` — the ticket key this is waiting on
-- `dependencyStatus` — current JIRA status of the dependency
+- Tickets with unresolved cross-layer dependencies, OR redundant tickets
+- `dependency` — (dependency-skipped only) the ticket key this is waiting on
+- `dependencyStatus` — (dependency-skipped only) current JIRA status of the dependency
+- `redundantWith` — (redundant only) the primary ticket key this was found redundant with
+- `weight` — (redundant only) overlap weight 0.0–1.0
+- `confidence` — (redundant only) high / medium
+
+#### redundancies
+- Full redundancy analysis findings (both skipped and warning-only pairs)
+- `primary` / `secondary` — ticket keys; secondary is the one skipped or warned about
+- `weight`, `confidence` — as above
+- `signals` — list of specific overlap signals detected
+- `action` — always `"skipped"` (only pairs that meet the threshold are recorded here)
+- `evidence` — verbose explanation used in the `reason` string
 
 #### excluded
 - Tickets skipped due to Done/Closed/Resolved status or container stories
