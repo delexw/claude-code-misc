@@ -154,3 +154,4 @@ agents/logs/
 agents/state/
 agents/.pir-tmp/
 agents/.envrc
+.gitnexus
