@@ -108,6 +108,18 @@ export class GSDOrchestrator {
 
     const unprocessedSet = new Set(discovery.unprocessed);
 
+    // Comment and promote skipped tickets that are still pending.
+    const skippedPending = skipped.filter((s) => unprocessedSet.has(s.key));
+    /* oxlint-disable no-await-in-loop -- sequential JIRA mutations required */
+    for (const s of skippedPending) {
+      const commented = await this.jira.addComment(s.key, s.reason);
+      if (!commented) this.log(`WARN: Could not comment on ${s.key}`);
+      await this.jira.promoteToReview(s.key, this.log);
+      this.runState.markCompleted(s.key);
+      this.log(`SKIPPED: ${s.key} — commented and moved to In Review`);
+    }
+    /* oxlint-enable no-await-in-loop */
+
     // Promote excluded container stories whose sub-tasks are all already done.
     // Catches the case where a previous run finished all sub-tasks but crashed
     // before promoting the parent.

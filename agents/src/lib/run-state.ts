@@ -144,15 +144,26 @@ export class RunState {
     }
   }
 
-  /** Save prioritizer raw output, preserving existing group states and sprint. */
+  /** Save prioritizer raw output, preserving existing group states, sprint, and extraCompleted. */
   save(rawJson: string, sprint?: string): void {
     const existing = this.load();
+    const existingExtra = this.loadExtraCompleted();
     const state: SerializedState = {
       sprint: sprint ?? this.loadSprint(),
       prioritizerRaw: JSON.parse(rawJson) as RawPrioritizeOutput,
       groupStates: existing ? serializeGroupStates(existing.groupStates) : {},
+      ...(existingExtra.length > 0 && { extraCompleted: existingExtra }),
     };
     writeFileSync(this.filePath, JSON.stringify(state, null, 2));
+  }
+
+  private loadExtraCompleted(): string[] {
+    try {
+      const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
+      return raw.extraCompleted ?? [];
+    } catch {
+      return [];
+    }
   }
 
   private loadSprint(): string | undefined {
@@ -210,6 +221,23 @@ export class RunState {
       return completed;
     } catch {
       return new Set();
+    }
+  }
+
+  /**
+   * Remove extraCompleted entries whose tickets are no longer pending in the sprint.
+   * Called during discovery once we know which tickets are still "To Do"/"Backlog".
+   */
+  pruneExtraCompleted(pendingKeys: Set<string>): void {
+    try {
+      const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
+      if (!raw.extraCompleted?.length) return;
+      const pruned = raw.extraCompleted.filter((k) => pendingKeys.has(k));
+      if (pruned.length === raw.extraCompleted.length) return;
+      raw.extraCompleted = pruned.length > 0 ? pruned : undefined;
+      writeFileSync(this.filePath, JSON.stringify(raw, null, 2));
+    } catch {
+      // No state file — nothing to prune
     }
   }
 

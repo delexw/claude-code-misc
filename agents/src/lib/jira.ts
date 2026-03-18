@@ -103,6 +103,11 @@ export class JiraClient {
     }
   }
 
+  async addComment(ticketKey: string, body: string): Promise<boolean> {
+    const { ok } = await exec(this.cli, ["issue", "comment", "add", ticketKey, "--body", body]);
+    return ok;
+  }
+
   ticketUrl(ticketKey: string): string {
     return `${this.server}/browse/${ticketKey}`;
   }

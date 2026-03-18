@@ -36,6 +36,9 @@ export class SprintDiscovery {
     log?.(`Found ${allTickets.length} ticket(s) in sprint.`);
 
     const { pending } = classifyTickets(allTickets);
+    const pendingKeys = new Set(pending.map((t) => t.key));
+    this.runState.pruneExtraCompleted(pendingKeys);
+
     const unprocessed: string[] = [];
     let skippedCount = 0;
 

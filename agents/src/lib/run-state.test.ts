@@ -357,6 +357,68 @@ void describe("RunState", () => {
     assert.deepEqual(pruned, []);
   });
 
+  // ─── save preserves extraCompleted ───────────────────────────────────────
+
+  void it("save preserves extraCompleted across re-save", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.markCompleted("EC-2");
+
+    // Re-save with new raw JSON — extraCompleted must survive
+    state.save(makeRawJson(["EC-1", "EC-3"]));
+
+    const raw = JSON.parse(readFileSync(stateFile, "utf-8")) as { extraCompleted?: string[] };
+    assert.deepEqual(raw.extraCompleted, ["EC-2"]);
+  });
+
+  void it("save omits extraCompleted field when there are no extra-completed keys", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.save(makeRawJson(["EC-1", "EC-2"]));
+
+    const raw = JSON.parse(readFileSync(stateFile, "utf-8")) as { extraCompleted?: string[] };
+    assert.equal(raw.extraCompleted, undefined);
+  });
+
+  // ─── pruneExtraCompleted ──────────────────────────────────────────────────
+
+  void it("pruneExtraCompleted removes keys no longer pending", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.markCompleted("EC-2");
+    state.markCompleted("EC-3");
+
+    // Only EC-3 is still pending
+    state.pruneExtraCompleted(new Set(["EC-3"]));
+
+    const raw = JSON.parse(readFileSync(stateFile, "utf-8")) as { extraCompleted?: string[] };
+    assert.deepEqual(raw.extraCompleted, ["EC-3"]);
+  });
+
+  void it("pruneExtraCompleted removes extraCompleted field when all keys are pruned", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.markCompleted("EC-2");
+
+    // EC-2 is no longer pending
+    state.pruneExtraCompleted(new Set(["EC-1"]));
+
+    const raw = JSON.parse(readFileSync(stateFile, "utf-8")) as { extraCompleted?: string[] };
+    assert.equal(raw.extraCompleted, undefined);
+  });
+
+  void it("pruneExtraCompleted is a no-op when nothing needs pruning", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.markCompleted("EC-2");
+
+    const before = readFileSync(stateFile, "utf-8");
+    state.pruneExtraCompleted(new Set(["EC-1", "EC-2"]));
+    const after = readFileSync(stateFile, "utf-8");
+
+    assert.equal(before, after);
+  });
+
+  void it("pruneExtraCompleted is a no-op when no state file exists", () => {
+    state.pruneExtraCompleted(new Set(["EC-1"]));
+    assert.equal(existsSync(stateFile), false);
+  });
+
   // ─── backward compat ──────────────────────────────────────────────────────
 
   void it("returns null for old format with prioritizerResult instead of prioritizerRawJson", () => {
