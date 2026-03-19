@@ -1,6 +1,6 @@
 ---
 name: cloudflare-traffic-investigator
-description: Use this skill to diagnose CDN traffic spikes, bot floods, WAF anomalies, or unexplained API saturation — whenever someone needs to query Cloudflare zone analytics, analyze JA4 fingerprints, review firewall events, identify which users or IPs are hammering an endpoint, or understand what happened during an incident window. Trigger phrases include: "check cloudflare", "what's hitting our API", "investigate the spike", "pull CF data", circuit breaker events, 429 floods, bot score analysis, or any request to pull CDN-layer traffic data. Skip for: creating/modifying WAF rules or rate limits, Cloudflare DNS or SSL cert changes, Workers deployment, or 429s from non-CDN APIs like Stripe.
+description: Investigate traffic anomalies, spikes, and service degradation on Cloudflare-protected domains. Uses cloudflare-mcp-cli for GraphQL analytics, JA4 fingerprint analysis, bot/WAF security scoring, and incident reporting. Use this skill whenever traffic spikes, service overloads, 429 errors, circuit breaker events, Cloudflare analytics, or domain performance issues are mentioned — even if the user doesn't explicitly say "traffic spike". Also triggers when asked to check Cloudflare data for any domain.
 allowed-tools: Bash(cloudflare-mcp-cli *), Bash(which cloudflare-mcp-cli*), Bash(npm install *cloudflare-mcp-cli*), Bash(date *), Bash(mkdir *), Read, Write, Edit
 argument-hint: <domain, zone ID, and optional time range>
 model: sonnet
