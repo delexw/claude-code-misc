@@ -28,13 +28,23 @@ If the user doesn't specify, check `git diff --cached --stat` first. If there ar
 
 ### 3. Run the review
 
-```shell
-codex review "<prompt>"
-```
-
 **IMPORTANT:** Use a **10-minute timeout** (600000ms) for the Bash command — codex streams from the OpenAI API and large diffs can take several minutes to complete. The default 2-minute timeout will cause the stream to disconnect mid-review.
 
 The prompt should describe what to focus on. If the user provided `$ARGUMENTS`, use that as the prompt. Otherwise use a sensible default like `"review the changes for bugs, style issues, and potential improvements"`.
+
+**Command construction rules:**
+
+- **Staged changes** (no flag): pass the prompt as a positional argument.
+  ```shell
+  codex review "<prompt>"
+  ```
+
+- **With `--base`, `--commit`, or `--uncommitted`**: the CLI does **not** allow a positional prompt argument alongside these flags. Pipe the prompt via stdin using `-` instead:
+  ```shell
+  echo "<prompt>" | codex review --base <branch> -
+  echo "<prompt>" | codex review --uncommitted -
+  echo "<prompt>" | codex review --commit <sha> -
+  ```
 
 If the command fails due to environment issues (missing API key, network error, etc.), try these in order:
 1. Check if `OPENAI_API_KEY` is set
