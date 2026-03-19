@@ -64,6 +64,27 @@ Use this template when documenting traffic spike incidents. Fill in all sections
 
 ---
 
+### Rules & Protections
+
+**WAF Custom Rules:** [N active, M paused]
+- Coverage of affected path: [Yes — action: block/challenge/log | No]
+- Notable rules: [list descriptions or "none relevant"]
+
+**Rate Limiting:** [N active rules]
+- Coverage of affected endpoint: [Yes — threshold: X req/Ys, action: Y | No]
+- Threshold vs. peak traffic: [adequate / too high / no rule]
+
+**Page Rules:** [N active rules]
+- Cache behavior on affected path: [standard TTL / bypass / no rule]
+- Rules contributing to amplification: [Yes: description | No]
+
+**Protection gaps identified:**
+- [Gap 1: e.g., "No rate limiting on /api/subscription"]
+- [Gap 2: e.g., "Cache bypass forces all requests to origin"]
+- *(or "None identified")*
+
+---
+
 ### User Activity Analysis
 
 **Top users hitting failing endpoint:**

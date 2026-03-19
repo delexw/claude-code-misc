@@ -10,6 +10,7 @@ Combine all data from previous steps into a coherent narrative and incident repo
 | Culprit source | 4 | JA4 fingerprint and request count |
 | Affected paths | 5 | Which endpoints were hit |
 | Traffic legitimacy | 6 | Bot & WAF scores, security assessment |
+| Rules inventory | 6b | Active WAF rules, rate limits, page rules, identified gaps |
 | Top users | 7 | Who made the most requests |
 
 ## Determine root cause

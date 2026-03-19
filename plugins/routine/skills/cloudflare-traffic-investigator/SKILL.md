@@ -1,6 +1,6 @@
 ---
 name: cloudflare-traffic-investigator
-description: Investigate traffic anomalies, spikes, and service degradation on Cloudflare-protected domains. Uses cloudflare-mcp-cli for GraphQL analytics, JA4 fingerprint analysis, bot/WAF security scoring, and incident reporting. Use this skill whenever traffic spikes, service overloads, 429 errors, circuit breaker events, Cloudflare analytics, or domain performance issues are mentioned — even if the user doesn't explicitly say "traffic spike". Also triggers when asked to check Cloudflare data for any domain.
+description: Use this skill to diagnose CDN traffic spikes, bot floods, WAF anomalies, or unexplained API saturation — whenever someone needs to query Cloudflare zone analytics, analyze JA4 fingerprints, review firewall events, identify which users or IPs are hammering an endpoint, or understand what happened during an incident window. Trigger phrases include: "check cloudflare", "what's hitting our API", "investigate the spike", "pull CF data", circuit breaker events, 429 floods, bot score analysis, or any request to pull CDN-layer traffic data. Skip for: creating/modifying WAF rules or rate limits, Cloudflare DNS or SSL cert changes, Workers deployment, or 429s from non-CDN APIs like Stripe.
 allowed-tools: Bash(cloudflare-mcp-cli *), Bash(which cloudflare-mcp-cli*), Bash(npm install *cloudflare-mcp-cli*), Bash(date *), Bash(mkdir *), Read, Write, Edit
 argument-hint: <domain, zone ID, and optional time range>
 model: sonnet
@@ -34,6 +34,7 @@ Follow these steps in order. Each step file contains detailed instructions and e
 4. **[Identify culprit JA4](steps/step-04-identify-ja4.md)** — Find JA4 fingerprints with highest request counts
 5. **[Analyze traffic](steps/step-05-analyze-traffic.md)** — For top JA4s, identify paths, user IDs, ASNs
 6. **[Verify legitimacy](steps/step-06-verify-legitimacy.md)** — Check bot scores, WAF scores, User-Agent
+6b. **[Check WAF & page rules](steps/step-06b-check-rules.md)** — Inventory active WAF rules, rate limits, and page rules; identify protection gaps
 7. **[Extract top users](steps/step-07-extract-users.md)** — Find which users made the most requests
 8. **[Synthesize & report](steps/step-08-synthesize.md)** — Combine findings into an incident report
 
@@ -100,6 +101,7 @@ Document findings using the **[Incident Report Template](references/incident-rep
 4. [Identify culprit JA4](steps/step-04-identify-ja4.md)
 5. [Analyze traffic](steps/step-05-analyze-traffic.md)
 6. [Verify legitimacy](steps/step-06-verify-legitimacy.md)
+6b. [Check WAF & page rules](steps/step-06b-check-rules.md)
 7. [Extract top users](steps/step-07-extract-users.md)
 8. [Synthesize & report](steps/step-08-synthesize.md)
 
