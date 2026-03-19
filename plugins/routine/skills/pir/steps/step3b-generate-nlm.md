@@ -9,9 +9,8 @@ Invoke `Skill("nlm-skill")` with the following instructions:
    - `.cloudflare-traffic-investigator-tmp/report.md` → title "Cloudflare Discovery Report"
    - `.rollbar-reader-tmp/report.md` → title "Rollbar Discovery Report"
    - `.codebase-analysis-tmp/report.md` → title "Codebase Root Cause Analysis" (if exists)
-3. **Clean up all discovery reports** after they are uploaded
-4. **Upload the PIR form fields reference** as a text source (read from `${CLAUDE_SKILL_DIR}/references/pir-form-fields.md`, falling back to `~/.claude/skills/pir/references/pir-form-fields.md`)
-5. **Upload a synthesis guide** as a text source with this content:
+3. **Upload the PIR form fields reference** as a text source (read from `${CLAUDE_SKILL_DIR}/references/pir-form-fields.md`, falling back to `~/.claude/skills/pir/references/pir-form-fields.md`)
+4. **Upload a synthesis guide** as a text source with this content:
 
    ```
    ## Severity Auto-Classification
@@ -42,3 +41,13 @@ Generate artifacts in parallel
 4. **Query the notebook for a short and funny poem** inspired by the incidents and findings, and save it as a note in the notebook
 
 **Return the notebook ID** so Step 4 can reference it
+
+## After nlm-skill completes: Clean Up Discovery Reports
+
+Once the nlm-skill has finished uploading all reports and returned the notebook ID, delete the tmp directories using Bash:
+
+```bash
+rm -rf .pagerduty-oncall-tmp .datadog-analyser-tmp .cloudflare-traffic-investigator-tmp .rollbar-reader-tmp .codebase-analysis-tmp
+```
+
+Only delete directories that exist — `rm -rf` handles this safely.

@@ -1,4 +1,4 @@
-# Step 4: Clean Up and Present Results
+# Step 4: Present Results
 
 After Step 3 completes, the NotebookLM notebook contains the generated report and infographic.
 
