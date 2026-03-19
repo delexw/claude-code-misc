@@ -47,10 +47,9 @@ let devServers: DevServerManager | null = null;
 let dagStore: DagStore | null = null;
 
 process.on("exit", () => {
-  if (dagStore) {
-    // Exit handlers are synchronous — use sync close
-    dagStore.closeSync();
-  }
+  // Skipping dagStore.closeSync() — the LadybugDB native addon SIGSEGV's during
+  // sync teardown, which launchd interprets as a crash and unloads the agent.
+  // The OS reclaims the file handles on process exit.
   if (devServers) {
     try {
       postRunCleanup(SCRIPT_DIR, LOG_BASE, devServers, log);
