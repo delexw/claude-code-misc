@@ -12,15 +12,16 @@ Analyze code changes on the current branch and create a well-structured pull req
 
 ### 1. Verify prerequisites
 
-Check that you're in a git repo, on a feature branch (not main/master), and that `gh` is authenticated:
+Check that you're in a git repo, on a feature branch (not main/master), `gh` is authenticated, and warn about uncommitted changes:
 
 ```bash
 git rev-parse --is-inside-work-tree
 git branch --show-current
 gh auth status
+git status --porcelain
 ```
 
-If any check fails, report the specific error and stop.
+If any check fails, report the specific error and stop. If `git status --porcelain` returns output, warn the user: "You have uncommitted changes — they won't be included in this PR." Then continue (don't stop).
 
 ### 2. Check for existing PRs
 
@@ -67,15 +68,22 @@ Look for `.github/PULL_REQUEST_TEMPLATE.md` in the project root. If found, use i
 
 ### 7. Create the PR
 
+Write the PR body to a temp file to safely handle special characters, quotes, and newlines:
+
 ```bash
-gh pr create --title "<title>" --body "<body>" --draft [--base "<base_branch>"]
+tmpfile=$(mktemp /tmp/pr-body.XXXXXX.md)
+cat > "$tmpfile" << 'PRBODY'
+<body content here>
+PRBODY
+gh pr create --title "<title>" --body-file "$tmpfile" --draft [--base "<base_branch>"]
+rm -f "$tmpfile"
 ```
 
 If a base branch was specified in the instructions (e.g. for stacked PRs), use `--base` to target it instead of the default branch.
 
-Then open it in the browser:
+Then open it in the browser (suppress output — do not let `gh pr view` print anything to stdout):
 ```bash
-gh pr view --web
+gh pr view --web 2>/dev/null || true
 ```
 
 ### 8. Report result
