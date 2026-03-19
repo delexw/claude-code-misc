@@ -11,6 +11,9 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check"
   },
+  "dependencies": {
+    "@ladybugdb/core": "latest"
+  },
   "devDependencies": {
     "@types/node": "^25.4.0",
     "oxfmt": "^0.40.0",

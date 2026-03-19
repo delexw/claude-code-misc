@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
-import type { RunState } from "./run-state.js";
+import type { DagStore } from "./dag-store.js";
 import type { GroupedLayer, TicketAssignment, Verification } from "./prioritizer.js";
 import type { ForgeResult, PrDependency } from "./prompts.js";
 import {
@@ -50,7 +50,7 @@ export interface PipelineDeps {
   runner: ClaudeRunner;
   devServers: DevServerManager;
   jira: JiraClient;
-  runState: RunState;
+  runState: DagStore;
   log: LogFn;
 }
 
@@ -60,7 +60,7 @@ export class Pipeline {
   private readonly runner: ClaudeRunner;
   private readonly devServers: DevServerManager;
   private readonly jira: JiraClient;
-  private readonly runState: RunState;
+  private readonly runState: DagStore;
   private readonly log: LogFn;
   private readonly forge: ForgeService;
 
@@ -164,7 +164,7 @@ export class Pipeline {
     skippedKeys: Set<string>,
     excludedKeys: Set<string>,
     initialGroupStates?: GroupStates,
-    runState?: RunState,
+    runState?: DagStore,
   ): Promise<{ succeeded: number; failed: number }> {
     let succeeded = 0;
     let failed = 0;
@@ -199,7 +199,7 @@ export class Pipeline {
         dag.fail(pk);
       } else {
         dag.record(ticketKeys(group), result.layerState);
-        runState?.updateGroupStates(dag.snapshot());
+        await runState?.updateGroupStates(dag.snapshot());
       }
     }
 
@@ -371,7 +371,7 @@ export class Pipeline {
       successful.map(async (r) => {
         this.log(`SUCCESS: ${r.ticketKey}`);
         await this.jira.promoteToReview(r.ticketKey, this.log, promotedParents);
-        this.runState.markCompleted(r.ticketKey);
+        await this.runState.markCompleted(r.ticketKey);
       }),
     );
   }

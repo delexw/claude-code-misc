@@ -6,7 +6,7 @@
 
 import type { LogFn } from "./claude-runner.js";
 import type { JiraClient } from "./jira.js";
-import type { RunState } from "./run-state.js";
+import type { DagStore } from "./dag-store.js";
 import type { GroupedLayer } from "./prioritizer.js";
 import type { GroupStates } from "./dag.js";
 import type { SprintDiscovery, DiscoverResult } from "./discovery.js";
@@ -19,7 +19,7 @@ export interface OrchestratorDeps {
   prioritizer: Prioritizer;
   pipeline: Pipeline;
   jira: JiraClient;
-  runState: RunState;
+  runState: DagStore;
   baseRepos: string[];
   log: LogFn;
 }
@@ -36,7 +36,7 @@ export class GSDOrchestrator {
   private readonly prioritizer: Prioritizer;
   private readonly pipeline: Pipeline;
   private readonly jira: JiraClient;
-  private readonly runState: RunState;
+  private readonly runState: DagStore;
   private readonly baseRepos: string[];
   private readonly log: LogFn;
 
@@ -56,11 +56,11 @@ export class GSDOrchestrator {
    * Discovery drops them because classifyTickets only considers "To Do"/"Backlog".
    * Skips tickets whose group already completed (has PRs — e.g. "In Review").
    */
-  private resumeInFlightTickets(discovery: DiscoverResult): void {
-    const previousKeys = this.runState.previousTicketKeys();
+  private async resumeInFlightTickets(discovery: DiscoverResult): Promise<void> {
+    const previousKeys = await this.runState.previousTicketKeys();
     if (previousKeys.size === 0) return;
 
-    const completedKeys = this.runState.completedTicketKeys();
+    const completedKeys = await this.runState.completedTicketKeys();
     const unprocessedSet = new Set(discovery.unprocessed);
 
     for (const key of previousKeys) {
@@ -79,25 +79,28 @@ export class GSDOrchestrator {
   async prioritize(allKeys: string[], sprint: string): Promise<PrioritizeResult> {
     resetReposToMain(this.baseRepos, this.log);
 
-    const saved = this.runState.load();
+    const previousGuidance = await this.runState.buildGuidance();
+    const initialGroupStates = await this.runState.loadGroupStates();
 
-    const { resolved, rawJson } = await this.prioritizer.prioritize(
+    const { resolved } = await this.prioritizer.prioritize(
       allKeys,
       this.baseRepos,
-      saved?.prioritizerRawJson,
+      previousGuidance ?? undefined,
     );
-    this.runState.save(rawJson, sprint);
+    await this.runState.save(resolved, sprint);
 
     // Mark excluded tickets as completed so subsequent runs skip them in discovery.
+    /* oxlint-disable no-await-in-loop -- sequential state mutations required */
     for (const e of resolved.excluded) {
-      this.runState.markCompleted(e.key);
+      await this.runState.markCompleted(e.key);
     }
+    /* oxlint-enable no-await-in-loop */
 
     return {
       layers: resolved.layers,
       skipped: resolved.skipped,
       excluded: resolved.excluded,
-      initialGroupStates: saved?.groupStates,
+      initialGroupStates: initialGroupStates.size > 0 ? initialGroupStates : undefined,
     };
   }
 
@@ -120,7 +123,7 @@ export class GSDOrchestrator {
       const commented = await this.jira.addComment(s.key, s.reason);
       if (!commented) this.log(`WARN: Could not comment on ${s.key}`);
       await this.jira.promoteToReview(s.key, this.log);
-      this.runState.markCompleted(s.key);
+      await this.runState.markCompleted(s.key);
       this.log(`SKIPPED: ${s.key} — commented and moved to In Review`);
     }
     /* oxlint-enable no-await-in-loop */
@@ -165,12 +168,12 @@ export class GSDOrchestrator {
     const discovery = await this.discovery.discover(this.log);
     if (!discovery) return;
 
-    const pruned = this.runState.pruneMergedGroups();
+    const pruned = await this.runState.pruneMergedGroups();
     for (const key of pruned) {
       this.log(`PRUNED: ${key} — PR merged, moved to completed`);
     }
 
-    this.resumeInFlightTickets(discovery);
+    await this.resumeInFlightTickets(discovery);
 
     const prioritization = await this.prioritize(discovery.allKeys, discovery.sprint);
     const { succeeded, failed } = await this.process(discovery, prioritization);

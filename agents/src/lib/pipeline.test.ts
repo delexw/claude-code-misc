@@ -6,7 +6,7 @@ import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
 import type { ForgeResult } from "./prompts.js";
-import type { RunState } from "./run-state.js";
+import type { DagStore } from "./dag-store.js";
 import type { GroupedLayer, Verification } from "./prioritizer.js";
 
 const NO_BASE: LayerState = { branches: new Map(), prUrls: new Map() };
@@ -50,11 +50,11 @@ function makeJira(): JiraClient {
   } as unknown as JiraClient;
 }
 
-function makeRunState(): RunState {
+function makeDagStore(): DagStore {
   return {
-    markCompleted: () => {},
+    markCompleted: async () => {},
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
-  } as unknown as RunState;
+  } as unknown as DagStore;
 }
 
 function makePipeline(
@@ -69,7 +69,7 @@ function makePipeline(
     runner,
     devServers: overrides.devServers ?? makeDevServers(),
     jira: overrides.jira ?? makeJira(),
-    runState: makeRunState(),
+    runState: makeDagStore(),
     log,
   });
 }

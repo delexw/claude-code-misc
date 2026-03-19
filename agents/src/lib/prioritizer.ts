@@ -201,7 +201,7 @@ export class Prioritizer {
   async prioritize(
     allTickets: string[],
     repos: string[],
-    previousRawJson?: string,
+    previousGuidance?: string,
   ): Promise<{ resolved: PrioritizeResult; rawJson: string }> {
     if (allTickets.length <= 1) {
       const result = fallbackResult(allTickets);
@@ -209,31 +209,14 @@ export class Prioritizer {
     }
 
     this.log(
-      `PRIORITIZING: ${allTickets.length} ticket(s)${previousRawJson ? " (guided by previous run)" : ""}`,
+      `PRIORITIZING: ${allTickets.length} ticket(s)${previousGuidance ? " (guided by previous run)" : ""}`,
     );
 
     const ticketList = allTickets.join(",");
     const repoList = repos.join("\n");
 
-    const guidanceNote = previousRawJson
-      ? [
-          "",
-          "IMPORTANT — PREVIOUS RUN GUIDANCE:",
-          "A previous prioritization run produced the result below. You MUST preserve:",
-          "- The first ticket in each group (primary key) — downstream depends_on references it",
-          "- Layer order, repo assignments, and branch names for existing tickets",
-          "- depends_on values for existing groups",
-          "Tickets already forged are considered complete, regardless of their current JIRA status.",
-          "They should not appear in active groups, but any dependency references pointing to them",
-          "from other groups must be preserved — completed tickets remain valid dependency targets.",
-          "Slot any new tickets into the appropriate layer (never as the first ticket in an existing group).",
-          "Remove any tickets no longer in the list above.",
-          "",
-          "Previous result:",
-          "<previous_result>",
-          previousRawJson,
-          "</previous_result>",
-        ].join("\n")
+    const guidanceNote = previousGuidance
+      ? `\nIMPORTANT — PREVIOUS RUN GUIDANCE:\n${previousGuidance}`
       : "";
 
     const { code, stdout } = await this.runner.run(

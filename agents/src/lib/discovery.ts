@@ -6,7 +6,7 @@
  */
 
 import type { JiraClient } from "./jira.js";
-import type { RunState } from "./run-state.js";
+import type { DagStore } from "./dag-store.js";
 import { classifyTickets } from "./prioritizer.js";
 
 export interface DiscoverResult {
@@ -19,7 +19,7 @@ export interface DiscoverResult {
 export class SprintDiscovery {
   constructor(
     private readonly jira: JiraClient,
-    private readonly runState: RunState,
+    private readonly runState: DagStore,
     private readonly baseRepos: string[],
   ) {}
 
@@ -35,9 +35,9 @@ export class SprintDiscovery {
 
     const { pending } = classifyTickets(allTickets);
     const allKeys = new Set(allTickets.map((t) => t.key));
-    this.runState.pruneExtraCompleted(allKeys);
+    await this.runState.pruneExtraCompleted(allKeys);
 
-    const completed = this.runState.completedTicketKeys();
+    const completed = await this.runState.completedTicketKeys();
 
     const unprocessed: string[] = [];
     let skippedCount = 0;

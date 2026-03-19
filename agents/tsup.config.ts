@@ -12,6 +12,7 @@ export default defineConfig({
   outDir: "dist",
   bundle: true,
   splitting: false,
+  external: ["@ladybugdb/core"], // native addon — cannot be bundled
   platform: "node",
   target: "node22",
   banner: { js: "#!/usr/bin/env node" },

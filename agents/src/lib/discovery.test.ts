@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { SprintDiscovery } from "./discovery.js";
 import type { JiraClient } from "./jira.js";
-import type { RunState } from "./run-state.js";
+import type { DagStore } from "./dag-store.js";
 
 function makeJira(
   sprint: string | null = "Sprint 1",
@@ -14,21 +14,21 @@ function makeJira(
   } as unknown as JiraClient;
 }
 
-function makeRunState(completed: string[] = []): RunState {
+function makeDagStore(completed: string[] = []): DagStore {
   return {
-    pruneExtraCompleted: () => {},
-    completedTicketKeys: () => new Set(completed),
-  } as unknown as RunState;
+    pruneExtraCompleted: async () => {},
+    completedTicketKeys: async () => new Set(completed),
+  } as unknown as DagStore;
 }
 
 void describe("SprintDiscovery", () => {
   void it("returns null when no active sprint", async () => {
-    const d = new SprintDiscovery(makeJira(null), makeRunState(), []);
+    const d = new SprintDiscovery(makeJira(null), makeDagStore(), []);
     assert.equal(await d.discover(), null);
   });
 
   void it("returns null when sprint has no tickets", async () => {
-    const d = new SprintDiscovery(makeJira("Sprint 1", []), makeRunState(), []);
+    const d = new SprintDiscovery(makeJira("Sprint 1", []), makeDagStore(), []);
     assert.equal(await d.discover(), null);
   });
 
@@ -38,7 +38,7 @@ void describe("SprintDiscovery", () => {
         { key: "EC-1", status: "To Do" },
         { key: "EC-2", status: "In Progress" },
       ]),
-      makeRunState(["EC-1"]),
+      makeDagStore(["EC-1"]),
       [],
     );
     assert.equal(await d.discover(), null);
@@ -50,7 +50,7 @@ void describe("SprintDiscovery", () => {
         { key: "EC-1", status: "In Progress" },
         { key: "EC-2", status: "Done" },
       ]),
-      makeRunState(),
+      makeDagStore(),
       [],
     );
     assert.equal(await d.discover(), null);
@@ -63,7 +63,7 @@ void describe("SprintDiscovery", () => {
         { key: "EC-2", status: "Backlog" },
         { key: "EC-3", status: "In Progress" },
       ]),
-      makeRunState(),
+      makeDagStore(),
       [],
     );
 
@@ -81,7 +81,7 @@ void describe("SprintDiscovery", () => {
         { key: "EC-2", status: "To Do" },
         { key: "EC-3", status: "Backlog" },
       ]),
-      makeRunState(["EC-1"]),
+      makeDagStore(["EC-1"]),
       [],
     );
 
@@ -94,7 +94,7 @@ void describe("SprintDiscovery", () => {
   void it("logs when logger provided, silent when not", async () => {
     const d = new SprintDiscovery(
       makeJira("Sprint 1", [{ key: "EC-1", status: "To Do" }]),
-      makeRunState(),
+      makeDagStore(),
       [],
     );
 

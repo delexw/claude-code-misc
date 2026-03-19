@@ -16,7 +16,7 @@ import { JiraClient } from "./lib/jira.js";
 import { DevServerManager } from "./lib/dev-servers.js";
 import { ClaudeRunner } from "./lib/claude-runner.js";
 import { postRunCleanup } from "./lib/cleanup.js";
-import { RunState } from "./lib/run-state.js";
+import { DagStore } from "./lib/dag-store.js";
 import { SprintDiscovery } from "./lib/discovery.js";
 import { Prioritizer } from "./lib/prioritizer.js";
 import { Pipeline } from "./lib/pipeline.js";
@@ -38,16 +38,19 @@ const jira = new JiraClient(
   process.env.JIRA_SPRINT_PREFIX || "",
 );
 const baseRepos = parseRepos("GSD_REPOS");
-const runState = new RunState(join(STATE_DIR, "run-state.json"));
-const discovery = new SprintDiscovery(jira, runState, baseRepos);
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
 let cleanExit = false;
 let log: (msg: string) => void = console.log;
 let devServers: DevServerManager | null = null;
+let dagStore: DagStore | null = null;
 
 process.on("exit", () => {
+  if (dagStore) {
+    // Exit handlers are synchronous — use sync close
+    dagStore.closeSync();
+  }
   if (devServers) {
     try {
       postRunCleanup(SCRIPT_DIR, LOG_BASE, devServers, log);
@@ -64,6 +67,9 @@ process.on("exit", () => {
 
 async function main() {
   if (!acquireLock(join(STATE_DIR, "lock"))) return;
+
+  dagStore = await DagStore.create(join(STATE_DIR, "dag-store.lbug"));
+  const discovery = new SprintDiscovery(jira, dagStore, baseRepos);
 
   // Silent pre-check — no log directory created if nothing to do
   if (!(await discovery.discover())) return;
@@ -89,9 +95,9 @@ async function main() {
   await new GSDOrchestrator({
     discovery,
     prioritizer: new Prioritizer({ runner, scriptDir: SCRIPT_DIR, log }),
-    pipeline: new Pipeline({ runner, devServers, jira, runState, log }),
+    pipeline: new Pipeline({ runner, devServers, jira, runState: dagStore, log }),
     jira,
-    runState,
+    runState: dagStore,
     baseRepos,
     log,
   }).run();

@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { describe, it, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
@@ -7,10 +7,26 @@ import { GSDOrchestrator, type OrchestratorDeps } from "./orchestrator.js";
 import { SprintDiscovery } from "./discovery.js";
 import { Prioritizer } from "./prioritizer.js";
 import { Pipeline } from "./pipeline.js";
+import { DagStore } from "./dag-store.js";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
-import { RunState } from "./run-state.js";
+import type { PrioritizeResult } from "./prioritizer.js";
+
+// ─── Shared DB setup ─────────────────────────────────────────────────────────
+// One database for the entire file — cleared between tests to avoid
+// SIGSEGV from rapid create/close cycles in the LadybugDB native addon.
+
+let store: DagStore;
+
+before(async () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "orch-test-"));
+  store = await DagStore.create(join(tempDir, "dag.lbug"));
+});
+
+beforeEach(async () => {
+  await store.clear();
+});
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -53,20 +69,48 @@ function makeDevServers(): DevServerManager {
   } as unknown as DevServerManager;
 }
 
+/** Build a minimal PrioritizeResult (replaces raw JSON string in old tests). */
+function makeResult(
+  layers: Array<{
+    key: string;
+    repoPath?: string;
+    dependsOn?: string | null;
+    complexity?: "trivial" | "moderate" | "complex";
+  }>,
+): PrioritizeResult {
+  return {
+    layers: layers.map((l) => ({
+      group: [
+        {
+          key: l.key,
+          repos: l.repoPath ? [{ repoPath: l.repoPath, branch: `${l.key.toLowerCase()}-fix` }] : [],
+          complexity: l.complexity ?? "moderate",
+        },
+      ],
+      relation: null,
+      verification: { required: false, reason: "test" },
+      dependsOn: l.dependsOn ?? null,
+    })),
+    skipped: [],
+    excluded: [],
+  };
+}
+
 function makeDeps(
-  overrides: Partial<OrchestratorDeps> = {},
+  overrides: Partial<OrchestratorDeps & { logs: string[] }> = {},
 ): OrchestratorDeps & { logs: string[] } {
   const { logs, log } = collectLogs();
-  const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
   const jira = overrides.jira ?? makeJira();
   const baseRepos = overrides.baseRepos ?? [];
   const runner = makeRunner();
   const devServers = makeDevServers();
-  const runState = overrides.runState ?? new RunState(join(tmpDir, "run-state.json"));
+  // Always use the shared store — state is reset via beforeEach
+  const runState = store;
   return {
     discovery: new SprintDiscovery(jira, runState, baseRepos),
-    prioritizer: overrides.prioritizer ?? new Prioritizer({ runner, scriptDir: tmpDir, log }),
-    pipeline: overrides.pipeline ?? new Pipeline({ runner, devServers, jira, runState, log }),
+    prioritizer: overrides.prioritizer ?? new Prioritizer({ runner, scriptDir: "/tmp", log }),
+    pipeline:
+      overrides.pipeline ?? new Pipeline({ runner, devServers, jira, runState, log }),
     jira,
     runState,
     baseRepos,
@@ -80,25 +124,9 @@ function makeDeps(
 
 void describe("GSDOrchestrator.prioritize", () => {
   void it("passes previous result as guidance and preserves saved groupStates", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-
-    // Pre-save state from a previous run (raw LLM JSON with original field names)
-    runState.save(
-      JSON.stringify({
-        layers: [
-          {
-            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
-            relation: null,
-            verification: { required: false, reason: "test" },
-            depends_on: null,
-          },
-        ],
-        skipped: [],
-        excluded: [],
-      }),
-    );
-    runState.updateGroupStates(
+    // Simulate previous run: EC-1 was completed with a PR
+    await store.save(makeResult([{ key: "EC-1", repoPath: "my-repo" }]), "Sprint 1");
+    await store.updateGroupStates(
       new Map([
         [
           "EC-1",
@@ -125,9 +153,11 @@ void describe("GSDOrchestrator.prioritize", () => {
                 ],
                 relation: null,
                 verification: { required: false, reason: "test" },
-                dependsOn: null,
+                depends_on: null,
               },
             ],
+            skipped: [],
+            excluded: [],
           }),
         };
       },
@@ -136,8 +166,7 @@ void describe("GSDOrchestrator.prioritize", () => {
 
     const { log } = collectLogs();
     const deps = makeDeps({
-      runState,
-      prioritizer: new Prioritizer({ runner, scriptDir: tmpDir, log }),
+      prioritizer: new Prioritizer({ runner, scriptDir: "/tmp", log }),
       baseRepos: ["/abs/my-repo"],
     });
     const orch = new GSDOrchestrator(deps);
@@ -150,7 +179,6 @@ void describe("GSDOrchestrator.prioritize", () => {
   });
 
   void it("runs fresh prioritization when no saved state exists", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
     let capturedPrompt = "";
     const runner = {
       run: async (prompt: string) => {
@@ -163,9 +191,11 @@ void describe("GSDOrchestrator.prioritize", () => {
                 group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
                 relation: null,
                 verification: { required: false, reason: "test" },
-                dependsOn: null,
+                depends_on: null,
               },
             ],
+            skipped: [],
+            excluded: [],
           }),
         };
       },
@@ -174,8 +204,7 @@ void describe("GSDOrchestrator.prioritize", () => {
 
     const { log } = collectLogs();
     const deps = makeDeps({
-      runState: new RunState(join(tmpDir, "run-state.json")),
-      prioritizer: new Prioritizer({ runner, scriptDir: tmpDir, log }),
+      prioritizer: new Prioritizer({ runner, scriptDir: "/tmp", log }),
       baseRepos: ["/abs/my-repo"],
     });
     const orch = new GSDOrchestrator(deps);
@@ -186,9 +215,6 @@ void describe("GSDOrchestrator.prioritize", () => {
   });
 
   void it("marks excluded tickets as completed so discover skips them next run", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-
     const runner = {
       run: async () => ({
         code: 0,
@@ -198,7 +224,7 @@ void describe("GSDOrchestrator.prioritize", () => {
               group: [{ key: "EC-2", repos: [{ repo: "my-repo", branch: "ec-2-fix" }] }],
               relation: null,
               verification: { required: false, reason: "test" },
-              dependsOn: null,
+              depends_on: null,
             },
           ],
           skipped: [],
@@ -210,49 +236,47 @@ void describe("GSDOrchestrator.prioritize", () => {
 
     const { log } = collectLogs();
     const deps = makeDeps({
-      runState,
-      prioritizer: new Prioritizer({ runner, scriptDir: tmpDir, log }),
+      prioritizer: new Prioritizer({ runner, scriptDir: "/tmp", log }),
       baseRepos: ["/abs/my-repo"],
     });
     const orch = new GSDOrchestrator(deps);
     await orch.prioritize(["EC-1", "EC-2"], "Sprint 1");
 
-    // EC-1 excluded as container story → must be in completedTicketKeys for next discover
-    assert.ok(runState.completedTicketKeys().has("EC-1"), "excluded ticket marked completed");
-    assert.ok(!runState.completedTicketKeys().has("EC-2"), "non-excluded ticket not affected");
+    const completed = await store.completedTicketKeys();
+    assert.ok(completed.has("EC-1"), "excluded ticket marked completed");
+    assert.ok(!completed.has("EC-2"), "non-excluded ticket not affected");
   });
 });
 
 // ─── summarize ───────────────────────────────────────────────────────────────
 
 void describe("GSDOrchestrator.summarize", () => {
-  void it("preserves all state on success for next-run guidance", () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-    runState.save(JSON.stringify({ layers: [{ group: [{ key: "EC-1", repos: [] }] }] }));
-    runState.updateGroupStates(
+  void it("preserves all state on success for next-run guidance", async () => {
+    await store.save(makeResult([{ key: "EC-1", repoPath: "my-repo" }]), "Sprint 1");
+    await store.updateGroupStates(
       new Map([["EC-1", { branches: new Map([["/r", "b"]]), prUrls: new Map() }]]),
     );
 
-    const deps = makeDeps({ runState });
+    const deps = makeDeps();
     const orch = new GSDOrchestrator(deps);
     orch.summarize(1, 0, 0);
 
-    const loaded = runState.load();
-    assert.ok(loaded, "state should be preserved");
-    assert.equal(loaded.groupStates.size, 1, "groupStates preserved for merge chain");
-    assert.ok(loaded.prioritizerRawJson, "raw JSON preserved for guidance");
+    // State must be preserved after summarize
+    const groupStates = await store.loadGroupStates();
+    assert.ok(groupStates.size > 0, "groupStates preserved for merge chain");
+    const guidance = await store.buildGuidance();
+    assert.ok(guidance !== null, "guidance available (graph state preserved)");
   });
 
-  void it("preserves run state when there are failures", () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-    runState.save(JSON.stringify({ layers: [{ group: [] }] }));
+  void it("preserves run state when there are failures", async () => {
+    await store.save(makeResult([{ key: "EC-1" }]), "Sprint 1");
 
-    const deps = makeDeps({ runState });
+    const deps = makeDeps();
     const orch = new GSDOrchestrator(deps);
     orch.summarize(1, 0, 2);
-    assert.ok(runState.load());
+
+    const guidance = await store.buildGuidance();
+    assert.ok(guidance !== null);
   });
 });
 
@@ -267,24 +291,9 @@ void describe("GSDOrchestrator.run", () => {
   });
 
   void it("preserves cross-sprint state when PRs are not yet merged", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-
-    // Save state from Sprint 1 with a PR in flight
-    runState.save(
-      JSON.stringify({
-        layers: [
-          {
-            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
-            relation: null,
-            verification: { required: false, reason: "test" },
-            depends_on: null,
-          },
-        ],
-      }),
-      "Sprint 1",
-    );
-    runState.updateGroupStates(
+    // Simulate Sprint 1: EC-1 completed with an open PR
+    await store.save(makeResult([{ key: "EC-1", repoPath: "my-repo" }]), "Sprint 1");
+    await store.updateGroupStates(
       new Map([
         [
           "EC-1",
@@ -321,89 +330,59 @@ void describe("GSDOrchestrator.run", () => {
       processLayers: async () => ({ succeeded: 1, failed: 0 }),
     } as unknown as Pipeline;
 
-    const deps = makeDeps({ jira, runState, prioritizer, pipeline, baseRepos: ["/abs/my-repo"] });
+    const deps = makeDeps({ jira, prioritizer, pipeline, baseRepos: ["/abs/my-repo"] });
     const orch = new GSDOrchestrator(deps);
     await orch.run();
 
     // EC-1 PR not merged — state preserved across sprint boundary
     assert.ok(!deps.logs.some((l) => l.includes("PRUNED")));
-    assert.equal(runState.completedTicketKeys().has("EC-1"), true);
+    const completed = await store.completedTicketKeys();
+    assert.equal(completed.has("EC-1"), true);
   });
 
   void it("re-includes in-flight tickets from previous run on restart", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-
     // Simulate previous run: EC-1 was prioritized and forged (moved to In Progress)
-    // but never completed (crash before commit+PR).
-    runState.save(
-      JSON.stringify({
-        layers: [
-          {
-            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
-            relation: null,
-            verification: { required: false, reason: "test" },
-            depends_on: null,
-          },
-        ],
-      }),
-    );
+    await store.save(makeResult([{ key: "EC-1", repoPath: "my-repo" }]), "Sprint 1");
 
-    // EC-1 is "In Progress" (forge moved it), EC-2 is "To Do"
-    // EC-1 not completed — crash happened before commit+PR
+    // EC-1 is "In Progress", EC-2 is "To Do"
     const jira = makeJira("Sprint 1", [
       { key: "EC-1", status: "In Progress" },
       { key: "EC-2", status: "To Do" },
     ]);
-    // No extra completed keys — RunState handles this via completedTicketKeys() // nothing marked as processed
 
-    // Capture what tickets are passed to prioritize
     const prioritizer = {
-      prioritize: async (_keys: string[]) => {
-        return {
-          resolved: {
-            layers: [
-              {
-                group: [
-                  { key: "EC-1", repos: [{ repoPath: "/abs/my-repo", branch: "ec-1-fix" }] },
-                  { key: "EC-2", repos: [{ repoPath: "/abs/my-repo", branch: "ec-2-new" }] },
-                ],
-                relation: null,
-                verification: { required: false, reason: "test" },
-                dependsOn: null,
-              },
-            ],
-            skipped: [],
-            excluded: [],
-          },
-          rawJson: "{}",
-        };
-      },
+      prioritize: async () => ({
+        resolved: {
+          layers: [
+            {
+              group: [
+                { key: "EC-1", repos: [{ repoPath: "/abs/my-repo", branch: "ec-1-fix" }] },
+                { key: "EC-2", repos: [{ repoPath: "/abs/my-repo", branch: "ec-2-new" }] },
+              ],
+              relation: null,
+              verification: { required: false, reason: "test" },
+              dependsOn: null,
+            },
+          ],
+          skipped: [],
+          excluded: [],
+        },
+        rawJson: "{}",
+      }),
     } as unknown as Prioritizer;
 
-    // Pipeline mock that tracks what unprocessed keys it receives
     let capturedUnprocessed: Set<string> | null = null;
     const pipeline = {
-      processLayers: async (
-        _layers: unknown,
-        unprocessed: Set<string>,
-      ) => {
+      processLayers: async (_layers: unknown, unprocessed: Set<string>) => {
         capturedUnprocessed = new Set(unprocessed);
         return { succeeded: 2, failed: 0 };
       },
     } as unknown as Pipeline;
 
-    const deps = makeDeps({
-      jira,
-      runState,
-      prioritizer,
-      pipeline,
-      baseRepos: ["/abs/my-repo"],
-    });
+    const deps = makeDeps({ jira, prioritizer, pipeline, baseRepos: ["/abs/my-repo"] });
     const orch = new GSDOrchestrator(deps);
     await orch.run();
 
-    // EC-1 should be re-included in unprocessed despite being "In Progress"
     assert.notEqual(capturedUnprocessed, null, "processLayers should have been called");
     assert.ok(capturedUnprocessed!.has("EC-1"), "EC-1 should be re-included as unprocessed");
     assert.ok(capturedUnprocessed!.has("EC-2"), "EC-2 should be unprocessed normally");
@@ -411,23 +390,9 @@ void describe("GSDOrchestrator.run", () => {
   });
 
   void it("does not re-add merged-PR ticket after pruneMergedGroups moves it to extraCompleted", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-
     // EC-1 was forged and PR was created last run
-    runState.save(
-      JSON.stringify({
-        layers: [
-          {
-            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
-            relation: null,
-            verification: { required: false, reason: "test" },
-            depends_on: null,
-          },
-        ],
-      }),
-    );
-    runState.updateGroupStates(
+    await store.save(makeResult([{ key: "EC-1", repoPath: "my-repo" }]), "Sprint 1");
+    await store.updateGroupStates(
       new Map([
         [
           "EC-1",
@@ -439,8 +404,9 @@ void describe("GSDOrchestrator.run", () => {
       ]),
     );
 
-    // This run: EC-1 PR is merged — pruneMergedGroups will move it to extraCompleted
-    // EC-1 is "In Review" (still in sprint), EC-2 is "To Do"
+    // EC-1 PR is merged — move to extraCompleted
+    await store.pruneMergedGroups(() => true);
+
     const jira = makeJira("Sprint 1", [
       { key: "EC-1", status: "In Review" },
       { key: "EC-2", status: "To Do" },
@@ -472,17 +438,10 @@ void describe("GSDOrchestrator.run", () => {
       },
     } as unknown as Pipeline;
 
-    // EC-1 PR is merged
-    const deps = makeDeps({ jira, runState, prioritizer, pipeline, baseRepos: ["/abs/my-repo"] });
+    const deps = makeDeps({ jira, prioritizer, pipeline, baseRepos: ["/abs/my-repo"] });
     const orch = new GSDOrchestrator(deps);
-
-    // Manually simulate pruneMergedGroups finding EC-1 merged
-    // (real test uses the checkMerged override)
-    runState.pruneMergedGroups(() => true); // EC-1 → extraCompleted
-
     await orch.run();
 
-    // EC-1 must NOT be re-added to unprocessed — it was completed via merged PR
     assert.notEqual(capturedUnprocessed, null);
     assert.ok(!capturedUnprocessed!.has("EC-1"), "EC-1 must not be re-added after PR merged");
     assert.ok(capturedUnprocessed!.has("EC-2"), "EC-2 should be unprocessed normally");
@@ -490,23 +449,9 @@ void describe("GSDOrchestrator.run", () => {
   });
 
   void it("does not resume tickets from completed groups (has PRs)", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
-    const runState = new RunState(join(tmpDir, "run-state.json"));
-
     // EC-1 was fully completed in a previous run (has PR URLs)
-    runState.save(
-      JSON.stringify({
-        layers: [
-          {
-            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
-            relation: null,
-            verification: { required: false, reason: "test" },
-            depends_on: null,
-          },
-        ],
-      }),
-    );
-    runState.updateGroupStates(
+    await store.save(makeResult([{ key: "EC-1", repoPath: "my-repo" }]), "Sprint 1");
+    await store.updateGroupStates(
       new Map([
         [
           "EC-1",
@@ -518,12 +463,10 @@ void describe("GSDOrchestrator.run", () => {
       ]),
     );
 
-    // EC-1 is "In Review", tracker reset (new day — empty processed set)
     const jira = makeJira("Sprint 1", [
       { key: "EC-1", status: "In Review" },
       { key: "EC-2", status: "To Do" },
     ]);
-    // No extra completed keys — RunState handles this via completedTicketKeys()
 
     let capturedUnprocessed: Set<string> | null = null;
     const prioritizer = {
@@ -551,17 +494,10 @@ void describe("GSDOrchestrator.run", () => {
       },
     } as unknown as Pipeline;
 
-    const deps = makeDeps({
-      jira,
-      runState,
-      prioritizer,
-      pipeline,
-      baseRepos: ["/abs/my-repo"],
-    });
+    const deps = makeDeps({ jira, prioritizer, pipeline, baseRepos: ["/abs/my-repo"] });
     const orch = new GSDOrchestrator(deps);
     await orch.run();
 
-    // EC-1 should NOT be re-included — it already has PRs
     assert.notEqual(capturedUnprocessed, null);
     assert.ok(!capturedUnprocessed!.has("EC-1"), "EC-1 should not be resumed — already completed");
     assert.ok(capturedUnprocessed!.has("EC-2"), "EC-2 should be unprocessed normally");

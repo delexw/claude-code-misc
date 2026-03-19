@@ -11,6 +11,7 @@
 import { execSync } from "node:child_process";
 import {
   copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -95,6 +96,18 @@ for (const file of readdirSync(DIST_DIR)) {
 const envrcExample = join(import.meta.dirname, ".envrc.example");
 if (existsSync(envrcExample)) {
   copyFileSync(envrcExample, join(INSTALL_DIR, ".envrc.example"));
+}
+
+// Copy native addon packages that cannot be bundled
+const NATIVE_PACKAGES = ["@ladybugdb/core"];
+for (const pkg of NATIVE_PACKAGES) {
+  const src = join(import.meta.dirname, "node_modules", pkg);
+  const dest = join(INSTALL_DIR, "node_modules", pkg);
+  if (existsSync(src)) {
+    mkdirSync(join(INSTALL_DIR, "node_modules"), { recursive: true });
+    cpSync(src, dest, { recursive: true });
+    console.log(`  Copied native package: ${pkg}`);
+  }
 }
 
 // Check for .envrc
