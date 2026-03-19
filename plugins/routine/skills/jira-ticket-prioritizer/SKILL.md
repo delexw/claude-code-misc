@@ -1,8 +1,8 @@
 ---
 name: jira-ticket-prioritizer
-description: Analyze JIRA tickets to determine priority and dependency order. Outputs an ordered JIRA ID list. Use before implement/forge, or when asked to "prioritize tickets", "order these JIRAs", "what should I work on first".
+description: Analyze JIRA tickets to determine priority and dependency order, grouped by dependency layer and relationship. Outputs a structured JSON plan with layered groups, branch names, repo assignments, complexity, and verification hints. Use before implement/forge, whenever the user gives you a list of JIRA tickets to work through, or when asked to "prioritize tickets", "order these JIRAs", "what should I tackle first", "plan my sprint", "sort my backlog", "which ticket should I do first", or "figure out the order for these tickets". Also trigger when the user provides a set of JIRA keys alongside a task to implement them.
 argument-hint: <ticket keys or JQL query>
-allowed-tools: Read, Bash, Write
+allowed-tools: Read, Bash, Write, Glob
 ---
 
 # JIRA Ticket Prioritizer
@@ -92,6 +92,9 @@ Infer from the arguments:
 - Write `.jira-ticket-prioritizer-tmp/detailed-report.json` — full details including scores, justifications, dependency graph, skipped tickets, excluded tickets, and warnings
 - Write `.jira-ticket-prioritizer-tmp/output.json` — the grouped layers object with `layers`, `skipped`, and `excluded` arrays
 - **Present only `output.json`** to the user. The detailed report is saved for reference but not displayed.
+
+### Step 7 — Cleanup
+- Remove the temp directory: `rm -rf .jira-ticket-prioritizer-tmp`
 
 ## Reference Files
 

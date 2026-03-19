@@ -12,9 +12,9 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
     { "group": [
         {"key": "PROJ-100", "complexity": "trivial", "repos": [{"repo": "acme-api", "branch": "proj-100-fix-auth-bug"}]},
         {"key": "PROJ-104", "complexity": "moderate", "repos": [{"repo": "acme-web", "branch": "proj-104-update-login-ui"}, {"repo": "acme-api", "branch": "proj-104-add-api-endpoint"}]}
-      ], "relation": "same-epic", "verification": {"required": true, "reason": "PROJ-104 updates login UI rendered on /login page"}, "depends_on": null },
-    { "group": [{"key": "PROJ-101", "complexity": "complex", "repos": [{"repo": "acme-api", "branch": "proj-101-add-rate-limiting"}]}], "relation": null, "verification": {"required": false, "reason": "API-only change, no visible UI"}, "depends_on": "PROJ-100" },
-    { "group": [{"key": "PROJ-105", "complexity": "moderate", "repos": [{"repo": "acme-web", "branch": "proj-105-dashboard"}]}], "relation": null, "verification": {"required": true, "reason": "new dashboard page"}, "depends_on": null }
+      ], "relation": "same-epic", "hasFrontend": true, "verification": {"required": true, "reason": "PROJ-104 updates login UI rendered on /login page"}, "depends_on": null },
+    { "group": [{"key": "PROJ-101", "complexity": "complex", "repos": [{"repo": "acme-api", "branch": "proj-101-add-rate-limiting"}]}], "relation": null, "hasFrontend": false, "verification": {"required": false, "reason": "API-only change, no visible UI"}, "depends_on": "PROJ-100" },
+    { "group": [{"key": "PROJ-105", "complexity": "moderate", "repos": [{"repo": "acme-web", "branch": "proj-105-dashboard"}]}], "relation": null, "hasFrontend": true, "verification": {"required": true, "reason": "new dashboard page"}, "depends_on": null }
   ],
   "skipped": [
     { "key": "PROJ-102", "reason": "depends on PROJ-100 (status: In Progress)" },
@@ -32,6 +32,7 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
 - **layers** = flat, topologically-sorted array of groups. One group per entry, processed sequentially in order.
 - **layers[N].group** = ticket assignments in this group, ordered by descending priority score. Each entry is `{"key": "TICKET-KEY", "complexity": "trivial|moderate|complex", "repos": [{"repo": "repo-basename", "branch": "slugified-branch-name"}, ...]}`. A ticket may touch one or more repos. `repo`, `branch`, and `complexity` are REQUIRED for every entry. The `repo` is the target repository basename inferred from ticket context and the available repo list. The `branch` is a slugified branch name from ticket key + summary (lowercase, hyphens, max 50 chars, e.g. `"ec-123-fix-payment-bug"`). The `complexity` is one of `trivial`, `moderate`, or `complex` (see Step 5 for classification rules). First ticket is the primary ticket (group identifier).
 - **layers[N].relation** = why these tickets are grouped (e.g. `"same-epic"`, `"same-feature"`, `"same-component"`, or `null` for single-ticket groups)
+- **layers[N].hasFrontend** = **REQUIRED**. `true` if any ticket in the group involves frontend/UI work — used by the orchestrator to decide whether to spin up a dev server. Inferred semantically from ticket content (see Step 5 for signals). Never hardcode; always infer from the tickets.
 - **layers[N].depends_on** = **REQUIRED**. Ticket key of the parent group this depends on, or `null` for root groups. See Dependency DAG Rules below.
 - **layers[N].verification** = object `{"required": boolean, "reason": string}` indicating whether the group's changes should be visually verified via a running dev server.
   - **required** = `true` only when changes produce **visible, reachable UI** — e.g. a component rendered on an existing page. Set to `false` when: (a) backend/API-only, (b) new component not yet mounted on any page, (c) UI behind a feature flag that is off by default, (d) purely styling tokens or test changes. Inferred semantically from ticket content.
