@@ -184,6 +184,43 @@ void describe("GSDOrchestrator.prioritize", () => {
     assert.ok(!capturedPrompt.includes("PREVIOUS RUN GUIDANCE"));
     assert.equal(result.initialGroupStates, undefined);
   });
+
+  void it("marks excluded tickets as completed so discover skips them next run", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
+    const runState = new RunState(join(tmpDir, "run-state.json"));
+
+    const runner = {
+      run: async () => ({
+        code: 0,
+        stdout: JSON.stringify({
+          layers: [
+            {
+              group: [{ key: "EC-2", repos: [{ repo: "my-repo", branch: "ec-2-fix" }] }],
+              relation: null,
+              verification: { required: false, reason: "test" },
+              dependsOn: null,
+            },
+          ],
+          skipped: [],
+          excluded: [{ key: "EC-1", reason: "Pure container story" }],
+        }),
+      }),
+      writeLog: () => "/fake",
+    } as unknown as ClaudeRunner;
+
+    const { log } = collectLogs();
+    const deps = makeDeps({
+      runState,
+      prioritizer: new Prioritizer({ runner, scriptDir: tmpDir, log }),
+      baseRepos: ["/abs/my-repo"],
+    });
+    const orch = new GSDOrchestrator(deps);
+    await orch.prioritize(["EC-1", "EC-2"], "Sprint 1");
+
+    // EC-1 excluded as container story → must be in completedTicketKeys for next discover
+    assert.ok(runState.completedTicketKeys().has("EC-1"), "excluded ticket marked completed");
+    assert.ok(!runState.completedTicketKeys().has("EC-2"), "non-excluded ticket not affected");
+  });
 });
 
 // ─── summarize ───────────────────────────────────────────────────────────────
@@ -371,6 +408,85 @@ void describe("GSDOrchestrator.run", () => {
     assert.ok(capturedUnprocessed!.has("EC-1"), "EC-1 should be re-included as unprocessed");
     assert.ok(capturedUnprocessed!.has("EC-2"), "EC-2 should be unprocessed normally");
     assert.ok(deps.logs.some((l) => l.includes("RESUME: EC-1")));
+  });
+
+  void it("does not re-add merged-PR ticket after pruneMergedGroups moves it to extraCompleted", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "orch-test-"));
+    const runState = new RunState(join(tmpDir, "run-state.json"));
+
+    // EC-1 was forged and PR was created last run
+    runState.save(
+      JSON.stringify({
+        layers: [
+          {
+            group: [{ key: "EC-1", repos: [{ repo: "my-repo", branch: "ec-1-fix" }] }],
+            relation: null,
+            verification: { required: false, reason: "test" },
+            depends_on: null,
+          },
+        ],
+      }),
+    );
+    runState.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+      ]),
+    );
+
+    // This run: EC-1 PR is merged — pruneMergedGroups will move it to extraCompleted
+    // EC-1 is "In Review" (still in sprint), EC-2 is "To Do"
+    const jira = makeJira("Sprint 1", [
+      { key: "EC-1", status: "In Review" },
+      { key: "EC-2", status: "To Do" },
+    ]);
+
+    let capturedUnprocessed: Set<string> | null = null;
+    const prioritizer = {
+      prioritize: async () => ({
+        resolved: {
+          layers: [
+            {
+              group: [{ key: "EC-2", repos: [{ repoPath: "/abs/my-repo", branch: "ec-2-new" }] }],
+              relation: null,
+              verification: { required: false, reason: "test" },
+              dependsOn: null,
+            },
+          ],
+          skipped: [],
+          excluded: [],
+        },
+        rawJson: "{}",
+      }),
+    } as unknown as Prioritizer;
+
+    const pipeline = {
+      processLayers: async (_layers: unknown, unprocessed: Set<string>) => {
+        capturedUnprocessed = new Set(unprocessed);
+        return { succeeded: 1, failed: 0 };
+      },
+    } as unknown as Pipeline;
+
+    // EC-1 PR is merged
+    const deps = makeDeps({ jira, runState, prioritizer, pipeline, baseRepos: ["/abs/my-repo"] });
+    const orch = new GSDOrchestrator(deps);
+
+    // Manually simulate pruneMergedGroups finding EC-1 merged
+    // (real test uses the checkMerged override)
+    runState.pruneMergedGroups(() => true); // EC-1 → extraCompleted
+
+    await orch.run();
+
+    // EC-1 must NOT be re-added to unprocessed — it was completed via merged PR
+    assert.notEqual(capturedUnprocessed, null);
+    assert.ok(!capturedUnprocessed!.has("EC-1"), "EC-1 must not be re-added after PR merged");
+    assert.ok(capturedUnprocessed!.has("EC-2"), "EC-2 should be unprocessed normally");
+    assert.ok(deps.logs.some((l) => l.includes("SKIP RESUME: EC-1")));
   });
 
   void it("does not resume tickets from completed groups (has PRs)", async () => {

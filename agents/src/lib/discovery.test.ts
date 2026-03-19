@@ -15,7 +15,10 @@ function makeJira(
 }
 
 function makeRunState(completed: string[] = []): RunState {
-  return { completedTicketKeys: () => new Set(completed) } as unknown as RunState;
+  return {
+    pruneExtraCompleted: () => {},
+    completedTicketKeys: () => new Set(completed),
+  } as unknown as RunState;
 }
 
 void describe("SprintDiscovery", () => {

@@ -88,6 +88,11 @@ export class GSDOrchestrator {
     );
     this.runState.save(rawJson, sprint);
 
+    // Mark excluded tickets as completed so subsequent runs skip them in discovery.
+    for (const e of resolved.excluded) {
+      this.runState.markCompleted(e.key);
+    }
+
     return {
       layers: resolved.layers,
       skipped: resolved.skipped,
@@ -135,7 +140,7 @@ export class GSDOrchestrator {
           this.log(`PROMOTE: ${e.key} — all sub-tasks complete`);
           await this.jira.promoteToReview(e.key, this.log, promotedParents);
         }
-        this.runState.markCompleted(e.key);
+
       }
       /* oxlint-enable no-await-in-loop */
     }
@@ -162,7 +167,7 @@ export class GSDOrchestrator {
 
     const pruned = this.runState.pruneMergedGroups();
     for (const key of pruned) {
-      this.log(`PRUNED: ${key} — PR merged, removed from run state`);
+      this.log(`PRUNED: ${key} — PR merged, moved to completed`);
     }
 
     this.resumeInFlightTickets(discovery);

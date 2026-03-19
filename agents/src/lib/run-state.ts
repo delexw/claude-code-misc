@@ -120,23 +120,17 @@ export class RunState {
         if (remaining === 0) {
           delete raw.groupStates[key];
           fullyPruned.push(key);
+          // Move to extraCompleted — pruneExtraCompleted will clean it up once
+          // the ticket moves out of To Do/Backlog on the next run.
+          const extra = new Set(raw.extraCompleted ?? []);
+          extra.add(key);
+          raw.extraCompleted = [...extra];
         }
       }
 
       if (!changed) return [];
 
-      if (raw.extraCompleted) {
-        raw.extraCompleted = raw.extraCompleted.filter((k) => !fullyPruned.includes(k));
-      }
-
-      const remainingGroups = Object.keys(raw.groupStates).length;
-      const remainingExtra = (raw.extraCompleted ?? []).length;
-
-      if (remainingGroups === 0 && remainingExtra === 0) {
-        this.clear();
-      } else {
-        writeFileSync(this.filePath, JSON.stringify(raw, null, 2));
-      }
+      writeFileSync(this.filePath, JSON.stringify(raw, null, 2));
 
       return fullyPruned;
     } catch {
@@ -225,14 +219,16 @@ export class RunState {
   }
 
   /**
-   * Remove extraCompleted entries whose tickets are no longer pending in the sprint.
-   * Called during discovery once we know which tickets are still "To Do"/"Backlog".
+   * Remove extraCompleted entries whose tickets are no longer in the sprint at all.
+   * Called during discovery with allKeys (every ticket assigned to me, any status).
+   * Keeps entries as long as the ticket is in the sprint — even if In Review/Done —
+   * so that resumeInFlightTickets doesn't mistakenly re-add merged tickets.
    */
-  pruneExtraCompleted(pendingKeys: Set<string>): void {
+  pruneExtraCompleted(allKeys: Set<string>): void {
     try {
       const raw = JSON.parse(readFileSync(this.filePath, "utf-8")) as SerializedState;
       if (!raw.extraCompleted?.length) return;
-      const pruned = raw.extraCompleted.filter((k) => pendingKeys.has(k));
+      const pruned = raw.extraCompleted.filter((k) => allKeys.has(k));
       if (pruned.length === raw.extraCompleted.length) return;
       raw.extraCompleted = pruned.length > 0 ? pruned : undefined;
       writeFileSync(this.filePath, JSON.stringify(raw, null, 2));

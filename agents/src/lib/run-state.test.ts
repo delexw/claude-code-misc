@@ -300,7 +300,7 @@ void describe("RunState", () => {
     assert.equal(loaded.groupStates.get("EC-1")?.branches.get("/backend"), "ec-1-be-merge");
   });
 
-  void it("clears file entirely when all groups are pruned", () => {
+  void it("moves fully pruned group to extraCompleted instead of clearing file", () => {
     state.save(makeRawJson(["EC-1"]));
     state.updateGroupStates(
       new Map([
@@ -314,8 +314,17 @@ void describe("RunState", () => {
       ]),
     );
 
-    state.pruneMergedGroups(() => true);
-    assert.equal(existsSync(stateFile), false);
+    const pruned = state.pruneMergedGroups(() => true);
+    assert.deepEqual(pruned, ["EC-1"]);
+
+    // File still exists — EC-1 moved to extraCompleted for resumeInFlightTickets protection
+    assert.equal(existsSync(stateFile), true);
+    const raw = JSON.parse(readFileSync(stateFile, "utf-8")) as {
+      groupStates: Record<string, unknown>;
+      extraCompleted?: string[];
+    };
+    assert.deepEqual(raw.extraCompleted, ["EC-1"]);
+    assert.deepEqual(raw.groupStates, {});
   });
 
   void it("does not prune groups with no PR URLs", () => {
@@ -329,7 +338,7 @@ void describe("RunState", () => {
     assert.ok(existsSync(stateFile));
   });
 
-  void it("removes pruned keys from extraCompleted", () => {
+  void it("merges pruned group into extraCompleted alongside existing entries", () => {
     state.save(makeRawJson(["EC-1"]));
     state.updateGroupStates(
       new Map([
@@ -342,19 +351,64 @@ void describe("RunState", () => {
         ],
       ]),
     );
-    state.markCompleted("EC-2"); // extra key
+    state.markCompleted("EC-2"); // existing extraCompleted entry
 
     const pruned = state.pruneMergedGroups((url) => url === "https://pr/1");
     assert.deepEqual(pruned, ["EC-1"]);
 
-    // EC-2 still in extraCompleted, file still exists
-    const loaded = state.load();
-    assert.ok(loaded);
+    // Both EC-2 (pre-existing) and EC-1 (just merged) are in extraCompleted
+    const raw = JSON.parse(readFileSync(stateFile, "utf-8")) as { extraCompleted?: string[] };
+    assert.ok(raw.extraCompleted?.includes("EC-1"));
+    assert.ok(raw.extraCompleted?.includes("EC-2"));
   });
 
   void it("returns empty array and is safe when no state file exists", () => {
     const pruned = state.pruneMergedGroups(() => true);
     assert.deepEqual(pruned, []);
+  });
+
+  void it("pruneExtraCompleted keeps merged-PR ticket while still in sprint (In Review)", () => {
+    // Simulate: EC-1 PR merged → pruneMergedGroups moved it to extraCompleted
+    state.save(makeRawJson(["EC-1"]));
+    state.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+      ]),
+    );
+    state.pruneMergedGroups(() => true); // EC-1 → extraCompleted
+
+    // Next discover: EC-1 is "In Review" — still in allKeys but not in pending
+    // pruneExtraCompleted with allKeys must KEEP EC-1 so resumeInFlightTickets sees it as completed
+    state.pruneExtraCompleted(new Set(["EC-1"])); // allKeys includes EC-1 (In Review)
+
+    assert.ok(state.completedTicketKeys().has("EC-1"), "EC-1 must stay in completed");
+  });
+
+  void it("pruneExtraCompleted removes merged-PR ticket when it leaves the sprint", () => {
+    state.save(makeRawJson(["EC-1"]));
+    state.updateGroupStates(
+      new Map([
+        [
+          "EC-1",
+          {
+            branches: new Map([["/repo", "ec-1-merge"]]),
+            prUrls: new Map([["/repo", "https://pr/1"]]),
+          },
+        ],
+      ]),
+    );
+    state.pruneMergedGroups(() => true); // EC-1 → extraCompleted
+
+    // EC-1 is no longer assigned to me / left sprint — not in allKeys
+    state.pruneExtraCompleted(new Set([]));
+
+    assert.ok(!state.completedTicketKeys().has("EC-1"), "EC-1 removed once out of sprint");
   });
 
   // ─── save preserves extraCompleted ───────────────────────────────────────
@@ -380,23 +434,23 @@ void describe("RunState", () => {
 
   // ─── pruneExtraCompleted ──────────────────────────────────────────────────
 
-  void it("pruneExtraCompleted removes keys no longer pending", () => {
+  void it("pruneExtraCompleted removes keys no longer in sprint (allKeys)", () => {
     state.save(makeRawJson(["EC-1"]));
     state.markCompleted("EC-2");
     state.markCompleted("EC-3");
 
-    // Only EC-3 is still pending
+    // Only EC-3 is still in the sprint
     state.pruneExtraCompleted(new Set(["EC-3"]));
 
     const raw = JSON.parse(readFileSync(stateFile, "utf-8")) as { extraCompleted?: string[] };
     assert.deepEqual(raw.extraCompleted, ["EC-3"]);
   });
 
-  void it("pruneExtraCompleted removes extraCompleted field when all keys are pruned", () => {
+  void it("pruneExtraCompleted removes extraCompleted field when all keys left the sprint", () => {
     state.save(makeRawJson(["EC-1"]));
     state.markCompleted("EC-2");
 
-    // EC-2 is no longer pending
+    // EC-2 is no longer in the sprint
     state.pruneExtraCompleted(new Set(["EC-1"]));
 
     const raw = JSON.parse(readFileSync(stateFile, "utf-8")) as { extraCompleted?: string[] };

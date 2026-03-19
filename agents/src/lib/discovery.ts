@@ -31,13 +31,13 @@ export class SprintDiscovery {
     const allTickets = await this.jira.fetchSprintTickets(sprint);
     if (allTickets.length === 0) return null;
 
-    const completed = this.runState.completedTicketKeys();
-
     log?.(`Found ${allTickets.length} ticket(s) in sprint.`);
 
     const { pending } = classifyTickets(allTickets);
-    const pendingKeys = new Set(pending.map((t) => t.key));
-    this.runState.pruneExtraCompleted(pendingKeys);
+    const allKeys = new Set(allTickets.map((t) => t.key));
+    this.runState.pruneExtraCompleted(allKeys);
+
+    const completed = this.runState.completedTicketKeys();
 
     const unprocessed: string[] = [];
     let skippedCount = 0;
