@@ -1,3 +1,6 @@
+import { rmSync, existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { JiraClient } from "./jira.js";
 import { parseJson } from "./json.js";
@@ -50,6 +53,7 @@ export class ForgeService {
     );
 
     this.runner.writeLog("task", `${ticketKey}-${assignment.branch}`, stdout);
+    this.cleanupSkillDir(ticketKey);
 
     if (code !== 0) {
       this.log(`  FORGE FAILED: ${ticketKey} in ${assignment.repoPath} (exit code: ${code})`);
@@ -104,6 +108,17 @@ export class ForgeService {
     const status = allOk ? "success" : "partial";
     this.log(`FORGED (${status}): ${ticket.key}`);
     return { ticketKey: ticket.key, status, worktrees, affectedUrls };
+  }
+
+  private cleanupSkillDir(ticketKey: string): void {
+    const dir = join(homedir(), ".claude", "skills", ticketKey);
+    if (!existsSync(dir)) return;
+    try {
+      rmSync(dir, { recursive: true, force: true });
+      this.log(`CLEANUP: removed dynamic skill dir ${dir}`);
+    } catch (err) {
+      this.log(`CLEANUP WARN: failed to remove ${dir}: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   private static isForgeOutput(v: unknown): v is ForgeOutput {
