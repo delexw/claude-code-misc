@@ -389,9 +389,16 @@ export class DagStore {
   /**
    * Build a natural-language DAG description for the LLM re-prioritization hint.
    *
-   * Emits run-continuity guidance for the prioritizer: preserves branch names for
-   * pending groups (so they aren't regenerated) and keeps completed group keys as
-   * valid depends_on targets. JIRA statuses are not included — re-fetched fresh each run.
+   * Emits run-continuity guidance for the prioritizer across two concerns:
+   * 1. Branch name stability — pending groups carry their branch names so the
+   *    jira-ticket-prioritizer skill reuses them instead of regenerating different
+   *    slugs when resuming after a crash.
+   * 2. Completed group stacking — GSD-completed tickets move to "In Review" in JIRA,
+   *    which the skill would otherwise treat as an unresolved dependency and skip their
+   *    dependents (or emit depends_on: null). Listing them as completed groups tells the
+   *    skill: even though these tickets are no longer pending, new tickets this run may
+   *    still depend on them — keep depends_on references intact so the pipeline can
+   *    stack branches correctly especially these GSD-completed tickets are in "In Review".
    *
    * Returns null when no state exists (fresh run).
    */
@@ -487,7 +494,6 @@ export class DagStore {
       "- Primary key is the first ticket listed — other groups reference it via depends_on",
       "- Do NOT change branch names for pending groups",
       "- Completed group keys remain valid depends_on targets",
-      "- Slot new tickets into appropriate layers; remove tickets no longer in the list",
     );
 
     return lines.join("\n");
