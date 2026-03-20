@@ -389,9 +389,9 @@ export class DagStore {
   /**
    * Build a natural-language DAG description for the LLM re-prioritization hint.
    *
-   * Replaces the raw JSON passthrough used in run-state.ts. The LLM receives
-   * explicit, structured guidance about what's done, what's pending, and which
-   * dependency edges to preserve — without needing to parse JSON.
+   * Emits run-continuity guidance for the prioritizer: preserves branch names for
+   * pending groups (so they aren't regenerated) and keeps completed group keys as
+   * valid depends_on targets. JIRA statuses are not included — re-fetched fresh each run.
    *
    * Returns null when no state exists (fresh run).
    */
