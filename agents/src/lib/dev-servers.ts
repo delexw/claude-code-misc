@@ -168,15 +168,21 @@ export class DevServerManager {
 
   // ─── Restart non-fixed-branch servers on a merge branch ──────────────────
 
-  async restartOnBranch(mergeBranch: string): Promise<void> {
-    this.log(`RESTARTING all servers on branch: ${mergeBranch}`);
+  async restartOnBranch(branchByRepo: Map<string, string>): Promise<void> {
+    const branchList = [...branchByRepo.values()].join(", ");
+    this.log(`RESTARTING all servers (branches: ${branchList})`);
 
     // Stop all servers
     this.stopAll();
 
-    // Checkout merge branch for non-fixed-branch services (fall back to main if branch doesn't exist)
-    for (const svc of this.services.filter((s) => !s.branchFixed)) {
-      const branch = this.branchExists(svc.cwd, mergeBranch) ? mergeBranch : "main";
+    // Checkout the correct branch per service:
+    // - if the repo was changed by the ticket (in branchByRepo): checkout its merge branch regardless of branchFixed
+    // - if not changed and not branchFixed: checkout main
+    // - if not changed and branchFixed: skip
+    for (const svc of this.services) {
+      const mergeBranch = branchByRepo.get(svc.cwd);
+      if (!mergeBranch && svc.branchFixed) continue;
+      const branch = mergeBranch && this.branchExists(svc.cwd, mergeBranch) ? mergeBranch : "main";
       try {
         execSync(`git checkout ${branch}`, { cwd: svc.cwd, stdio: "pipe" });
         this.log(`  Checked out ${branch} in ${svc.name}`);

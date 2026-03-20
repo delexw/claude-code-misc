@@ -65,7 +65,7 @@ function makeDevServers(): DevServerManager {
     devUrl: "http://localhost:3000",
     startAll: async () => {},
     stopAll: () => {},
-    restartOnBranch: async () => {},
+    restartOnBranch: async (_branchByRepo: Map<string, string>) => {},
   } as unknown as DevServerManager;
 }
 

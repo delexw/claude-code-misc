@@ -34,7 +34,7 @@ function makeDevServers(devUrl = "http://localhost:3000"): DevServerManager {
     devUrl,
     startAll: async () => {},
     stopAll: () => {},
-    restartOnBranch: async () => {},
+    restartOnBranch: async (_branchByRepo: Map<string, string>) => {},
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
   } as unknown as DevServerManager;
 }
@@ -287,8 +287,8 @@ void describe("mergeAndVerify", () => {
       devUrl: "http://localhost:3000",
       startAll: async () => {},
       stopAll: () => {},
-      restartOnBranch: async (branch: string) => {
-        restartedBranch = branch;
+      restartOnBranch: async (branchByRepo: Map<string, string>) => {
+        restartedBranch = [...branchByRepo.values()][0] ?? "";
       },
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
     } as unknown as DevServerManager;
@@ -312,13 +312,72 @@ void describe("mergeAndVerify", () => {
     assert.equal(restartedBranch, "my-merge-branch");
   });
 
+  void it("passes per-repo branch map to restartOnBranch for multi-repo tickets", async () => {
+    let capturedBranchByRepo = new Map<string, string>();
+    const devServers = {
+      devUrl: "http://localhost:3000",
+      startAll: async () => {},
+      stopAll: () => {},
+      restartOnBranch: async (branchByRepo: Map<string, string>) => {
+        capturedBranchByRepo = new Map(branchByRepo);
+      },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
+    } as unknown as DevServerManager;
+
+    const multiRepoForges: ForgeResult[] = [
+      {
+        ticketKey: "EC-1",
+        status: "success",
+        worktrees: [{ repoPath: "/repo-a", worktreePath: "/wt/ec-1-a" }],
+        affectedUrls: [],
+      },
+      {
+        ticketKey: "EC-2",
+        status: "success",
+        worktrees: [{ repoPath: "/repo-b", worktreePath: "/wt/ec-1-b" }],
+        affectedUrls: [],
+      },
+    ];
+
+    let mergeCallCount = 0;
+    const runner = {
+      run: async (_prompt: string, opts: { taskName: string }) => {
+        if (opts.taskName.includes("commit")) return { code: 0, stdout: "" };
+        if (opts.taskName.includes("merge")) {
+          mergeCallCount++;
+          return { code: 0, stdout: `branch-repo-${mergeCallCount}` };
+        }
+        return { code: 0, stdout: "" };
+      },
+      writeLog: () => "/fake",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
+    } as unknown as ClaudeRunner;
+
+    const { log } = collectLogs();
+    const pipeline = makePipeline(runner, log, { devServers });
+
+    await pipeline.mergeAndVerify(
+      multiRepoForges,
+      [
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo-a", branch: "ec-1-a" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo-b", branch: "ec-1-b" }] },
+      ],
+      VERIFY,
+      NO_BASE,
+    );
+
+    assert.equal(capturedBranchByRepo.size, 2);
+    assert.equal(capturedBranchByRepo.get("/repo-a"), "branch-repo-1");
+    assert.equal(capturedBranchByRepo.get("/repo-b"), "branch-repo-2");
+  });
+
   void it("does not restart servers when needsVerification is false", async () => {
     let restarted = false;
     const devServers = {
       devUrl: "http://localhost:3000",
       startAll: async () => {},
       stopAll: () => {},
-      restartOnBranch: async () => {
+      restartOnBranch: async (_branchByRepo: Map<string, string>) => {
         restarted = true;
       },
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
@@ -391,6 +450,73 @@ void describe("mergeAndVerify", () => {
     );
 
     assert.deepEqual(result.succeeded, ["EC-1"]);
+  });
+
+  void it("runs verify once per repo and posts per-repo result to each PR", async () => {
+    const multiRepoForges: ForgeResult[] = [
+      {
+        ticketKey: "EC-1",
+        status: "success",
+        worktrees: [{ repoPath: "/repo-a", worktreePath: "/wt/ec-1-a" }],
+        affectedUrls: [],
+      },
+      {
+        ticketKey: "EC-2",
+        status: "success",
+        worktrees: [{ repoPath: "/repo-b", worktreePath: "/wt/ec-1-b" }],
+        affectedUrls: [],
+      },
+    ];
+
+    const verifyCallCwds: string[] = [];
+    const prCallCwds: string[] = [];
+    const runner = {
+      run: async (prompt: string, opts: { taskName: string; cwd?: string }) => {
+        if (opts.taskName.includes("commit")) return { code: 0, stdout: "" };
+        if (opts.taskName.includes("merge")) return { code: 0, stdout: "merge-branch" };
+        if (opts.taskName.includes("verify")) {
+          verifyCallCwds.push(opts.cwd ?? "");
+          return {
+            code: 0,
+            stdout: JSON.stringify({
+              status: "passed",
+              summary: `verified in ${opts.cwd}`,
+              screenshots: [],
+            }),
+          };
+        }
+        if (opts.taskName.includes(": pr ")) {
+          prCallCwds.push(opts.cwd ?? "");
+          return { code: 0, stdout: JSON.stringify({ status: "success", pr_url: `https://pr/${opts.cwd}` }) };
+        }
+        return { code: 0, stdout: "" };
+      },
+      writeLog: () => "/fake",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock
+    } as unknown as ClaudeRunner;
+
+    const { log } = collectLogs();
+    const pipeline = makePipeline(runner, log);
+
+    await pipeline.mergeAndVerify(
+      multiRepoForges,
+      [
+        { key: "EC-1", complexity: "moderate", repos: [{ repoPath: "/repo-a", branch: "ec-1-a" }] },
+        { key: "EC-2", complexity: "moderate", repos: [{ repoPath: "/repo-b", branch: "ec-1-b" }] },
+      ],
+      NO_VERIFY,
+      NO_BASE,
+    );
+
+    // verify runs once per repo
+    assert.equal(verifyCallCwds.length, 2);
+    assert.ok(verifyCallCwds.includes("/repo-a"));
+    assert.ok(verifyCallCwds.includes("/repo-b"));
+
+    // PR created for each repo
+    assert.equal(prCallCwds.length, 2);
+    assert.ok(prCallCwds.includes("/repo-a"));
+    assert.ok(prCallCwds.includes("/repo-b"));
   });
 
   void it("still succeeds when PR creation fails", async () => {

@@ -105,17 +105,20 @@ export class Pipeline {
       };
     }
 
-    const mergeBranch = mergedBranches[0].branch;
-    await this.restartServersIfNeeded(mergeBranch, verification);
+    await this.restartServersIfNeeded(mergedBranches, verification);
 
-    const verifyResult = await this.verify(
-      primaryTicket,
-      groupLabel,
-      mergeBranch,
-      mergedBranches[0].repoRoot,
-      verification,
-      affectedUrls,
-    );
+    const verifyResultsByRepo = new Map<string, VerifyOutput | null>();
+    for (const mb of mergedBranches) {
+      const result = await this.verify(
+        primaryTicket,
+        groupLabel,
+        mb.branch,
+        mb.repoRoot,
+        verification,
+        affectedUrls,
+      );
+      verifyResultsByRepo.set(mb.repoRoot, result);
+    }
 
     const nextPrUrls = await this.createPullRequests(
       primaryTicket,
@@ -123,7 +126,7 @@ export class Pipeline {
       successful.map((r) => r.ticketKey),
       mergedBranches,
       prevState,
-      verifyResult,
+      verifyResultsByRepo,
     );
 
     await this.updateJira(successful);
@@ -268,13 +271,14 @@ export class Pipeline {
     return mergedBranches;
   }
 
-  /** Step 3: Restart dev servers on merge branch when UI verification is needed. */
+  /** Step 3: Restart dev servers on merge branches when UI verification is needed. */
   private async restartServersIfNeeded(
-    mergeBranch: string,
+    mergedBranches: MergeResult[],
     verification: Verification,
   ): Promise<void> {
     if (verification.required) {
-      await this.devServers.restartOnBranch(mergeBranch);
+      const branchByRepo = new Map(mergedBranches.map((mb) => [mb.repoRoot, mb.branch]));
+      await this.devServers.restartOnBranch(branchByRepo);
     }
   }
 
@@ -287,8 +291,9 @@ export class Pipeline {
     verification: Verification,
     affectedUrls: string[] = [],
   ): Promise<VerifyOutput | null> {
+    const repoName = cwd.split("/").pop() ?? cwd;
     this.log(
-      `VERIFYING: ${groupLabel} (ui required: ${verification.required}, reason: ${verification.reason})`,
+      `VERIFYING: ${groupLabel} in ${repoName} (ui required: ${verification.required}, reason: ${verification.reason})`,
     );
     const { code, stdout } = await this.runner.run(
       buildVerifyPrompt(
@@ -303,10 +308,10 @@ export class Pipeline {
         continueSession: true,
         model: "opus",
         effort: "low",
-        taskName: `get-shit-done: verify ${groupLabel}`,
+        taskName: `get-shit-done: verify ${groupLabel} in ${repoName}`,
       },
     );
-    this.runner.writeLog("verify", primaryTicket, stdout);
+    this.runner.writeLog("verify", `${primaryTicket}-${repoName}`, stdout);
 
     const result = parseJson(stdout, (v): v is VerifyOutput => Pipeline.isVerifyOutput(v));
     if (code !== 0) {
@@ -324,13 +329,14 @@ export class Pipeline {
     succeededKeys: string[],
     mergedBranches: MergeResult[],
     prevState: LayerState,
-    verifyResult: VerifyOutput | null,
+    verifyResultsByRepo: Map<string, VerifyOutput | null>,
   ): Promise<RepoMap> {
-    const screenshots = verifyResult?.screenshots ?? [];
     const nextPrUrls: RepoMap = new Map(prevState.prUrls);
 
     await Promise.all(
       mergedBranches.map(async (mb) => {
+        const verifyResult = verifyResultsByRepo.get(mb.repoRoot) ?? null;
+        const screenshots = verifyResult?.screenshots ?? [];
         const baseBranch = prevState.branches.get(mb.repoRoot);
         const basePrUrl = prevState.prUrls.get(mb.repoRoot);
         const dep: PrDependency | undefined = baseBranch
