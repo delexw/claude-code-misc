@@ -17,7 +17,7 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
     { "group": [{"key": "PROJ-105", "complexity": "moderate", "repos": [{"repo": "acme-web", "branch": "proj-105-dashboard"}]}], "relation": null, "hasFrontend": true, "verification": {"required": true, "reason": "new dashboard page"}, "depends_on": null }
   ],
   "skipped": [
-    { "key": "PROJ-102", "reason": "depends on PROJ-100 (status: In Progress)" },
+    { "key": "PROJ-102", "reason": "depends on PROJ-98 (status: In Progress)" },
     { "key": "PROJ-104", "reason": "redundant with PROJ-101 — near-identical summary and overlapping component 'AuthService'; PROJ-104 description is a subset of PROJ-101 scope (confidence: high, weight: 0.87)", "redundantWith": "PROJ-101", "weight": 0.87, "confidence": "high" }
   ],
   "excluded": [
@@ -38,7 +38,7 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
   - **required** = `true` only when changes produce **visible, reachable UI** — e.g. a component rendered on an existing page. Set to `false` when: (a) backend/API-only, (b) new component not yet mounted on any page, (c) UI behind a feature flag that is off by default, (d) purely styling tokens or test changes. Inferred semantically from ticket content.
   - **reason** = short explanation of why `required` is true or false. Used for logging and debugging orchestrator decisions.
 - **skipped** = Tickets not processed this run, for one of two reasons:
-  - *Unresolved dependency*: cross-layer dependency ticket is not yet Done. Reason includes the dependency key and its current status.
+  - *Unresolved dependency*: ticket depends on another ticket whose JIRA status is neither To Do/Backlog (sequenceable into an earlier layer) nor Done (already complete) — e.g. In Progress or In Review. Reason includes the dependency key and its current status.
   - *Redundant*: ticket substantially overlaps with a higher-scoring ticket. Includes `redundantWith`, `weight`, and `confidence` fields. Reason is a verbose evidence string naming the specific overlapping fields.
 - **excluded** = Tickets intentionally omitted (container stories, Done/Closed/Resolved, etc.) with a reason string
 
@@ -48,7 +48,7 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
 2. Tickets within the same group have **no dependencies on each other**
 3. Tickets with status Done/Closed/Resolved are placed in `excluded`
 4. Container/parent stories with no implementable tasks of their own are placed in `excluded`
-5. Tickets whose cross-layer dependencies are not yet resolved (dependency ticket status is not "Done") are placed in `skipped`
+5. Tickets whose dependencies have a JIRA status other than To Do/Backlog or Done (e.g. In Progress, In Review) are placed in `skipped` — the blocker is being worked on and can't be sequenced. Tickets that depend on other To Do/Backlog tickets in the same sprint are sequenced into later layers via `depends_on`.
 6. Tickets identified as redundant (confidence: high, OR confidence: medium + weight ≥ 0.60) are placed in `skipped` — the lower-scoring ticket is skipped, the higher-scoring one proceeds
 
 ### Dependency DAG Rules
@@ -119,7 +119,7 @@ Full analysis with scores, justifications, and dependency graph.
     ]
   },
   "skipped": [
-    { "key": "PROJ-102", "dependency": "PROJ-100", "dependencyStatus": "In Progress", "reason": "cross-layer dependency not resolved" }
+    { "key": "PROJ-102", "dependency": "PROJ-98", "dependencyStatus": "In Progress", "reason": "dependency not yet Done" }
   ],
   "excluded": [
     { "key": "PROJ-99", "summary": "Old task", "status": "Done", "reason": "completed" }
