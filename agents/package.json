@@ -18,7 +18,8 @@
     "chatbot:dev:all": "concurrently --kill-others-on-fail --names \"a2a,next\" --prefix-colors \"cyan.bold,magenta.bold\" --prefix \"[{name}]\" \"npm run chatbot:servers\" \"npm run chatbot:dev\""
   },
   "dependencies": {
-    "@ladybugdb/core": "latest"
+    "@ladybugdb/core": "latest",
+    "lucide-react": "^0.577.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

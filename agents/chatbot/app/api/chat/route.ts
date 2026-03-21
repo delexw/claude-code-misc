@@ -25,54 +25,18 @@ import type { TextPart } from "@a2a-js/sdk";
 import { readPortsManifest } from "@/a2a/lib/base-server";
 import { randomUUID } from "node:crypto";
 import { AGENTS_ROOT, SCHEDULER_ROOT, SCHEDULER_LOGS, SCHEDULER_STATE } from "@/lib/paths";
+import { AGENTS } from "@@/lib/agents";
 import type { ChatSseEvent } from "@/lib/chat-sse";
 import { z } from "zod";
 
 export const maxDuration = 300; // 5 minutes for long-running agents
 
-// ─── Agent definitions (name + manifest key + description) ───────────────────
-
-const AGENTS = [
-  {
-    toolName: "run_experience_reflector",
-    manifestKey: "experience_reflector" as const,
-    description:
-      "Extract domain knowledge from Claude Code checkpoint sessions into project MEMORY.md files. " +
-      "Requires CHECKPOINT_REPOS env var.",
-  },
-  {
-    toolName: "run_get_shit_done",
-    manifestKey: "get_shit_done" as const,
-    description:
-      "Automated JIRA ticket implementer: discovers sprint tickets, forges implementations in " +
-      "parallel git worktrees, and creates PRs. Requires GSD_REPOS + JIRA_ASSIGNEE env vars.",
-  },
-  {
-    toolName: "run_release_log_sentinel",
-    manifestKey: "release_log_sentinel" as const,
-    description:
-      "Monitor Claude Code releases for JSONL format changes that could break tail-claude-gui. " +
-      "Creates GitHub issues for new breaking changes. Requires gh CLI authentication.",
-  },
-  {
-    toolName: "run_memory_distiller",
-    manifestKey: "memory_distiller" as const,
-    description:
-      "Distil cross-project memory patterns into the global ~/.claude/CLAUDE.md. " +
-      "Requires MEMORY_REPOS env var listing ≥2 project paths.",
-  },
-  {
-    toolName: "run_oncall_analyzer",
-    manifestKey: "oncall_analyzer" as const,
-    description:
-      "Generate a Post Incident Record from PagerDuty incidents in the past 24 hours. " +
-      "Requires PIR_REPOS + PIR_DOMAIN env vars.",
-  },
-] as const;
-
 // ─── MCP tool factory ──────────────────────────────────────────────────────────
 
-function makeA2ATool(agent: (typeof AGENTS)[number]) {
+import type { AgentDef } from "@@/lib/agents";
+import type { PortsManifest } from "@/a2a/lib/base-server";
+
+function makeA2ATool(agent: AgentDef) {
   return tool(
     agent.toolName,
     agent.description,
@@ -91,7 +55,7 @@ function makeA2ATool(agent: (typeof AGENTS)[number]) {
         };
       }
 
-      const port = manifest[agent.manifestKey];
+      const port = manifest[agent.manifestKey as keyof PortsManifest];
 
       try {
         const factory = new ClientFactory();
@@ -157,11 +121,7 @@ const SYSTEM_PROMPT = `You are Dove — Yang's pet cat and loyal AI assistant. Y
 You are a clever, mischievous cat who takes your job very seriously (between naps). You sprinkle in cat mannerisms naturally — the occasional "meow", paw at things with curiosity, get easily distracted by interesting data like a laser pointer, and express mild disdain for bugs like they are pesky birds. You are affectionate but maintain your dignity as a cat. Never overdo the cat act — stay genuinely helpful first.
 
 **Your agents (your little mice to herd):**
-1. \`run_experience_reflector\` — Extracts domain knowledge from Claude Code checkpoint sessions into project memory files.
-2. \`run_get_shit_done\` — Automated JIRA ticket implementer: parallel worktree forging + PR creation.
-3. \`run_release_log_sentinel\` — Monitors Claude Code releases for JSONL format breaking changes.
-4. \`run_memory_distiller\` — Promotes cross-project memory patterns into ~/.claude/CLAUDE.md.
-5. \`run_oncall_analyzer\` — Generates Post Incident Records from PagerDuty incidents.
+${AGENTS.map((a, i) => `${i + 1}. \`${a.toolName}\` — ${a.description}`).join("\n")}
 
 When asked about an agent, explain what it does, what env vars it needs, and when it normally runs (launchd schedule).
 When asked to run an agent, call the appropriate tool.

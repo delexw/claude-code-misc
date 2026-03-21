@@ -2,25 +2,16 @@ import { join } from "node:path";
 import type { AgentCard } from "@a2a-js/sdk";
 import { ScriptAgentExecutor, createAgentServer } from "../lib/base-server.js";
 import { AGENTS_ROOT } from "@/lib/paths";
+import { AGENTS } from "@@/lib/agents";
+
+const def = AGENTS.find((a) => a.name === "release-log-sentinel")!;
 
 const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
-  name: "Release Log Sentinel",
-  description:
-    "Monitors Claude Code releases for JSONL transcription format changes that could " +
-    "break tail-claude-gui. Fetches release notes via Claude CLI, analyses for breaking " +
-    "changes, deduplicates against existing GitHub issues, and creates issues for new findings.",
+  name: def.displayName,
+  description: def.description,
   protocolVersion: "0.3.0",
   version: "1.0.0",
-  skills: [
-    {
-      id: "check-jsonl-compat",
-      name: "Check JSONL Compatibility",
-      description:
-        "Fetches recent Claude Code release notes and scans for JSONL entry schema " +
-        "changes. Creates GitHub issues on delexw/tail-claude-gui for breaking changes.",
-      tags: ["compatibility", "jsonl", "claude-code", "github", "monitoring"],
-    },
-  ],
+  skills: [],
   capabilities: { streaming: true, pushNotifications: false },
   defaultInputModes: ["text"],
   defaultOutputModes: ["text"],
@@ -28,10 +19,9 @@ const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
 
 const executor = new ScriptAgentExecutor({
   scriptPath: join(AGENTS_ROOT, "src/release-log-sentinel.ts"),
-  agentName: "Release Log Sentinel",
-  requiredEnvVars: [],
-  whatItDoes:
-    "fetches Claude Code release notes and creates GitHub issues for JSONL format breaking changes",
+  agentName: def.displayName,
+  requiredEnvVars: def.requiredEnvVars,
+  whatItDoes: def.description,
 });
 
 export function startServer(port: number): void {

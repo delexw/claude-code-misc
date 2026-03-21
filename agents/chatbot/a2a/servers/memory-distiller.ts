@@ -2,25 +2,16 @@ import { join } from "node:path";
 import type { AgentCard } from "@a2a-js/sdk";
 import { ScriptAgentExecutor, createAgentServer } from "../lib/base-server.js";
 import { AGENTS_ROOT } from "@/lib/paths";
+import { AGENTS } from "@@/lib/agents";
+
+const def = AGENTS.find((a) => a.name === "memory-distiller")!;
 
 const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
-  name: "Memory Distiller",
-  description:
-    "Analyzes all project-level MEMORY.md files across configured repositories and " +
-    "promotes patterns that appear in 2+ projects into the global ~/.claude/CLAUDE.md. " +
-    "Removes promoted entries from project files to avoid duplication.",
+  name: def.displayName,
+  description: def.description,
   protocolVersion: "0.3.0",
   version: "1.0.0",
-  skills: [
-    {
-      id: "synthesize-memories",
-      name: "Synthesize Cross-Project Memories",
-      description:
-        "Reads project-level MEMORY.md files, identifies patterns appearing across 2+ " +
-        "projects, promotes them to the global CLAUDE.md, and cleans up project files.",
-      tags: ["memory", "synthesis", "claude-md", "preferences", "patterns"],
-    },
-  ],
+  skills: [],
   capabilities: { streaming: true, pushNotifications: false },
   defaultInputModes: ["text"],
   defaultOutputModes: ["text"],
@@ -28,10 +19,9 @@ const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
 
 const executor = new ScriptAgentExecutor({
   scriptPath: join(AGENTS_ROOT, "src/memory-distiller.ts"),
-  agentName: "Memory Distiller",
-  requiredEnvVars: ["MEMORY_REPOS"],
-  whatItDoes:
-    "synthesizes cross-project patterns into ~/.claude/CLAUDE.md and removes them from project memory files",
+  agentName: def.displayName,
+  requiredEnvVars: def.requiredEnvVars,
+  whatItDoes: def.description,
 });
 
 export function startServer(port: number): void {

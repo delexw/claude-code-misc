@@ -36,36 +36,23 @@ import * as getShitDone from "../get-shit-done";
 import * as releaseLogSentinel from "../release-log-sentinel";
 import * as memoryDistiller from "../memory-distiller";
 import * as oncallAnalyzer from "../oncall-analyzer";
+import { AGENTS as AGENT_DEFS } from "@@/lib/agents";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const AGENTS = [
-  {
-    name: "experience-reflector",
-    mod: experienceReflector,
-    requiredVars: ["CHECKPOINT_REPOS"],
-  },
-  {
-    name: "get-shit-done",
-    mod: getShitDone,
-    requiredVars: ["GSD_REPOS", "JIRA_ASSIGNEE"],
-  },
-  {
-    name: "release-log-sentinel",
-    mod: releaseLogSentinel,
-    requiredVars: [] as string[],
-  },
-  {
-    name: "memory-distiller",
-    mod: memoryDistiller,
-    requiredVars: ["MEMORY_REPOS"],
-  },
-  {
-    name: "oncall-analyzer",
-    mod: oncallAnalyzer,
-    requiredVars: ["PIR_REPOS", "PIR_DOMAIN"],
-  },
-] as const;
+const mods: Record<string, { startServer: (port: number) => void }> = {
+  "experience-reflector": experienceReflector,
+  "get-shit-done": getShitDone,
+  "release-log-sentinel": releaseLogSentinel,
+  "memory-distiller": memoryDistiller,
+  "oncall-analyzer": oncallAnalyzer,
+};
+
+const AGENTS = AGENT_DEFS.map((def) => ({
+  name: def.name,
+  mod: mods[def.name],
+  requiredVars: def.requiredEnvVars,
+}));
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
@@ -79,8 +66,8 @@ describe.each(AGENTS)("$name server", ({ name, mod, requiredVars }) => {
     expect(existsSync(scriptPath)).toBe(true);
   });
 
-  it("source documents required env vars", () => {
-    const src = readFileSync(resolve(__dirname, `../${name}.ts`), "utf-8");
+  it("shared config documents required env vars", () => {
+    const src = readFileSync(resolve(AGENTS_ROOT, "lib/agents.ts"), "utf-8");
     for (const v of requiredVars) {
       expect(src).toContain(v);
     }

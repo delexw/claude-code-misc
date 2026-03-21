@@ -10,8 +10,9 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, Trash2, Zap, Radar, FlaskConical, BellRing, Brain } from "lucide-react";
+import { Check, Copy, Trash2 } from "lucide-react";
 import { PiCat } from "react-icons/pi";
+import { AGENTS } from "@@/lib/agents";
 import {
   Conversation,
   ConversationContent,
@@ -37,40 +38,6 @@ import { cn } from "@/lib/utils";
 
 // ─── Agent sidebar ────────────────────────────────────────────────────────────
 
-interface AgentMeta {
-  name: string;
-  manifestKey: string;
-  icon: React.ComponentType<{ className?: string }>;
-  schedule: string;
-}
-
-const AGENT_META: AgentMeta[] = [
-  {
-    name: "Experience Reflector",
-    manifestKey: "experience_reflector",
-    icon: Brain,
-    schedule: "daily 00:00",
-  },
-  { name: "Get Shit Done", manifestKey: "get_shit_done", icon: Zap, schedule: "every 5 min" },
-  {
-    name: "Release Log Sentinel",
-    manifestKey: "release_log_sentinel",
-    icon: Radar,
-    schedule: "Sun 10:00",
-  },
-  {
-    name: "Memory Distiller",
-    manifestKey: "memory_distiller",
-    icon: FlaskConical,
-    schedule: "Sun 01:00",
-  },
-  {
-    name: "Oncall Analyzer",
-    manifestKey: "oncall_analyzer",
-    icon: BellRing,
-    schedule: "daily 09:00",
-  },
-];
 
 function AgentSidebar() {
   const [ports, setPorts] = React.useState<Record<string, number> | null>(null);
@@ -104,26 +71,29 @@ function AgentSidebar() {
       <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
         🐾 My Agents
       </h2>
-      {AGENT_META.map((agent) => (
-        <div key={agent.manifestKey} className="rounded-xl border border-border bg-background p-3">
-          <div className="flex items-center gap-2">
-            <agent.icon className="w-4 h-4 text-muted-foreground shrink-0" />
-            <span className="text-sm font-medium text-foreground truncate">{agent.name}</span>
+      {AGENTS.map((agent) => {
+        const Icon = agent.icon;
+        return (
+          <div key={agent.manifestKey} className="rounded-xl border border-border bg-background p-3">
+            <div className="flex items-center gap-2">
+              <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium text-foreground truncate">{agent.displayName}</span>
+            </div>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                  online ? "bg-green-500 animate-pulse" : "bg-muted-foreground/40",
+                )}
+              />
+              <span className="text-xs font-mono text-muted-foreground">
+                {ports?.[agent.manifestKey] != null ? `:${ports[agent.manifestKey]}` : "—"}
+              </span>
+              <span className="text-xs text-muted-foreground truncate">· {agent.scheduleDisplay}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 mt-1">
-            <span
-              className={cn(
-                "w-1.5 h-1.5 rounded-full flex-shrink-0",
-                online ? "bg-green-500 animate-pulse" : "bg-muted-foreground/40",
-              )}
-            />
-            <span className="text-xs font-mono text-muted-foreground">
-              {ports?.[agent.manifestKey] != null ? `:${ports[agent.manifestKey]}` : "—"}
-            </span>
-            <span className="text-xs text-muted-foreground truncate">· {agent.schedule}</span>
-          </div>
-        </div>
-      ))}
+        );
+      })}
       {!online && (
         <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
           Run <code className="text-xs">npm run chatbot:servers</code>
