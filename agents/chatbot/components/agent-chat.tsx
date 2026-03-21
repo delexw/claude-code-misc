@@ -10,7 +10,8 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, Trash2 } from "lucide-react";
+import { Check, Copy, Trash2, Zap, Radar, FlaskConical, BellRing, Brain } from "lucide-react";
+import { PiCat } from "react-icons/pi";
 import {
   Conversation,
   ConversationContent,
@@ -39,7 +40,7 @@ import { cn } from "@/lib/utils";
 interface AgentMeta {
   name: string;
   manifestKey: string;
-  emoji: string;
+  icon: React.ComponentType<{ className?: string }>;
   schedule: string;
 }
 
@@ -47,23 +48,28 @@ const AGENT_META: AgentMeta[] = [
   {
     name: "Experience Reflector",
     manifestKey: "experience_reflector",
-    emoji: "🧠",
+    icon: Brain,
     schedule: "daily 00:00",
   },
-  { name: "Get Shit Done", manifestKey: "get_shit_done", emoji: "⚡", schedule: "every 5 min" },
+  { name: "Get Shit Done", manifestKey: "get_shit_done", icon: Zap, schedule: "every 5 min" },
   {
     name: "Release Log Sentinel",
     manifestKey: "release_log_sentinel",
-    emoji: "🔍",
+    icon: Radar,
     schedule: "Sun 10:00",
   },
   {
     name: "Memory Distiller",
     manifestKey: "memory_distiller",
-    emoji: "🔗",
+    icon: FlaskConical,
     schedule: "Sun 01:00",
   },
-  { name: "Oncall Analyzer", manifestKey: "oncall_analyzer", emoji: "📋", schedule: "daily 09:00" },
+  {
+    name: "Oncall Analyzer",
+    manifestKey: "oncall_analyzer",
+    icon: BellRing,
+    schedule: "daily 09:00",
+  },
 ];
 
 function AgentSidebar() {
@@ -101,7 +107,7 @@ function AgentSidebar() {
       {AGENT_META.map((agent) => (
         <div key={agent.manifestKey} className="rounded-xl border border-border bg-background p-3">
           <div className="flex items-center gap-2">
-            <span className="text-base">{agent.emoji}</span>
+            <agent.icon className="w-4 h-4 text-muted-foreground shrink-0" />
             <span className="text-sm font-medium text-foreground truncate">{agent.name}</span>
           </div>
           <div className="flex items-center gap-1.5 mt-1">
@@ -166,7 +172,7 @@ function CopyAction({ text }: { text: string }) {
 
 const SUGGESTIONS = [
   "What does the Experience Reflector do?",
-  "Run the Release Log Sentinel 🔍",
+  "Run the Release Log Sentinel",
   "Explain the Memory Distiller",
   "How does Get Shit Done work?",
 ];
@@ -210,7 +216,7 @@ export function AgentChat() {
         {/* Header */}
         <header className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
           <div>
-            <h1 className="text-sm font-semibold text-foreground">🐱 Dove</h1>
+            <h1 className="text-sm font-semibold text-foreground flex items-center gap-1.5"><PiCat className="w-4 h-4" /> Dove</h1>
             <p className="text-xs text-muted-foreground">Yang&apos;s cat · A2A SSE · 5 agents</p>
           </div>
           {messages.length > 0 && (
@@ -229,7 +235,7 @@ export function AgentChat() {
           <ConversationContent>
             {messages.length === 0 ? (
               <ConversationEmptyState>
-                <span className="text-5xl">🐱</span>
+                <PiCat className="w-16 h-16 text-foreground" />
                 <div className="space-y-1.5 text-center">
                   <h3 className="font-semibold text-base">Meow~ I&apos;m Dove!</h3>
                   <p className="text-muted-foreground text-sm max-w-xs">
