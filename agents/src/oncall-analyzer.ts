@@ -1,5 +1,5 @@
 /**
- * PIR Analyzer - Daily Post Incident Record generator
+ * Oncall Analyzer - Daily Post Incident Record generator
  * Runs daily at 9:00 AM via launchd
  * Analyzes PagerDuty incidents from the past 24 hours using the /pir skill
  */
@@ -18,14 +18,14 @@ const DOMAIN = process.env.PIR_DOMAIN || "";
 const ZONE_ID = process.env.PIR_ZONE_ID || "";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const LOG_DIR = join(SCRIPT_DIR, "logs/.pir-analyzer");
-const LOG_FILE = join(LOG_DIR, `pir-analyzer-${makeTimestamp()}.log`);
+const LOG_DIR = join(SCRIPT_DIR, "logs/.oncall-analyzer");
+const LOG_FILE = join(LOG_DIR, `oncall-analyzer-${makeTimestamp()}.log`);
 const { log } = createLogger(LOG_DIR, LOG_FILE);
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
-  log("=== PIR Analyzer started ===");
+  log("=== Oncall Analyzer started ===");
   log("Analyzing incidents from the past 24 hours");
 
   // Fetch latest from remote main for each repo
@@ -43,15 +43,15 @@ async function main() {
 
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
     ["--permission-mode", "acceptEdits", "--add-dir", ...REPOS, "-p", prompt],
-    { cwd: SCRIPT_DIR, taskName: "pir-analyzer", timeoutMs: 24 * 60 * 60 * 1000 },
+    { cwd: SCRIPT_DIR, taskName: "oncall-analyzer", timeoutMs: 24 * 60 * 60 * 1000 },
   ).result;
 
   log(`Claude CLI exited with code: ${exitCode}`);
   log("--- Response ---");
   log(claudeOutput);
-  log("=== PIR Analyzer finished ===");
+  log("=== Oncall Analyzer finished ===");
 
-  cleanupOldLogs(LOG_DIR, ["pir-analyzer-"], 30);
+  cleanupOldLogs(LOG_DIR, ["oncall-analyzer-"], 30);
 }
 
 main().catch((err: unknown) => {

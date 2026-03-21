@@ -8,20 +8,20 @@
 import { consola } from "consola";
 import { getAvailablePort, writePortsManifest } from "./lib/base-server.js";
 import { PORTS_FILE } from "@/lib/paths";
-import { startServer as startCheckpointLearner } from "./servers/checkpoint-learner.js";
+import { startServer as startExperienceReflector } from "./servers/experience-reflector.js";
 import { startServer as startGetShitDone } from "./servers/get-shit-done.js";
-import { startServer as startJsonlCompatChecker } from "./servers/jsonl-compat-checker.js";
-import { startServer as startMemorySynthesizer } from "./servers/memory-synthesizer.js";
-import { startServer as startPirAnalyzer } from "./servers/pir-analyzer.js";
+import { startServer as startReleaseLogSentinel } from "./servers/release-log-sentinel.js";
+import { startServer as startMemoryDistiller } from "./servers/memory-distiller.js";
+import { startServer as startOncallAnalyzer } from "./servers/oncall-analyzer.js";
 
 consola.box("🤖  Agent A2A Servers\nAllocating dynamic ports and starting up…");
 
 const [
-  checkpointLearnerPort,
+  experienceReflectorPort,
   getShitDonePort,
-  jsonlCompatCheckerPort,
-  memorySynthesizerPort,
-  pirAnalyzerPort,
+  releaseLogSentinelPort,
+  memoryDistillerPort,
+  oncallAnalyzerPort,
 ] = await Promise.all([
   getAvailablePort(),
   getAvailablePort(),
@@ -30,28 +30,28 @@ const [
   getAvailablePort(),
 ]);
 
-startCheckpointLearner(checkpointLearnerPort);
+startExperienceReflector(experienceReflectorPort);
 startGetShitDone(getShitDonePort);
-startJsonlCompatChecker(jsonlCompatCheckerPort);
-startMemorySynthesizer(memorySynthesizerPort);
-startPirAnalyzer(pirAnalyzerPort);
+startReleaseLogSentinel(releaseLogSentinelPort);
+startMemoryDistiller(memoryDistillerPort);
+startOncallAnalyzer(oncallAnalyzerPort);
 
 writePortsManifest({
-  checkpoint_learner: checkpointLearnerPort,
+  experience_reflector: experienceReflectorPort,
   get_shit_done: getShitDonePort,
-  jsonl_compat_checker: jsonlCompatCheckerPort,
-  memory_synthesizer: memorySynthesizerPort,
-  pir_analyzer: pirAnalyzerPort,
+  release_log_sentinel: releaseLogSentinelPort,
+  memory_distiller: memoryDistillerPort,
+  oncall_analyzer: oncallAnalyzerPort,
 });
 
 consola.box(
   [
     "✅  All 5 A2A servers running\n",
-    `  🧠  Checkpoint Learner    :${checkpointLearnerPort}`,
+    `  🧠  Experience Reflector   :${experienceReflectorPort}`,
     `  ⚡  Get Shit Done         :${getShitDonePort}`,
-    `  🔍  JSONL Compat Checker  :${jsonlCompatCheckerPort}`,
-    `  🔗  Memory Synthesizer    :${memorySynthesizerPort}`,
-    `  📋  PIR Analyzer          :${pirAnalyzerPort}`,
+    `  🔍  Release Log Sentinel  :${releaseLogSentinelPort}`,
+    `  🔗  Memory Distiller      :${memoryDistillerPort}`,
+    `  📋  Oncall Analyzer       :${oncallAnalyzerPort}`,
     "",
     `  📄  Port manifest → ${PORTS_FILE}`,
   ].join("\n"),

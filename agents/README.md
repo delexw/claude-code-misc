@@ -27,11 +27,11 @@ flowchart TD
         end
 
         subgraph tools["MCP Tools  (one per agent)"]
-            T1["run_checkpoint_learner"]
+            T1["run_experience_reflector"]
             T2["run_get_shit_done"]
-            T3["run_jsonl_compat_checker"]
-            T4["run_memory_synthesizer"]
-            T5["run_pir_analyzer"]
+            T3["run_release_log_sentinel"]
+            T4["run_memory_distiller"]
+            T5["run_oncall_analyzer"]
         end
     end
 
@@ -41,21 +41,21 @@ flowchart TD
         PM[("a2a/.ports.json\ndynamic port manifest")]
 
         subgraph servers["Express + @a2a-js/sdk  (one process)"]
-            S1["Checkpoint Learner\n:dyn"]
+            S1["Experience Reflector\n:dyn"]
             S2["Get Shit Done\n:dyn"]
-            S3["JSONL Compat Checker\n:dyn"]
-            S4["Memory Synthesizer\n:dyn"]
-            S5["PIR Analyzer\n:dyn"]
+            S3["Release Log Sentinel\n:dyn"]
+            S4["Memory Distiller\n:dyn"]
+            S5["Oncall Analyzer\n:dyn"]
         end
     end
 
     subgraph src["agents/src/  —  Agent Scripts"]
         direction TB
-        A1["checkpoint-learner.ts\nlaunchd · daily 00:00"]
+        A1["experience-reflector.ts\nlaunchd · daily 00:00"]
         A2["get-shit-done.ts\nlaunchd · every 5 min"]
-        A3["jsonl-compat-checker.ts\nlaunchd · Sun 10:00"]
-        A4["memory-synthesizer.ts\nlaunchd · Sun 01:00"]
-        A5["pir-analyzer.ts\nlaunchd · daily 09:00"]
+        A3["release-log-sentinel.ts\nlaunchd · Sun 10:00"]
+        A4["memory-distiller.ts\nlaunchd · Sun 01:00"]
+        A5["oncall-analyzer.ts\nlaunchd · daily 09:00"]
     end
 
     User -- "message" --> UI
@@ -151,11 +151,11 @@ Five TypeScript agents in `src/`, each managed as a launchd daemon:
 
 | Agent | File | Schedule | Purpose |
 |---|---|---|---|
-| **Checkpoint Learner** | `src/checkpoint-learner.ts` | Daily 00:00 | Scans Claude Code checkpoint sessions, extracts domain knowledge into project `MEMORY.md` files |
+| **Experience Reflector** | `src/experience-reflector.ts` | Daily 00:00 | Scans Claude Code checkpoint sessions, extracts domain knowledge into project `MEMORY.md` files |
 | **Get Shit Done** | `src/get-shit-done.ts` | Every 5 min | Discovers JIRA sprint tickets, prioritises by dependency DAG, forges implementations in parallel git worktrees, creates PRs |
-| **JSONL Compat Checker** | `src/jsonl-compat-checker.ts` | Weekly Sun 10:00 | Monitors Claude Code releases for JSONL format changes that could break [tail-claude-gui](https://github.com/delexw/tail-claude-gui); creates GitHub issues for new findings |
-| **Memory Synthesizer** | `src/memory-synthesizer.ts` | Weekly Sun 01:00 | Promotes patterns that appear across 2+ project `MEMORY.md` files into the global `~/.claude/CLAUDE.md` |
-| **PIR Analyzer** | `src/pir-analyzer.ts` | Daily 09:00 | Generates Post Incident Records from PagerDuty incidents in the past 24 hours |
+| **Release Log Sentinel** | `src/release-log-sentinel.ts` | Weekly Sun 10:00 | Monitors Claude Code releases for JSONL format changes that could break [tail-claude-gui](https://github.com/delexw/tail-claude-gui); creates GitHub issues for new findings |
+| **Memory Distiller** | `src/memory-distiller.ts` | Weekly Sun 01:00 | Promotes patterns that appear across 2+ project `MEMORY.md` files into the global `~/.claude/CLAUDE.md` |
+| **Oncall Analyzer** | `src/oncall-analyzer.ts` | Daily 09:00 | Generates Post Incident Records from PagerDuty incidents in the past 24 hours |
 
 ### Shared libraries (`src/lib/`)
 
@@ -213,11 +213,11 @@ const port = await getAvailablePort();
 
 ```json
 {
-  "checkpoint_learner": 52341,
+  "experience_reflector": 52341,
   "get_shit_done": 52342,
-  "jsonl_compat_checker": 52343,
-  "memory_synthesizer": 52344,
-  "pir_analyzer": 52345,
+  "release_log_sentinel": 52343,
+  "memory_distiller": 52344,
+  "oncall_analyzer": 52345,
   "updatedAt": "2026-03-21T10:00:00.000Z"
 }
 ```
@@ -245,22 +245,22 @@ Custom hook `components/hooks/use-agent-chat.ts` drives the SSE connection to `/
 ```
 agents/
 ├── src/                          # Agent scripts (run as launchd daemons)
-│   ├── checkpoint-learner.ts
+│   ├── experience-reflector.ts
 │   ├── get-shit-done.ts
-│   ├── jsonl-compat-checker.ts
-│   ├── memory-synthesizer.ts
-│   ├── pir-analyzer.ts
+│   ├── release-log-sentinel.ts
+│   ├── memory-distiller.ts
+│   ├── oncall-analyzer.ts
 │   └── lib/                      # Shared utilities
 ├── chatbot/                      # Next.js chatbot (orchestrator UI)
 │   ├── a2a/
 │   │   ├── lib/
 │   │   │   └── base-server.ts    # getAvailablePort(), ScriptAgentExecutor, createAgentServer()
 │   │   ├── servers/              # One A2A server per agent
-│   │   │   ├── checkpoint-learner.ts   → export startServer(port)
+│   │   │   ├── experience-reflector.ts   → export startServer(port)
 │   │   │   ├── get-shit-done.ts
-│   │   │   ├── jsonl-compat-checker.ts
-│   │   │   ├── memory-synthesizer.ts
-│   │   │   └── pir-analyzer.ts
+│   │   │   ├── release-log-sentinel.ts
+│   │   │   ├── memory-distiller.ts
+│   │   │   └── oncall-analyzer.ts
 │   │   ├── start-all.ts          # Allocate ports → start all servers → write .ports.json
 │   │   └── .ports.json           # Runtime port manifest (git-ignored)
 │   ├── app/
@@ -345,7 +345,7 @@ npm run chatbot:dev:all
 
 ## Environment variables
 
-### Checkpoint Learner
+### Experience Reflector
 | Variable | Example | Description |
 |---|---|---|
 | `CHECKPOINT_REPOS` | `/path/to/repo1:/path/to/repo2` | Colon-separated list of repo paths to scan |
@@ -360,19 +360,19 @@ npm run chatbot:dev:all
 | `JIRA_SPRINT_PREFIX` | `Sprint` | Sprint name prefix for discovery |
 | `GSD_CWD` | `/path/to/main/repo` | Working directory for Claude forge sessions |
 
-### Memory Synthesizer
+### Memory Distiller
 | Variable | Example | Description |
 |---|---|---|
 | `MEMORY_REPOS` | `/path/to/repo1:/path/to/repo2` | At least 2 repos with `MEMORY.md` files |
 
-### PIR Analyzer
+### Oncall Analyzer
 | Variable | Example | Description |
 |---|---|---|
 | `PIR_REPOS` | `/path/to/repo1:/path/to/repo2` | Repos to fetch before analysis |
 | `PIR_DOMAIN` | `company.com` | Cloudflare domain for traffic correlation |
 | `PIR_ZONE_ID` | `abc123` | Cloudflare zone ID |
 
-### JSONL Compat Checker
+### Release Log Sentinel
 Requires `gh` CLI authenticated (`gh auth login`). No env vars needed.
 
 ---

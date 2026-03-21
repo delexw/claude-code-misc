@@ -58,11 +58,11 @@ describe("getAvailablePort", () => {
 // ─── writePortsManifest / readPortsManifest ───────────────────────────────────
 
 const SAMPLE_PORTS = {
-  checkpoint_learner: 51001,
+  experience_reflector: 51001,
   get_shit_done: 51002,
-  jsonl_compat_checker: 51003,
-  memory_synthesizer: 51004,
-  pir_analyzer: 51005,
+  release_log_sentinel: 51003,
+  memory_distiller: 51004,
+  oncall_analyzer: 51005,
 };
 
 describe("readPortsManifest", () => {
@@ -74,8 +74,8 @@ describe("readPortsManifest", () => {
     writePortsManifest(SAMPLE_PORTS);
     const result = readPortsManifest();
     expect(result).not.toBeNull();
-    expect(result?.checkpoint_learner).toBe(51001);
-    expect(result?.pir_analyzer).toBe(51005);
+    expect(result?.experience_reflector).toBe(51001);
+    expect(result?.oncall_analyzer).toBe(51005);
   });
 
   it("includes updatedAt timestamp", () => {
@@ -91,11 +91,11 @@ describe("writePortsManifest", () => {
     writePortsManifest(SAMPLE_PORTS);
     const result = readPortsManifest()!;
     const keys = [
-      "checkpoint_learner",
+      "experience_reflector",
       "get_shit_done",
-      "jsonl_compat_checker",
-      "memory_synthesizer",
-      "pir_analyzer",
+      "release_log_sentinel",
+      "memory_distiller",
+      "oncall_analyzer",
     ] as const;
     for (const key of keys) {
       expect(result[key]).toBe(SAMPLE_PORTS[key]);
@@ -104,7 +104,7 @@ describe("writePortsManifest", () => {
 
   it("overwrites an existing manifest", () => {
     writePortsManifest(SAMPLE_PORTS);
-    writePortsManifest({ ...SAMPLE_PORTS, checkpoint_learner: 99999 });
-    expect(readPortsManifest()?.checkpoint_learner).toBe(99999);
+    writePortsManifest({ ...SAMPLE_PORTS, experience_reflector: 99999 });
+    expect(readPortsManifest()?.experience_reflector).toBe(99999);
   });
 });

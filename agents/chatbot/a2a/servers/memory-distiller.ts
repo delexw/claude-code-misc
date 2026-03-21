@@ -4,7 +4,7 @@ import { ScriptAgentExecutor, createAgentServer } from "../lib/base-server.js";
 import { AGENTS_ROOT } from "@/lib/paths";
 
 const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
-  name: "Memory Synthesizer",
+  name: "Memory Distiller",
   description:
     "Analyzes all project-level MEMORY.md files across configured repositories and " +
     "promotes patterns that appear in 2+ projects into the global ~/.claude/CLAUDE.md. " +
@@ -27,8 +27,8 @@ const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
 };
 
 const executor = new ScriptAgentExecutor({
-  scriptPath: join(AGENTS_ROOT, "src/memory-synthesizer.ts"),
-  agentName: "Memory Synthesizer",
+  scriptPath: join(AGENTS_ROOT, "src/memory-distiller.ts"),
+  agentName: "Memory Distiller",
   requiredEnvVars: ["MEMORY_REPOS"],
   whatItDoes:
     "synthesizes cross-project patterns into ~/.claude/CLAUDE.md and removes them from project memory files",

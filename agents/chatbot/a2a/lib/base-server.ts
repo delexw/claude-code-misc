@@ -45,11 +45,11 @@ export function getAvailablePort(): Promise<number> {
 }
 
 export interface PortsManifest {
-  checkpoint_learner: number;
+  experience_reflector: number;
   get_shit_done: number;
-  jsonl_compat_checker: number;
-  memory_synthesizer: number;
-  pir_analyzer: number;
+  release_log_sentinel: number;
+  memory_distiller: number;
+  oncall_analyzer: number;
   updatedAt: string;
 }
 

@@ -2,11 +2,11 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
-    "src/pir-analyzer.ts",
+    "src/oncall-analyzer.ts",
     "src/get-shit-done.ts",
-    "src/checkpoint-learner.ts",
-    "src/memory-synthesizer.ts",
-    "src/jsonl-compat-checker.ts",
+    "src/experience-reflector.ts",
+    "src/memory-distiller.ts",
+    "src/release-log-sentinel.ts",
   ],
   format: "esm",
   outDir: "dist",

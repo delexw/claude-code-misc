@@ -1,5 +1,5 @@
 /**
- * Checkpoint Learner - Extract domain knowledge from checkpoint sessions into project memory
+ * Experience Reflector - Extract domain knowledge from checkpoint sessions into project memory
  * Runs daily at 00:00 via launchd
  */
 
@@ -28,9 +28,9 @@ const CHECKPOINT_BRANCH = "entire/checkpoints/v1";
 const BASE_REPOS = parseRepos("CHECKPOINT_REPOS");
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const STATE_DIR = join(SCRIPT_DIR, "state/.checkpoint-learner");
-const LOG_DIR = join(SCRIPT_DIR, "logs/.checkpoint-learner");
-const LOG_FILE = join(LOG_DIR, `checkpoint-learner-${makeTimestamp()}.log`);
+const STATE_DIR = join(SCRIPT_DIR, "state/.experience-reflector");
+const LOG_DIR = join(SCRIPT_DIR, "logs/.experience-reflector");
+const LOG_FILE = join(LOG_DIR, `experience-reflector-${makeTimestamp()}.log`);
 const PROJECTS_DIR = join(HOME, ".claude/projects");
 const { log } = createLogger(LOG_DIR, LOG_FILE);
 
@@ -39,7 +39,7 @@ mkdirSync(STATE_DIR, { recursive: true });
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
-  log("=== Checkpoint Learner started ===");
+  log("=== Experience Reflector started ===");
 
   let totalNew = 0;
 
@@ -133,7 +133,7 @@ async function main() {
       discovery;
 
     const suffix = randomBytes(3).toString("hex");
-    const skillName = `checkpoint-learner-${repoName}-${suffix}`;
+    const skillName = `experience-reflector-${repoName}-${suffix}`;
     const skillDir = join(HOME, ".claude/skills", skillName);
     const skillRefDir = join(skillDir, "references");
     mkdirSync(skillRefDir, { recursive: true });
@@ -258,13 +258,13 @@ async function main() {
         : "  - (none)";
 
     const skillMd = `---
-name: checkpoint-learner-${repoName}
+name: experience-reflector-${repoName}
 description: Extract domain knowledge from checkpoint sessions for ${baseRepoName}
 allowed-tools: Read, Edit, Write, Bash(mkdir *)
 context: fork
 ---
 
-# Checkpoint Learner: ${baseRepoName}${repoName !== baseRepoName ? ` (from worktree: ${repoName})` : ""}
+# Experience Reflector: ${baseRepoName}${repoName !== baseRepoName ? ` (from worktree: ${repoName})` : ""}
 
 Extract valuable domain knowledge from Claude Code checkpoint sessions and write it to project memory.
 
@@ -365,7 +365,7 @@ and replace the inline content with index links. Only include sections that have
 
     const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
       ["--permission-mode", "acceptEdits", "-p", `/${skillName}`],
-      { cwd: SCRIPT_DIR, taskName: "checkpoint-learner", timeoutMs: 5 * 60 * 60 * 1000 },
+      { cwd: SCRIPT_DIR, taskName: "experience-reflector", timeoutMs: 5 * 60 * 60 * 1000 },
     ).result;
 
     log(`Claude CLI exited with code: ${exitCode}`);
@@ -386,8 +386,8 @@ and replace the inline content with index links. Only include sections that have
   }
   /* oxlint-enable no-await-in-loop */
 
-  log(`=== Checkpoint Learner finished (processed ${totalNew} new sessions) ===`);
-  cleanupOldLogs(LOG_DIR, ["checkpoint-learner-"], 30);
+  log(`=== Experience Reflector finished (processed ${totalNew} new sessions) ===`);
+  cleanupOldLogs(LOG_DIR, ["experience-reflector-"], 30);
 }
 
 main().catch((err: unknown) => {

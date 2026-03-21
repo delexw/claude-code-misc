@@ -9,11 +9,11 @@ import { readPortsManifest } from "@/a2a/lib/base-server";
 import { GET } from "../ports/route";
 
 const SAMPLE_MANIFEST = {
-  checkpoint_learner: 51001,
+  experience_reflector: 51001,
   get_shit_done: 51002,
-  jsonl_compat_checker: 51003,
-  memory_synthesizer: 51004,
-  pir_analyzer: 51005,
+  release_log_sentinel: 51003,
+  memory_distiller: 51004,
+  oncall_analyzer: 51005,
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
@@ -45,11 +45,11 @@ describe("GET /api/ports", () => {
     const body = await response.json();
 
     for (const key of [
-      "checkpoint_learner",
+      "experience_reflector",
       "get_shit_done",
-      "jsonl_compat_checker",
-      "memory_synthesizer",
-      "pir_analyzer",
+      "release_log_sentinel",
+      "memory_distiller",
+      "oncall_analyzer",
     ]) {
       expect(body[key]).toBeGreaterThan(1024);
     }

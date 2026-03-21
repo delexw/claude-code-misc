@@ -34,8 +34,8 @@ export const maxDuration = 300; // 5 minutes for long-running agents
 
 const AGENTS = [
   {
-    toolName: "run_checkpoint_learner",
-    manifestKey: "checkpoint_learner" as const,
+    toolName: "run_experience_reflector",
+    manifestKey: "experience_reflector" as const,
     description:
       "Extract domain knowledge from Claude Code checkpoint sessions into project MEMORY.md files. " +
       "Requires CHECKPOINT_REPOS env var.",
@@ -48,22 +48,22 @@ const AGENTS = [
       "parallel git worktrees, and creates PRs. Requires GSD_REPOS + JIRA_ASSIGNEE env vars.",
   },
   {
-    toolName: "run_jsonl_compat_checker",
-    manifestKey: "jsonl_compat_checker" as const,
+    toolName: "run_release_log_sentinel",
+    manifestKey: "release_log_sentinel" as const,
     description:
       "Monitor Claude Code releases for JSONL format changes that could break tail-claude-gui. " +
       "Creates GitHub issues for new breaking changes. Requires gh CLI authentication.",
   },
   {
-    toolName: "run_memory_synthesizer",
-    manifestKey: "memory_synthesizer" as const,
+    toolName: "run_memory_distiller",
+    manifestKey: "memory_distiller" as const,
     description:
-      "Synthesise cross-project memory patterns into the global ~/.claude/CLAUDE.md. " +
+      "Distil cross-project memory patterns into the global ~/.claude/CLAUDE.md. " +
       "Requires MEMORY_REPOS env var listing ≥2 project paths.",
   },
   {
-    toolName: "run_pir_analyzer",
-    manifestKey: "pir_analyzer" as const,
+    toolName: "run_oncall_analyzer",
+    manifestKey: "oncall_analyzer" as const,
     description:
       "Generate a Post Incident Record from PagerDuty incidents in the past 24 hours. " +
       "Requires PIR_REPOS + PIR_DOMAIN env vars.",
@@ -155,11 +155,11 @@ const mcpServer = createSdkMcpServer({
 const SYSTEM_PROMPT = `You are an AI orchestrator for 5 background automation agents running on this machine via A2A SSE protocol.
 
 **Available agents (tools):**
-1. \`run_checkpoint_learner\` — Extracts domain knowledge from Claude Code checkpoint sessions into project memory files.
+1. \`run_experience_reflector\` — Extracts domain knowledge from Claude Code checkpoint sessions into project memory files.
 2. \`run_get_shit_done\` — Automated JIRA ticket implementer: parallel worktree forging + PR creation.
-3. \`run_jsonl_compat_checker\` — Monitors Claude Code releases for JSONL format breaking changes.
-4. \`run_memory_synthesizer\` — Promotes cross-project memory patterns into ~/.claude/CLAUDE.md.
-5. \`run_pir_analyzer\` — Generates Post Incident Records from PagerDuty incidents.
+3. \`run_release_log_sentinel\` — Monitors Claude Code releases for JSONL format breaking changes.
+4. \`run_memory_distiller\` — Promotes cross-project memory patterns into ~/.claude/CLAUDE.md.
+5. \`run_oncall_analyzer\` — Generates Post Incident Records from PagerDuty incidents.
 
 When asked about an agent, explain what it does, what env vars it needs, and when it normally runs (launchd schedule).
 When asked to run an agent, call the appropriate tool.

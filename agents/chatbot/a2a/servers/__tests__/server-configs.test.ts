@@ -31,18 +31,18 @@ vi.mock("consola", () => ({
   consola: { start: vi.fn(), success: vi.fn(), error: vi.fn() },
 }));
 
-import * as checkpointLearner from "../checkpoint-learner";
+import * as experienceReflector from "../experience-reflector";
 import * as getShitDone from "../get-shit-done";
-import * as jsonlCompatChecker from "../jsonl-compat-checker";
-import * as memorySynthesizer from "../memory-synthesizer";
-import * as pirAnalyzer from "../pir-analyzer";
+import * as releaseLogSentinel from "../release-log-sentinel";
+import * as memoryDistiller from "../memory-distiller";
+import * as oncallAnalyzer from "../oncall-analyzer";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const AGENTS = [
   {
-    name: "checkpoint-learner",
-    mod: checkpointLearner,
+    name: "experience-reflector",
+    mod: experienceReflector,
     requiredVars: ["CHECKPOINT_REPOS"],
   },
   {
@@ -51,18 +51,18 @@ const AGENTS = [
     requiredVars: ["GSD_REPOS", "JIRA_ASSIGNEE"],
   },
   {
-    name: "jsonl-compat-checker",
-    mod: jsonlCompatChecker,
+    name: "release-log-sentinel",
+    mod: releaseLogSentinel,
     requiredVars: [] as string[],
   },
   {
-    name: "memory-synthesizer",
-    mod: memorySynthesizer,
+    name: "memory-distiller",
+    mod: memoryDistiller,
     requiredVars: ["MEMORY_REPOS"],
   },
   {
-    name: "pir-analyzer",
-    mod: pirAnalyzer,
+    name: "oncall-analyzer",
+    mod: oncallAnalyzer,
     requiredVars: ["PIR_REPOS", "PIR_DOMAIN"],
   },
 ] as const;

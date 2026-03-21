@@ -4,7 +4,7 @@ import { ScriptAgentExecutor, createAgentServer } from "../lib/base-server.js";
 import { AGENTS_ROOT } from "@/lib/paths";
 
 const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
-  name: "Checkpoint Learner",
+  name: "Experience Reflector",
   description:
     "Extracts domain knowledge and user preferences from Claude Code checkpoint sessions " +
     "into project-level MEMORY.md files. Runs across all configured repositories and " +
@@ -27,8 +27,8 @@ const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
 };
 
 const executor = new ScriptAgentExecutor({
-  scriptPath: join(AGENTS_ROOT, "src/checkpoint-learner.ts"),
-  agentName: "Checkpoint Learner",
+  scriptPath: join(AGENTS_ROOT, "src/experience-reflector.ts"),
+  agentName: "Experience Reflector",
   requiredEnvVars: ["CHECKPOINT_REPOS"],
   whatItDoes:
     "scans git branches for unprocessed checkpoint sessions and writes domain knowledge to project memory files",

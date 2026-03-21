@@ -1,5 +1,5 @@
 /**
- * Memory Synthesizer - Extract common patterns from project-level MEMORY.md into global CLAUDE.md
+ * Memory Distiller - Extract common patterns from project-level MEMORY.md into global CLAUDE.md
  * Runs weekly (Sunday 01:00) via launchd
  */
 
@@ -27,8 +27,8 @@ const CLAUDE_MD = join(HOME, ".claude/CLAUDE.md");
 const BASE_REPOS = parseRepos("MEMORY_REPOS");
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const LOG_DIR = join(SCRIPT_DIR, "logs/.memory-synthesizer");
-const LOG_FILE = join(LOG_DIR, `memory-synthesizer-${makeTimestamp()}.log`);
+const LOG_DIR = join(SCRIPT_DIR, "logs/.memory-distiller");
+const LOG_FILE = join(LOG_DIR, `memory-distiller-${makeTimestamp()}.log`);
 const { log } = createLogger(LOG_DIR, LOG_FILE);
 
 // ─── Discover project memory files ──────────────────────────────────────────
@@ -78,7 +78,7 @@ function discoverMemoryFiles(): MemoryFileInfo[] {
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
-  log("=== Memory Synthesizer started ===");
+  log("=== Memory Distiller started ===");
 
   const memoryFiles = discoverMemoryFiles();
 
@@ -95,7 +95,7 @@ async function main() {
   }
 
   const suffix = randomBytes(3).toString("hex");
-  const skillName = `memory-synthesizer-${suffix}`;
+  const skillName = `memory-distiller-${suffix}`;
   const skillDir = join(HOME, ".claude/skills", skillName);
   const skillRefDir = join(skillDir, "references");
   mkdirSync(skillRefDir, { recursive: true });
@@ -133,13 +133,13 @@ async function main() {
     .join("\n");
 
   const skillMd = `---
-name: memory-synthesizer
+name: memory-distiller
 description: Synthesize project-level memories into global CLAUDE.md
 allowed-tools: Read, Edit, Write, Bash(mkdir *, rm *)
 context: fork
 ---
 
-# Memory Synthesizer
+# Memory Distiller
 
 Analyze all project-level memory files (MEMORY.md indexes + topic files). Extract patterns
 that appear across 2+ projects into the global CLAUDE.md, then remove those promoted entries
@@ -185,7 +185,7 @@ When removing a promoted entry:
 
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
     ["--permission-mode", "acceptEdits", "-p", `/${skillName}`],
-    { cwd: SCRIPT_DIR, taskName: "memory-synthesizer", timeoutMs: 5 * 60 * 60 * 1000 },
+    { cwd: SCRIPT_DIR, taskName: "memory-distiller", timeoutMs: 5 * 60 * 60 * 1000 },
   ).result;
 
   log(`Claude CLI exited with code: ${exitCode}`);
@@ -200,8 +200,8 @@ When removing a promoted entry:
     );
   }
 
-  log("=== Memory Synthesizer finished ===");
-  cleanupOldLogs(LOG_DIR, ["memory-synthesizer-"], 30);
+  log("=== Memory Distiller finished ===");
+  cleanupOldLogs(LOG_DIR, ["memory-distiller-"], 30);
 }
 
 main().catch((err: unknown) => {

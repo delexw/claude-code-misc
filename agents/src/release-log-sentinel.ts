@@ -1,5 +1,5 @@
 /**
- * JSONL Compat Checker - Monitors Claude Code releases for JSONL format changes
+ * Release Log Sentinel - Monitors Claude Code releases for JSONL format changes
  * that could break tail-claude-gui (https://github.com/delexw/tail-claude-gui)
  *
  * Runs weekly (Sunday 10:00 AM) via launchd.
@@ -21,8 +21,8 @@ import { spawnClaude } from "./lib/claude.js";
 const REPO = "delexw/tail-claude-gui";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const LOG_DIR = join(SCRIPT_DIR, "logs/.jsonl-compat-checker");
-const LOG_FILE = join(LOG_DIR, `jsonl-compat-checker-${makeTimestamp()}.log`);
+const LOG_DIR = join(SCRIPT_DIR, "logs/.release-log-sentinel");
+const LOG_FILE = join(LOG_DIR, `release-log-sentinel-${makeTimestamp()}.log`);
 const { log } = createLogger(LOG_DIR, LOG_FILE);
 
 // ─── Prompt ─────────────────────────────────────────────────────────────────
@@ -131,14 +131,14 @@ Summarize: releases checked, issues found, duplicates skipped, new issues create
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
-  log("=== JSONL Compat Checker started ===");
+  log("=== Release Log Sentinel started ===");
   log(`Target repo: ${REPO}`);
 
   // Step 1: Spawn Claude with /release-notes to get release notes
   log("Fetching release notes via Claude /release-notes...");
   const { code: rnExitCode, stdout: releaseNotes } = await spawnClaude(["-p", "/release-notes"], {
     cwd: SCRIPT_DIR,
-    taskName: "jsonl-compat-checker-fetch",
+    taskName: "release-log-sentinel-fetch",
     timeoutMs: 2 * 60 * 1000,
   }).result;
 
@@ -159,7 +159,7 @@ async function main() {
 
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(
     ["--permission-mode", "acceptEdits", "-p", fullPrompt],
-    { cwd: SCRIPT_DIR, taskName: "jsonl-compat-checker", timeoutMs: 10 * 60 * 1000 },
+    { cwd: SCRIPT_DIR, taskName: "release-log-sentinel", timeoutMs: 10 * 60 * 1000 },
   ).result;
 
   // Cleanup temp file
@@ -170,9 +170,9 @@ async function main() {
   log(`Claude CLI exited with code: ${exitCode}`);
   log("--- Response ---");
   log(claudeOutput);
-  log("=== JSONL Compat Checker finished ===");
+  log("=== Release Log Sentinel finished ===");
 
-  cleanupOldLogs(LOG_DIR, ["jsonl-compat-checker-"], 30);
+  cleanupOldLogs(LOG_DIR, ["release-log-sentinel-"], 30);
 }
 
 main().catch((err: unknown) => {

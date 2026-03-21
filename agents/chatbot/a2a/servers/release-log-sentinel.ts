@@ -4,7 +4,7 @@ import { ScriptAgentExecutor, createAgentServer } from "../lib/base-server.js";
 import { AGENTS_ROOT } from "@/lib/paths";
 
 const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
-  name: "JSONL Compat Checker",
+  name: "Release Log Sentinel",
   description:
     "Monitors Claude Code releases for JSONL transcription format changes that could " +
     "break tail-claude-gui. Fetches release notes via Claude CLI, analyses for breaking " +
@@ -27,8 +27,8 @@ const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
 };
 
 const executor = new ScriptAgentExecutor({
-  scriptPath: join(AGENTS_ROOT, "src/jsonl-compat-checker.ts"),
-  agentName: "JSONL Compat Checker",
+  scriptPath: join(AGENTS_ROOT, "src/release-log-sentinel.ts"),
+  agentName: "Release Log Sentinel",
   requiredEnvVars: [],
   whatItDoes:
     "fetches Claude Code release notes and creates GitHub issues for JSONL format breaking changes",
