@@ -122,6 +122,28 @@ function ThinkingDots() {
   );
 }
 
+// ─── Thinking block (collapsible) ─────────────────────────────────────────────
+
+function ThinkingBlock({ thinking }: { thinking: string }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="mx-4 mt-2 mb-1 rounded-lg border border-border bg-muted/30 text-xs">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-1.5 px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <span className="text-[10px]">{open ? "▾" : "▸"}</span>
+        <span className="font-medium">Thinking</span>
+      </button>
+      {open && (
+        <pre className="px-3 pb-2.5 whitespace-pre-wrap font-mono text-[11px] text-muted-foreground leading-relaxed border-t border-border">
+          {thinking}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 // ─── Copy action (MessageAction → Radix tooltip + button) ─────────────────────
 
 function CopyAction({ text }: { text: string }) {
@@ -225,6 +247,9 @@ export function AgentChat() {
                       </div>
                     ) : (
                       <>
+                        {/* Collapsible thinking block */}
+                        {msg.thinking && <ThinkingBlock thinking={msg.thinking} />}
+
                         {/* MessageResponse — Streamdown streaming markdown */}
                         <MessageResponse>{msg.content}</MessageResponse>
 

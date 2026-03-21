@@ -11,6 +11,9 @@ export type ChatSseSession = { type: "session"; sessionId: string };
 /** Incremental text delta from a content_block_delta / text_delta stream event */
 export type ChatSseText = { type: "text"; content: string };
 
+/** Thinking delta from a content_block_delta / thinking_delta stream event */
+export type ChatSseThinking = { type: "thinking"; content: string };
+
 /** Full result from ResultMessage — fallback when no text_delta was emitted */
 export type ChatSseResult = { type: "result"; content: string };
 
@@ -23,6 +26,7 @@ export type ChatSseDone = { type: "done" };
 export type ChatSseEvent =
   | ChatSseSession
   | ChatSseText
+  | ChatSseThinking
   | ChatSseResult
   | ChatSseError
   | ChatSseDone;
