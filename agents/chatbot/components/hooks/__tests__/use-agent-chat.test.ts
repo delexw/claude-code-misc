@@ -40,7 +40,9 @@ describe("useAgentChat", () => {
     );
 
     const { result } = renderHook(() => useAgentChat());
-    await act(async () => { await result.current.sendMessage("hi there"); });
+    await act(async () => {
+      await result.current.sendMessage("hi there");
+    });
 
     expect(result.current.messages[0].role).toBe("user");
     expect(result.current.messages[0].content).toBe("hi there");
@@ -52,7 +54,9 @@ describe("useAgentChat", () => {
     );
 
     const { result } = renderHook(() => useAgentChat());
-    act(() => { void result.current.sendMessage("ping"); });
+    act(() => {
+      void result.current.sendMessage("ping");
+    });
 
     await waitFor(() => expect(result.current.messages.length).toBe(2));
     expect(result.current.messages[1].role).toBe("assistant");
@@ -60,14 +64,13 @@ describe("useAgentChat", () => {
 
   it("populates assistant message with result content", async () => {
     vi.mocked(fetch).mockResolvedValue(
-      makeSseResponse([
-        { type: "result", content: "Here is the answer." },
-        { type: "done" },
-      ]),
+      makeSseResponse([{ type: "result", content: "Here is the answer." }, { type: "done" }]),
     );
 
     const { result } = renderHook(() => useAgentChat());
-    await act(async () => { await result.current.sendMessage("question"); });
+    await act(async () => {
+      await result.current.sendMessage("question");
+    });
 
     await waitFor(() => !result.current.isLoading);
     const assistant = result.current.messages.find((m) => m.role === "assistant");
@@ -77,14 +80,13 @@ describe("useAgentChat", () => {
 
   it("handles error event from SSE", async () => {
     vi.mocked(fetch).mockResolvedValue(
-      makeSseResponse([
-        { type: "error", content: "Something went wrong" },
-        { type: "done" },
-      ]),
+      makeSseResponse([{ type: "error", content: "Something went wrong" }, { type: "done" }]),
     );
 
     const { result } = renderHook(() => useAgentChat());
-    await act(async () => { await result.current.sendMessage("test"); });
+    await act(async () => {
+      await result.current.sendMessage("test");
+    });
 
     await waitFor(() => !result.current.isLoading);
     const assistant = result.current.messages.find((m) => m.role === "assistant");
@@ -97,8 +99,12 @@ describe("useAgentChat", () => {
     );
 
     const { result } = renderHook(() => useAgentChat());
-    await act(async () => { await result.current.sendMessage("hello"); });
-    act(() => { result.current.clearMessages(); });
+    await act(async () => {
+      await result.current.sendMessage("hello");
+    });
+    act(() => {
+      result.current.clearMessages();
+    });
 
     expect(result.current.messages).toEqual([]);
     expect(result.current.isLoading).toBe(false);
@@ -106,15 +112,21 @@ describe("useAgentChat", () => {
 
   it("does not send while already loading", async () => {
     let resolveFirst!: (v: Response) => void;
-    const pending = new Promise<Response>((r) => { resolveFirst = r; });
+    const pending = new Promise<Response>((r) => {
+      resolveFirst = r;
+    });
     vi.mocked(fetch).mockReturnValueOnce(pending);
 
     const { result } = renderHook(() => useAgentChat());
 
-    act(() => { void result.current.sendMessage("first"); });
+    act(() => {
+      void result.current.sendMessage("first");
+    });
     await waitFor(() => result.current.isLoading);
 
-    act(() => { void result.current.sendMessage("second"); });
+    act(() => {
+      void result.current.sendMessage("second");
+    });
 
     resolveFirst(makeSseResponse([{ type: "result", content: "ok" }, { type: "done" }]));
     await waitFor(() => !result.current.isLoading);
@@ -125,7 +137,9 @@ describe("useAgentChat", () => {
 
   it("ignores empty or whitespace-only messages", async () => {
     const { result } = renderHook(() => useAgentChat());
-    await act(async () => { await result.current.sendMessage("   "); });
+    await act(async () => {
+      await result.current.sendMessage("   ");
+    });
     expect(fetch).not.toHaveBeenCalled();
     expect(result.current.messages).toEqual([]);
   });

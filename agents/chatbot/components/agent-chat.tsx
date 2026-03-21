@@ -44,11 +44,21 @@ interface AgentMeta {
 }
 
 const AGENT_META: AgentMeta[] = [
-  { name: "Checkpoint Learner", manifestKey: "checkpoint_learner", emoji: "🧠", schedule: "daily 00:00" },
-  { name: "Get Shit Done",      manifestKey: "get_shit_done",       emoji: "⚡", schedule: "every 5 min" },
-  { name: "JSONL Compat",       manifestKey: "jsonl_compat_checker",emoji: "🔍", schedule: "Sun 10:00" },
-  { name: "Memory Synthesizer", manifestKey: "memory_synthesizer",  emoji: "🔗", schedule: "Sun 01:00" },
-  { name: "PIR Analyzer",       manifestKey: "pir_analyzer",        emoji: "📋", schedule: "daily 09:00" },
+  {
+    name: "Checkpoint Learner",
+    manifestKey: "checkpoint_learner",
+    emoji: "🧠",
+    schedule: "daily 00:00",
+  },
+  { name: "Get Shit Done", manifestKey: "get_shit_done", emoji: "⚡", schedule: "every 5 min" },
+  { name: "JSONL Compat", manifestKey: "jsonl_compat_checker", emoji: "🔍", schedule: "Sun 10:00" },
+  {
+    name: "Memory Synthesizer",
+    manifestKey: "memory_synthesizer",
+    emoji: "🔗",
+    schedule: "Sun 01:00",
+  },
+  { name: "PIR Analyzer", manifestKey: "pir_analyzer", emoji: "📋", schedule: "daily 09:00" },
 ];
 
 function AgentSidebar() {
@@ -61,7 +71,7 @@ function AgentSidebar() {
       try {
         const res = await fetch("/api/ports");
         if (!cancelled && res.ok) {
-          setPorts(await res.json() as Record<string, number>);
+          setPorts((await res.json()) as Record<string, number>);
           setOnline(true);
         } else if (!cancelled) {
           setOnline(false);
@@ -72,7 +82,10 @@ function AgentSidebar() {
     };
     void poll();
     const id = setInterval(() => void poll(), 10_000);
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
 
   return (
@@ -87,8 +100,12 @@ function AgentSidebar() {
             <span className="text-sm font-medium text-foreground truncate">{agent.name}</span>
           </div>
           <div className="flex items-center gap-1.5 mt-1">
-            <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0",
-              online ? "bg-green-500 animate-pulse" : "bg-muted-foreground/40")} />
+            <span
+              className={cn(
+                "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                online ? "bg-green-500 animate-pulse" : "bg-muted-foreground/40",
+              )}
+            />
             <span className="text-xs font-mono text-muted-foreground">
               {ports?.[agent.manifestKey] != null ? `:${ports[agent.manifestKey]}` : "—"}
             </span>
@@ -114,8 +131,11 @@ function ThinkingDots() {
   return (
     <span className="flex gap-1 items-center py-1">
       {[0, 1, 2].map((i) => (
-        <span key={i} className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-pulse"
-          style={{ animationDelay: `${i * 0.15}s` }} />
+        <span
+          key={i}
+          className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-pulse"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
       ))}
     </span>
   );
@@ -150,8 +170,11 @@ function SuggestionChips({ onSelect }: { onSelect: (text: string) => void }) {
   return (
     <div className="flex flex-wrap gap-2 justify-center max-w-md mt-4">
       {SUGGESTIONS.map((s) => (
-        <button key={s} onClick={() => onSelect(s)}
-          className="px-3 py-1.5 rounded-xl text-xs border border-border bg-background text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
+        <button
+          key={s}
+          onClick={() => onSelect(s)}
+          className="px-3 py-1.5 rounded-xl text-xs border border-border bg-background text-muted-foreground hover:text-foreground hover:border-ring transition-colors"
+        >
           {s}
         </button>
       ))}
@@ -166,7 +189,9 @@ export function AgentChat() {
 
   // PromptInput.onSubmit fires with { text, files }; we only need text
   const handlePromptSubmit = React.useCallback(
-    ({ text }: { text: string }) => { void sendMessage(text); },
+    ({ text }: { text: string }) => {
+      void sendMessage(text);
+    },
     [sendMessage],
   );
 
@@ -181,13 +206,13 @@ export function AgentChat() {
         <header className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
           <div>
             <h1 className="text-sm font-semibold text-foreground">Agent Orchestrator</h1>
-            <p className="text-xs text-muted-foreground">
-              Claude Agent SDK · A2A SSE · 5 agents
-            </p>
+            <p className="text-xs text-muted-foreground">Claude Agent SDK · A2A SSE · 5 agents</p>
           </div>
           {messages.length > 0 && (
-            <button onClick={clearMessages}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              onClick={clearMessages}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
               <Trash2 className="w-3.5 h-3.5" />
               Clear
             </button>
@@ -213,7 +238,9 @@ export function AgentChat() {
                 <Message key={msg.id} from={msg.role}>
                   <MessageContent>
                     {msg.isLoading ? (
-                      <div className="px-4 py-2.5 text-sm"><ThinkingDots /></div>
+                      <div className="px-4 py-2.5 text-sm">
+                        <ThinkingDots />
+                      </div>
                     ) : (
                       <>
                         {/* MessageResponse — Streamdown streaming markdown */}

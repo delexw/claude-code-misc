@@ -1,20 +1,16 @@
 import { existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// vi.hoisted runs before ES imports — use require() for node builtins
-const { TMP_PORTS } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const os = require("os") as typeof import("os");
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const path = require("path") as typeof import("path");
-  return { TMP_PORTS: path.join(os.tmpdir(), `.ports-test-${process.pid}.json`) };
-});
+// vi.hoisted initialises the value before vi.mock factories run.
+// Only process.pid (global) is used — no ES imports needed inside.
+const { TMP_PORTS } = vi.hoisted(() => ({
+  TMP_PORTS: `/tmp/.ports-test-${process.pid}.json`,
+}));
 
 vi.mock("@/lib/paths", () => ({
-  CHATBOT_ROOT: tmpdir(),
-  AGENTS_ROOT: tmpdir(),
+  CHATBOT_ROOT: "/tmp",
+  AGENTS_ROOT: "/tmp",
   TSX_BIN: "/usr/bin/tsx",
   PORTS_FILE: TMP_PORTS,
 }));
@@ -38,11 +34,7 @@ vi.mock("consola", () => ({
   consola: { start: vi.fn(), success: vi.fn(), error: vi.fn() },
 }));
 
-import {
-  getAvailablePort,
-  readPortsManifest,
-  writePortsManifest,
-} from "../base-server";
+import { getAvailablePort, readPortsManifest, writePortsManifest } from "../base-server";
 
 afterEach(() => {
   if (existsSync(TMP_PORTS)) rmSync(TMP_PORTS);
@@ -58,11 +50,7 @@ describe("getAvailablePort", () => {
   });
 
   it("returns unique ports on concurrent calls", async () => {
-    const ports = await Promise.all([
-      getAvailablePort(),
-      getAvailablePort(),
-      getAvailablePort(),
-    ]);
+    const ports = await Promise.all([getAvailablePort(), getAvailablePort(), getAvailablePort()]);
     expect(new Set(ports).size).toBe(3);
   });
 });

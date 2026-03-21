@@ -10,7 +10,10 @@ import { describe, expect, it, vi } from "vitest";
 import { AGENTS_ROOT } from "@/lib/paths";
 
 vi.mock("express", () => {
-  const app = { use: vi.fn(), listen: vi.fn((_p: unknown, _h: unknown, cb?: () => void) => cb?.()) };
+  const app = {
+    use: vi.fn(),
+    listen: vi.fn((_p: unknown, _h: unknown, cb?: () => void) => cb?.()),
+  };
   return { default: vi.fn(() => app) };
 });
 vi.mock("@a2a-js/sdk", () => ({ AGENT_CARD_PATH: ".well-known/agent-card.json" }));
