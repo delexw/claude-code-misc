@@ -69,7 +69,15 @@ export function useAgentChat() {
               } else if (event.type === "tool_call") {
                 appendToProcess(assistantId, `\n\n**Tool: ${event.name}**\n\n`);
               } else if (event.type === "tool_input") {
-                appendToProcess(assistantId, `\`\`\`json\n${event.content}\n\`\`\`\n\n`);
+                try {
+                  const parsed = JSON.parse(event.content) as Record<string, unknown>;
+                  const [key, val] = Object.entries(parsed)[0] ?? [];
+                  if (key !== undefined) {
+                    appendToProcess(assistantId, `${key}: \`${String(val)}\`\n\n`);
+                  }
+                } catch {
+                  // ignore unparseable input
+                }
               } else if (event.type === "text" && event.content) {
                 patch(assistantId, { isProcessStreaming: false });
                 animation.enqueue(assistantId, event.content);
