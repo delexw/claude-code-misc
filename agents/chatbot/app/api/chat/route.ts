@@ -17,6 +17,7 @@ import { ClientFactory } from "@a2a-js/sdk/client";
 import type { TextPart } from "@a2a-js/sdk";
 import { readPortsManifest } from "@/a2a/lib/base-server";
 import { randomUUID } from "node:crypto";
+import { AGENTS_ROOT } from "@/lib/paths";
 import { z } from "zod";
 
 export const maxDuration = 300; // 5 minutes for long-running agents
@@ -174,9 +175,11 @@ export async function POST(request: Request) {
         for await (const event of query({
           prompt: message,
           options: {
+            cwd: AGENTS_ROOT,
             systemPrompt: SYSTEM_PROMPT,
             mcpServers: { agents: mcpServer },
             maxTurns: 15,
+            continue: true,
           },
         })) {
           if ("result" in event) {

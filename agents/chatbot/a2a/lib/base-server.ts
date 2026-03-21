@@ -12,8 +12,6 @@ import { createServer } from "node:net";
 import type { AddressInfo } from "node:net";
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { consola } from "consola";
 import express from "express";
@@ -27,18 +25,7 @@ import {
   restHandler,
   UserBuilder,
 } from "@a2a-js/sdk/server/express";
-
-// ─── Directory constants ──────────────────────────────────────────────────────
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-/** agents/chatbot/ */
-export const CHATBOT_ROOT = join(__dirname, "../..");
-/** agents/ (parent of chatbot) */
-export const AGENTS_ROOT = join(CHATBOT_ROOT, "..");
-/** tsx binary in chatbot's node_modules */
-export const TSX_BIN = join(CHATBOT_ROOT, "node_modules/.bin/tsx");
+import { AGENTS_ROOT, TSX_BIN, PORTS_FILE } from "@/lib/paths";
 
 // ─── Port utilities ───────────────────────────────────────────────────────────
 
@@ -56,9 +43,6 @@ export function getAvailablePort(): Promise<number> {
     server.on("error", reject);
   });
 }
-
-/** Canonical path to the ports manifest written by start-all.ts */
-export const PORTS_FILE = join(CHATBOT_ROOT, "a2a/.ports.json");
 
 export interface PortsManifest {
   checkpoint_learner: number;

@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import type { AgentCard } from "@a2a-js/sdk";
-import { AGENTS_ROOT, ScriptAgentExecutor, createAgentServer } from "../lib/base-server.js";
+import { ScriptAgentExecutor, createAgentServer } from "../lib/base-server.js";
+import { AGENTS_ROOT } from "@/lib/paths";
 
 const agentCard: Omit<AgentCard, "url" | "additionalInterfaces"> = {
   name: "PIR Analyzer",

@@ -6,7 +6,8 @@
  */
 
 import { consola } from "consola";
-import { getAvailablePort, writePortsManifest, PORTS_FILE } from "./lib/base-server.js";
+import { getAvailablePort, writePortsManifest } from "./lib/base-server.js";
+import { PORTS_FILE } from "@/lib/paths";
 import { startServer as startCheckpointLearner } from "./servers/checkpoint-learner.js";
 import { startServer as startGetShitDone } from "./servers/get-shit-done.js";
 import { startServer as startJsonlCompatChecker } from "./servers/jsonl-compat-checker.js";
