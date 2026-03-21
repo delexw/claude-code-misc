@@ -8,20 +8,46 @@ allowed-tools: Read, Bash, Glob
 
 Commit staged git changes with a well-formed message and push to the remote branch. When nothing is staged, intelligently stage relevant unstaged changes before committing.
 
+> **CRITICAL**: Secret scanning (step 1) is a hard gate. No commit may proceed unless it passes. This check overrides everything else in this workflow.
+
 ## Workflow
 
-### 1. Check what's staged
+### 1. SCAN FOR PLAIN TEXT SECRETS — MANDATORY, NON-SKIPPABLE
+
+**This is the most important step. Run it before any staging, analysis, or commit work.**
+
+Scan all changes (staged and unstaged) for accidentally committed secrets:
+
+```bash
+git diff --cached
+git diff
+```
+
+Look for patterns that indicate plain text secrets:
+- API keys, tokens, or passwords assigned to variables (e.g. `API_KEY = "sk-..."`, `password = "..."`, `token = "abc123"`)
+- Private keys or certificates (e.g. `-----BEGIN RSA PRIVATE KEY-----`)
+- AWS/GCP/Azure credential patterns
+- Hardcoded connection strings with credentials (e.g. `postgres://user:password@host`)
+- `.env` files containing real secrets
+
+**If any secrets are found**: STOP IMMEDIATELY. Do not stage, do not commit, do not proceed. Tell the user exactly which file and line contains the suspected secret. Suggest they remove the secret, add the file to `.gitignore`, and use environment variables instead. Do not continue this workflow until the user confirms the secret has been removed.
+
+**If no secrets are found**: proceed to step 2.
+
+---
+
+### 2. Check what's staged
 
 ```bash
 git branch --show-current
 git status --porcelain
 ```
 
-- If staged changes exist (`^[MARC]`) → skip to step 3
-- If nothing is staged but unstaged changes exist (`^.[MARC?]`) → continue to step 2
+- If staged changes exist (`^[MARC]`) → skip to step 4
+- If nothing is staged but unstaged changes exist (`^.[MARC?]`) → continue to step 3
 - If working tree is clean → tell the user "Nothing to commit" and stop
 
-### 2. Smart staging (only when nothing is staged)
+### 3. Smart staging (only when nothing is staged)
 
 Infer the context of the current work from:
 - Branch name (e.g. `feat/jwt-auth`, `fix/PROJ-123-login-bug`)
@@ -48,14 +74,14 @@ git add <file1> <file2> ...
 Tell the user which files were staged and why any were skipped, e.g.:
 > Staged 4 files related to JWT auth. Skipped `scratch.rb` (unrelated debug output).
 
-### 3. Analyze staged changes
+### 4. Analyze staged changes
 
 ```bash
 git diff --cached --name-status
 git diff --cached --stat
 ```
 
-### 4. Create the commit message
+### 5. Create the commit message
 
 Check for a project-specific template at `.github/commit-message-template`. If none exists, use conventional commits:
 
@@ -74,7 +100,7 @@ Check for a project-specific template at `.github/commit-message-template`. If n
 
 If staged changes fall into multiple clearly distinct logical groups, create separate commits for each — but err toward a single commit unless the separation is obvious.
 
-### 5. Commit and push
+### 6. Commit and push
 
 ```bash
 git commit -m "<message>"
@@ -87,14 +113,14 @@ If the branch has no upstream yet, use `--set-upstream`:
 git push --set-upstream origin <current_branch>
 ```
 
-### 6. Handle errors
+### 7. Handle errors
 
 - **Push rejected**: `git pull --rebase` then retry push
 - **Merge conflicts**: stop and tell the user to resolve conflicts first
 - **Pre-commit hook failure**: stop and report the hook output — never use `--no-verify`
 - **Auth failure**: report the error
 
-### 7. Report result
+### 8. Report result
 
 Tell the user what happened in plain language:
 
