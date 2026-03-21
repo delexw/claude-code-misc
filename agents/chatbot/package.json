@@ -7,7 +7,9 @@
     "dev": "next dev -p 7473",
     "build": "next build",
     "start": "next start -p 7473",
-    "servers": "tsx a2a/start-all.ts"
+    "servers": "tsx a2a/start-all.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@a2a-js/sdk": "latest",
@@ -36,8 +38,12 @@
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@testing-library/react": "^16.3.0",
+    "@vitejs/plugin-react": "^4.5.2",
+    "jsdom": "^26.1.0",
     "tailwindcss": "^4.2.2",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }
