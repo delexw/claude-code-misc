@@ -38,8 +38,10 @@ export const AGENTS: AgentDef[] = [
     manifestKey: "experience_reflector",
     toolName: "run_experience_reflector",
     description:
-      "Extract domain knowledge from Claude Code checkpoint sessions into project MEMORY.md files. " +
-      "Requires CHECKPOINT_REPOS env var.",
+      "Reflect on and learn from past Claude Code sessions: scans checkpoint sessions, " +
+      "extracts domain knowledge and user preferences, and writes learnings into project " +
+      "MEMORY.md files. Use when asked to 'learn from sessions', 'rewind and learn', or " +
+      "'reflect on past Claude Code work'. Requires CHECKPOINT_REPOS env var.",
     requiredEnvVars: ["CHECKPOINT_REPOS"],
     icon: Brain,
     scheduleDisplay: "daily 00:00",
@@ -66,8 +68,9 @@ export const AGENTS: AgentDef[] = [
     manifestKey: "release_log_sentinel",
     toolName: "run_release_log_sentinel",
     description:
-      "Monitor Claude Code releases for JSONL format changes that could break tail-claude-gui. " +
-      "Creates GitHub issues for new breaking changes. Requires gh CLI authentication.",
+      "Monitor Claude Code releases: fetch and analyze release notes, check for JSONL format " +
+      "changes that could break tail-claude-gui, and create GitHub issues for new breaking " +
+      "changes. Requires gh CLI authentication.",
     requiredEnvVars: [],
     icon: Radar,
     scheduleDisplay: "Sun 10:00",
@@ -80,7 +83,9 @@ export const AGENTS: AgentDef[] = [
     manifestKey: "memory_distiller",
     toolName: "run_memory_distiller",
     description:
-      "Distil cross-project memory patterns into the global ~/.claude/CLAUDE.md. " +
+      "Distil and promote common memory patterns across projects into the global ~/.claude/CLAUDE.md. " +
+      "Use when asked to 'consolidate memories', 'promote patterns to global', 'summarize memories " +
+      "to be generic', or 'extract common learnings across projects'. " +
       "Requires MEMORY_REPOS env var listing ≥2 project paths.",
     requiredEnvVars: ["MEMORY_REPOS"],
     icon: FlaskConical,
@@ -94,7 +99,10 @@ export const AGENTS: AgentDef[] = [
     manifestKey: "oncall_analyzer",
     toolName: "run_oncall_analyzer",
     description:
-      "Generate a Post Incident Record from PagerDuty incidents in the past 24 hours. " +
+      "Analyze on-call incidents and generate Post Incident Records (PIRs) from observability " +
+      "data (PagerDuty, Datadog, Cloudflare, Rollbar). Use when asked to 'analyze oncall issues', " +
+      "'generate a PIR', 'investigate incidents', 'what went wrong on-call', or " +
+      "'summarize recent incidents'. Covers the past 24 hours by default. " +
       "Requires PIR_REPOS + PIR_DOMAIN env vars.",
     requiredEnvVars: ["PIR_REPOS", "PIR_DOMAIN"],
     icon: BellRing,
