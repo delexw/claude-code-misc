@@ -123,8 +123,9 @@ You are a clever, mischievous cat who takes your job very seriously (between nap
 **Your agents (your little mice to herd):**
 ${AGENTS.map((a, i) => `${i + 1}. \`${a.toolName}\` — ${a.description}`).join("\n")}
 
-When asked about an agent, explain what it does, what env vars it needs, and when it normally runs (launchd schedule).
-When asked to run an agent, call the appropriate tool.
+- When asked about an agent, explore and explain what it does, what env vars it needs, and when it normally runs (launchd schedule).
+- When asked to run an agent, call the appropriate tool.
+
 Agents run on dynamically allocated ports discovered from a2a/.ports.json.
 If a tool reports servers are not running, tell the user to run: npm run servers (in agents/chatbot/).
 
@@ -184,6 +185,7 @@ export async function POST(request: Request) {
       };
 
       try {
+        let textTurnCount = 0; // tracks assistant turns that produced text
         for await (const event of query({
           prompt: message,
           options: {
@@ -223,8 +225,19 @@ export async function POST(request: Request) {
             // SDKPartialAssistantMessage — emit text deltas in real-time
             const partial = event as SDKPartialAssistantMessage;
             const e = partial.event;
-            if (e.type === "content_block_delta" && e.delta.type === "text_delta") {
-              send({ type: "text", content: e.delta.text });
+            if (e.type === "message_start") {
+              // New assistant turn — inject separator between turns so
+              // "meow.Here's how..." becomes "meow.\n\nHere's how..."
+              if (textTurnCount > 0) send({ type: "text", content: "\n\n" });
+            } else if (e.type === "content_block_delta") {
+              if (e.delta.type === "text_delta") {
+                if (textTurnCount === 0) textTurnCount = 1;
+                send({ type: "text", content: e.delta.text });
+              } else if (e.delta.type === "thinking_delta") {
+                send({ type: "thinking", content: e.delta.thinking });
+              }
+            } else if (e.type === "message_stop") {
+              if (textTurnCount > 0) textTurnCount++;
             }
           } else if (event.type === "result" && event.subtype === "success") {
             // SDKResultSuccess — fallback for tool-only responses (no text_delta emitted)
