@@ -10,6 +10,7 @@
 
 import { createServer } from "node:net";
 import type { AddressInfo } from "node:net";
+import { join } from "node:path";
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -18,6 +19,7 @@ import express from "express";
 import { AGENT_CARD_PATH } from "@a2a-js/sdk";
 import type { AgentCard } from "@a2a-js/sdk";
 import type { AgentExecutor, RequestContext, ExecutionEventBus } from "@a2a-js/sdk/server";
+import type { AgentDef } from "@@/lib/agents";
 import { DefaultRequestHandler, InMemoryTaskStore } from "@a2a-js/sdk/server";
 import {
   agentCardHandler,
@@ -294,4 +296,31 @@ export function createAgentServer(
   app.listen(port, "127.0.0.1", () => {
     consola.success(`${card.name}  →  http://localhost:${port}`);
   });
+}
+
+/**
+ * Build and start an A2A server directly from a shared AgentDef.
+ * Derives the agent card and script path from the definition — no per-agent file needed.
+ */
+export function createServerFromDef(def: AgentDef, port: number): void {
+  const agentCard: AgentCard = {
+    name: def.displayName,
+    description: def.description,
+    url: "",
+    protocolVersion: "0.3.0",
+    version: "1.0.0",
+    skills: [],
+    capabilities: { streaming: true, pushNotifications: false },
+    defaultInputModes: ["text"],
+    defaultOutputModes: ["text"],
+  };
+
+  const executor = new ScriptAgentExecutor({
+    scriptPath: join(AGENTS_ROOT, "src", `${def.name}.ts`),
+    agentName: def.displayName,
+    requiredEnvVars: def.requiredEnvVars,
+    whatItDoes: def.description,
+  });
+
+  createAgentServer(agentCard, executor, port);
 }
