@@ -45,20 +45,25 @@ interface AgentMeta {
 
 const AGENT_META: AgentMeta[] = [
   {
-    name: "Checkpoint Learner",
-    manifestKey: "checkpoint_learner",
+    name: "Experience Reflector",
+    manifestKey: "experience_reflector",
     emoji: "🧠",
     schedule: "daily 00:00",
   },
   { name: "Get Shit Done", manifestKey: "get_shit_done", emoji: "⚡", schedule: "every 5 min" },
-  { name: "JSONL Compat", manifestKey: "jsonl_compat_checker", emoji: "🔍", schedule: "Sun 10:00" },
   {
-    name: "Memory Synthesizer",
-    manifestKey: "memory_synthesizer",
+    name: "Release Log Sentinel",
+    manifestKey: "release_log_sentinel",
+    emoji: "🔍",
+    schedule: "Sun 10:00",
+  },
+  {
+    name: "Memory Distiller",
+    manifestKey: "memory_distiller",
     emoji: "🔗",
     schedule: "Sun 01:00",
   },
-  { name: "PIR Analyzer", manifestKey: "pir_analyzer", emoji: "📋", schedule: "daily 09:00" },
+  { name: "Oncall Analyzer", manifestKey: "oncall_analyzer", emoji: "📋", schedule: "daily 09:00" },
 ];
 
 function AgentSidebar() {
@@ -91,7 +96,7 @@ function AgentSidebar() {
   return (
     <aside className="w-60 flex-shrink-0 border-r border-border bg-muted/30 p-4 flex flex-col gap-3">
       <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-        Agents · A2A SSE
+        🐾 My Agents
       </h2>
       {AGENT_META.map((agent) => (
         <div key={agent.manifestKey} className="rounded-xl border border-border bg-background p-3">
@@ -160,9 +165,9 @@ function CopyAction({ text }: { text: string }) {
 // ─── Suggestion chips ─────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
-  "What does the Checkpoint Learner do?",
-  "Run the JSONL compat checker",
-  "Explain the Memory Synthesizer",
+  "What does the Experience Reflector do?",
+  "Run the Release Log Sentinel 🔍",
+  "Explain the Memory Distiller",
   "How does Get Shit Done work?",
 ];
 
@@ -205,8 +210,8 @@ export function AgentChat() {
         {/* Header */}
         <header className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
           <div>
-            <h1 className="text-sm font-semibold text-foreground">Agent Orchestrator</h1>
-            <p className="text-xs text-muted-foreground">Claude Agent SDK · A2A SSE · 5 agents</p>
+            <h1 className="text-sm font-semibold text-foreground">🐱 Dove</h1>
+            <p className="text-xs text-muted-foreground">Yang&apos;s cat · A2A SSE · 5 agents</p>
           </div>
           {messages.length > 0 && (
             <button
@@ -224,11 +229,12 @@ export function AgentChat() {
           <ConversationContent>
             {messages.length === 0 ? (
               <ConversationEmptyState>
-                <span className="text-4xl">✦</span>
-                <div className="space-y-1">
-                  <h3 className="font-medium text-sm">Agent Orchestrator</h3>
+                <span className="text-5xl">🐱</span>
+                <div className="space-y-1.5 text-center">
+                  <h3 className="font-semibold text-base">Meow~ I&apos;m Dove!</h3>
                   <p className="text-muted-foreground text-sm max-w-xs">
-                    Chat with Claude to understand, configure, and trigger your background agents.
+                    Yang&apos;s cat and your agent wrangler. I&apos;ve got 5 agents napping until
+                    you need them. Just say the word — or a treat works too. 🐾
                   </p>
                 </div>
                 <SuggestionChips onSelect={sendMessage} />
@@ -266,7 +272,7 @@ export function AgentChat() {
         <div className="px-4 pb-4 pt-2 border-t border-border shrink-0">
           <PromptInput onSubmit={handlePromptSubmit}>
             <PromptInputBody>
-              <PromptInputTextarea placeholder="Ask anything about your agents…" />
+              <PromptInputTextarea placeholder="Meow… what do you need, Yang?" />
             </PromptInputBody>
             <PromptInputFooter>
               <PromptInputSubmit status={status} />
