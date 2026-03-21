@@ -11,11 +11,14 @@ export type ChatSseSession = { type: "session"; sessionId: string };
 /** Incremental text delta from a content_block_delta / text_delta stream event */
 export type ChatSseText = { type: "text"; content: string };
 
-/** Signals a new thinking block has started — used to separate multiple blocks */
-export type ChatSseThinkingStart = { type: "thinking_start" };
-
 /** Thinking delta from a content_block_delta / thinking_delta stream event */
 export type ChatSseThinking = { type: "thinking"; content: string };
+
+/** Tool call started — name of the tool being invoked */
+export type ChatSseToolCall = { type: "tool_call"; name: string };
+
+/** Tool call input — full JSON args, emitted when input block completes */
+export type ChatSseToolInput = { type: "tool_input"; content: string };
 
 /** Full result from ResultMessage — fallback when no text_delta was emitted */
 export type ChatSseResult = { type: "result"; content: string };
@@ -29,8 +32,9 @@ export type ChatSseDone = { type: "done" };
 export type ChatSseEvent =
   | ChatSseSession
   | ChatSseText
-  | ChatSseThinkingStart
   | ChatSseThinking
+  | ChatSseToolCall
+  | ChatSseToolInput
   | ChatSseResult
   | ChatSseError
   | ChatSseDone;

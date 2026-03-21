@@ -185,7 +185,9 @@ export async function POST(request: Request) {
       };
 
       try {
-        let textTurnCount = 0; // tracks assistant turns that produced text
+        let textTurnCount = 0;
+        let toolInputBuf = ""; // buffers input_json_delta for current tool_use block
+        let inToolBlock = false;
         for await (const event of query({
           prompt: message,
           options: {
@@ -227,10 +229,12 @@ export async function POST(request: Request) {
               // "meow.Here's how..." becomes "meow.\n\nHere's how..."
               if (textTurnCount > 0) send({ type: "text", content: "\n\n" });
             } else if (e.type === "content_block_start") {
-              // Signal the start of a new thinking block so the UI can render
-              // each block separately instead of concatenating them all together.
-              if (e.content_block.type === "thinking") {
-                send({ type: "thinking_start" });
+              if (e.content_block.type === "tool_use") {
+                send({ type: "tool_call", name: e.content_block.name });
+                toolInputBuf = "";
+                inToolBlock = true;
+              } else {
+                inToolBlock = false;
               }
             } else if (e.type === "content_block_delta") {
               if (e.delta.type === "text_delta") {
@@ -238,6 +242,19 @@ export async function POST(request: Request) {
                 send({ type: "text", content: e.delta.text });
               } else if (e.delta.type === "thinking_delta") {
                 send({ type: "thinking", content: e.delta.thinking });
+              } else if (e.delta.type === "input_json_delta") {
+                toolInputBuf += e.delta.partial_json;
+              }
+            } else if (e.type === "content_block_stop") {
+              if (inToolBlock && toolInputBuf) {
+                try {
+                  const pretty = JSON.stringify(JSON.parse(toolInputBuf), null, 2);
+                  send({ type: "tool_input", content: pretty });
+                } catch {
+                  send({ type: "tool_input", content: toolInputBuf });
+                }
+                toolInputBuf = "";
+                inToolBlock = false;
               }
             } else if (e.type === "message_stop") {
               if (textTurnCount > 0) textTurnCount++;

@@ -330,29 +330,28 @@ export function AgentChat() {
             ) : (
               messages.map((msg) => (
                 <AnimatedMessage key={msg.id} from={msg.role}>
-                  <MessageContent>
-                    {/* Reasoning blocks — visible while streaming and after */}
-                    {msg.thinkingBlocks?.map((block, i) => (
-                      <Reasoning
-                        key={i}
-                        isStreaming={
-                          !!msg.isThinkingStreaming && i === (msg.thinkingBlocks?.length ?? 0) - 1
-                        }
-                      >
-                        <ReasoningTrigger />
-                        <ReasoningContent>{block}</ReasoningContent>
-                      </Reasoning>
-                    ))}
+                  {/* One live process block — thinking + tool calls stream here, collapses after */}
+                  {msg.processContent ? (
+                    <Reasoning isStreaming={!!msg.isProcessStreaming}>
+                      <ReasoningTrigger />
+                      <ReasoningContent>{msg.processContent}</ReasoningContent>
+                    </Reasoning>
+                  ) : null}
 
-                    {/* Loading dots — only before any thinking or text arrives */}
-                    {msg.isLoading && !msg.thinkingBlocks?.length && (
+                  <MessageContent>
+                    {/* Loading dots — only before any process or text arrives */}
+                    {msg.isLoading && !msg.processContent && (
                       <div className="px-4 py-2.5 text-sm">
                         <ThinkingDots />
                       </div>
                     )}
 
                     {/* Streaming markdown */}
-                    {msg.content && <MessageResponse>{msg.content}</MessageResponse>}
+                    {msg.content && (
+                      <MessageResponse className="[&_p]:my-3 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_h1]:mt-5 [&_h1]:mb-2 [&_h2]:mt-5 [&_h2]:mb-2 [&_h3]:mt-4 [&_h3]:mb-1.5 [&_h4]:mt-3 [&_h4]:mb-1 [&_ul]:my-2 [&_ul]:pl-6 [&_ol]:my-2 [&_ol]:pl-6 [&_li]:my-1 [&_pre]:my-3">
+                        {msg.content}
+                      </MessageResponse>
+                    )}
 
                     {/* Copy button — hover-reveal */}
                     {!msg.isLoading && msg.role === "assistant" && (
