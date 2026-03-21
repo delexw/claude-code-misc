@@ -17,7 +17,7 @@
 
 import * as React from "react";
 import { animate, createScope, createTimeline, stagger } from "animejs";
-import { Check, ChevronDown, ChevronRight, Copy, Trash2 } from "lucide-react";
+import { Check, Copy, Trash2 } from "lucide-react";
 import { PiCat } from "react-icons/pi";
 import { AGENTS } from "@@/lib/agents";
 import {
@@ -33,6 +33,7 @@ import {
   MessageResponse,
   MessageToolbar,
 } from "@/components/ai-elements/message";
+import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import {
   PromptInput,
   PromptInputBody,
@@ -80,10 +81,15 @@ function AgentSidebar() {
       {AGENTS.map((agent) => {
         const Icon = agent.icon;
         return (
-          <div key={agent.manifestKey} className="rounded-xl border border-border bg-background p-3">
+          <div
+            key={agent.manifestKey}
+            className="rounded-xl border border-border bg-background p-3"
+          >
             <div className="flex items-center gap-2">
               <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm font-medium text-foreground truncate">{agent.displayName}</span>
+              <span className="text-sm font-medium text-foreground truncate">
+                {agent.displayName}
+              </span>
             </div>
             <div className="flex items-center gap-1.5 mt-1">
               <span
@@ -95,7 +101,9 @@ function AgentSidebar() {
               <span className="text-xs font-mono text-muted-foreground">
                 {ports?.[agent.manifestKey] != null ? `:${ports[agent.manifestKey]}` : "—"}
               </span>
-              <span className="text-xs text-muted-foreground truncate">· {agent.scheduleDisplay}</span>
+              <span className="text-xs text-muted-foreground truncate">
+                · {agent.scheduleDisplay}
+              </span>
             </div>
           </div>
         );
@@ -145,32 +153,6 @@ function ThinkingDots() {
         <span key={i} className="thinking-dot w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
       ))}
     </span>
-  );
-}
-
-// ─── Thinking block (collapsible) ─────────────────────────────────────────────
-
-function ThinkingBlock({ thinking }: { thinking: string }) {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <div className="mx-4 mt-2 mb-1 rounded-lg border border-border bg-muted/30 text-xs">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-1.5 px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {open ? (
-          <ChevronDown className="w-3 h-3 shrink-0" />
-        ) : (
-          <ChevronRight className="w-3 h-3 shrink-0" />
-        )}
-        <span className="font-medium">Thinking</span>
-      </button>
-      {open && (
-        <pre className="px-3 pb-2.5 whitespace-pre-wrap font-mono text-[11px] text-muted-foreground leading-relaxed border-t border-border">
-          {thinking}
-        </pre>
-      )}
-    </div>
   );
 }
 
@@ -246,7 +228,9 @@ function FloatingCatIcon() {
       loop: true,
       alternate: true,
     });
-    return () => { anim.cancel(); };
+    return () => {
+      anim.cancel();
+    };
   }, []);
 
   return (
@@ -276,7 +260,9 @@ function AnimatedMessage({
       duration: 450,
       ease: "outExpo",
     });
-    return () => { anim.cancel(); };
+    return () => {
+      anim.cancel();
+    };
   }, []);
 
   return (
@@ -345,25 +331,34 @@ export function AgentChat() {
               messages.map((msg) => (
                 <AnimatedMessage key={msg.id} from={msg.role}>
                   <MessageContent>
-                    {msg.isLoading ? (
+                    {/* Reasoning blocks — visible while streaming and after */}
+                    {msg.thinkingBlocks?.map((block, i) => (
+                      <Reasoning
+                        key={i}
+                        isStreaming={
+                          !!msg.isThinkingStreaming && i === (msg.thinkingBlocks?.length ?? 0) - 1
+                        }
+                      >
+                        <ReasoningTrigger />
+                        <ReasoningContent>{block}</ReasoningContent>
+                      </Reasoning>
+                    ))}
+
+                    {/* Loading dots — only before any thinking or text arrives */}
+                    {msg.isLoading && !msg.thinkingBlocks?.length && (
                       <div className="px-4 py-2.5 text-sm">
                         <ThinkingDots />
                       </div>
-                    ) : (
-                      <>
-                        {/* Collapsible thinking block */}
-                        {msg.thinking && <ThinkingBlock thinking={msg.thinking} />}
+                    )}
 
-                        {/* Streaming markdown */}
-                        <MessageResponse>{msg.content}</MessageResponse>
+                    {/* Streaming markdown */}
+                    {msg.content && <MessageResponse>{msg.content}</MessageResponse>}
 
-                        {/* Copy button — hover-reveal */}
-                        {msg.role === "assistant" && (
-                          <MessageToolbar className="justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                            <CopyAction text={msg.content} />
-                          </MessageToolbar>
-                        )}
-                      </>
+                    {/* Copy button — hover-reveal */}
+                    {!msg.isLoading && msg.role === "assistant" && (
+                      <MessageToolbar className="justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                        <CopyAction text={msg.content} />
+                      </MessageToolbar>
                     )}
                   </MessageContent>
                 </AnimatedMessage>

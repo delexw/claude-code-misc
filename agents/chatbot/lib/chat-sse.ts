@@ -11,6 +11,9 @@ export type ChatSseSession = { type: "session"; sessionId: string };
 /** Incremental text delta from a content_block_delta / text_delta stream event */
 export type ChatSseText = { type: "text"; content: string };
 
+/** Signals a new thinking block has started — used to separate multiple blocks */
+export type ChatSseThinkingStart = { type: "thinking_start" };
+
 /** Thinking delta from a content_block_delta / thinking_delta stream event */
 export type ChatSseThinking = { type: "thinking"; content: string };
 
@@ -26,6 +29,7 @@ export type ChatSseDone = { type: "done" };
 export type ChatSseEvent =
   | ChatSseSession
   | ChatSseText
+  | ChatSseThinkingStart
   | ChatSseThinking
   | ChatSseResult
   | ChatSseError

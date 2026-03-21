@@ -196,10 +196,7 @@ export async function POST(request: Request) {
             cwd: AGENTS_ROOT,
             // Expose the launchd install directory so Claude can inspect
             // installed plist files (written by `npm run install`)
-            additionalDirectories: [
-              `${process.env.HOME}/Library/LaunchAgents`,
-              SCHEDULER_ROOT,
-            ],
+            additionalDirectories: [`${process.env.HOME}/Library/LaunchAgents`, SCHEDULER_ROOT],
             systemPrompt: {
               type: "preset",
               preset: "claude_code",
@@ -213,7 +210,7 @@ export async function POST(request: Request) {
             ...(sessionId ? { resume: sessionId } : {}),
             // Stream text tokens as they are generated
             includePartialMessages: true,
-            settingSources: ["project", "user"]
+            settingSources: ["project", "user"],
           },
         })) {
           // Narrow using SDK discriminants — no manual casts needed
@@ -229,6 +226,12 @@ export async function POST(request: Request) {
               // New assistant turn — inject separator between turns so
               // "meow.Here's how..." becomes "meow.\n\nHere's how..."
               if (textTurnCount > 0) send({ type: "text", content: "\n\n" });
+            } else if (e.type === "content_block_start") {
+              // Signal the start of a new thinking block so the UI can render
+              // each block separately instead of concatenating them all together.
+              if (e.content_block.type === "thinking") {
+                send({ type: "thinking_start" });
+              }
             } else if (e.type === "content_block_delta") {
               if (e.delta.type === "text_delta") {
                 if (textTurnCount === 0) textTurnCount = 1;

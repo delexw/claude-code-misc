@@ -9,7 +9,8 @@ export interface ChatMessage {
   id: string;
   role: MessageRole;
   content: string;
-  thinking?: string;
+  thinkingBlocks?: string[];
+  isThinkingStreaming?: boolean;
   isLoading?: boolean;
 }
 
@@ -57,26 +58,23 @@ export function useAgentChat() {
     [stopAnimation],
   );
 
-  const startAnimation = useCallback(
-    (id: string) => {
-      if (timerRef.current !== null) return; // already running
-      streamingIdRef.current = id;
-      timerRef.current = setInterval(() => {
-        if (pendingRef.current.length === 0) return;
-        const n = charsPerTick(pendingRef.current.length);
-        const chars = pendingRef.current.slice(0, n);
-        pendingRef.current = pendingRef.current.slice(n);
-        displayedRef.current += chars;
-        const content = displayedRef.current;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === streamingIdRef.current ? { ...m, content, isLoading: false } : m,
-          ),
-        );
-      }, 16);
-    },
-    [],
-  );
+  const startAnimation = useCallback((id: string) => {
+    if (timerRef.current !== null) return; // already running
+    streamingIdRef.current = id;
+    timerRef.current = setInterval(() => {
+      if (pendingRef.current.length === 0) return;
+      const n = charsPerTick(pendingRef.current.length);
+      const chars = pendingRef.current.slice(0, n);
+      pendingRef.current = pendingRef.current.slice(n);
+      displayedRef.current += chars;
+      const content = displayedRef.current;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === streamingIdRef.current ? { ...m, content, isLoading: false } : m,
+        ),
+      );
+    }, 16);
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -135,16 +133,40 @@ export function useAgentChat() {
               if (event.type === "session") {
                 // Capture session_id on first turn; reuse for all subsequent turns
                 sessionIdRef.current = event.sessionId;
-              } else if (event.type === "thinking" && event.content) {
-                // Thinking delta — accumulate into thinking field
+              } else if (event.type === "thinking_start") {
+                // New thinking block started — push an empty slot for it
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantId
-                      ? { ...m, thinking: (m.thinking ?? "") + event.content! }
+                      ? {
+                          ...m,
+                          thinkingBlocks: [...(m.thinkingBlocks ?? []), ""],
+                          isThinkingStreaming: true,
+                        }
                       : m,
                   ),
                 );
+              } else if (event.type === "thinking" && event.content) {
+                // Thinking delta — append to the last thinking block
+                setMessages((prev) =>
+                  prev.map((m) => {
+                    if (m.id !== assistantId) return m;
+                    const blocks = m.thinkingBlocks ?? [""];
+                    return {
+                      ...m,
+                      thinkingBlocks: blocks.map((b, i) =>
+                        i === blocks.length - 1 ? b + event.content! : b,
+                      ),
+                    };
+                  }),
+                );
               } else if (event.type === "text" && event.content) {
+                // Thinking is done when text starts
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId ? { ...m, isThinkingStreaming: false } : m,
+                  ),
+                );
                 // Enqueue chunk for smooth animated rendering
                 pendingRef.current += event.content;
                 startAnimation(assistantId);
