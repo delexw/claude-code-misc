@@ -164,7 +164,44 @@ const SYSTEM_PROMPT = `You are an AI orchestrator for 5 background automation ag
 When asked about an agent, explain what it does, what env vars it needs, and when it normally runs (launchd schedule).
 When asked to run an agent, call the appropriate tool.
 Agents run on dynamically allocated ports discovered from a2a/.ports.json.
-If a tool reports servers are not running, tell the user to run: npm run servers (in agents/chatbot/).`;
+If a tool reports servers are not running, tell the user to run: npm run servers (in agents/chatbot/).
+
+**launchd agent management** — use these commands and paths when asked to install, monitor, unload, or delete agents:
+
+Installed plist location: ~/Library/LaunchAgents/<label>.plist
+Scripts location:         ~/.claude/scheduler/
+Logs location:            ~/.claude/scheduler/logs/
+
+| Task | Command |
+|---|---|
+| Install / reinstall all agents | \`cd ~/Envato/others/claude-code-misc/agents && npm run build && npm run install\` |
+| Uninstall all agents | \`npm run uninstall\` (in agents/) |
+| Load a single agent | \`launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/<label>.plist\` |
+| Unload a single agent | \`launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/<label>.plist\` |
+| Check if an agent is loaded | \`launchctl print gui/$(id -u)/<label>\` |
+| List all loaded agents | \`launchctl list | grep claude\` |
+| View last exit code / PID | \`launchctl print gui/$(id -u)/<label> | grep -E "state|pid|exit"\` |
+| Tail live logs | \`tail -f ~/.claude/scheduler/logs/.<agent-name>/<agent-name>-*.log\` |
+| Delete a plist file | \`rm ~/Library/LaunchAgents/<label>.plist\` (unload first) |
+
+When showing plist content, read it from ~/Library/LaunchAgents/ using the Read tool.
+When checking agent status, run the launchctl commands above using the Bash tool.
+
+**~/.claude/scheduler/ directory rules:**
+
+This directory contains scheduler scripts, logs, and build artifacts. Treat it as read-only except where noted below.
+
+| Path | Rule |
+|---|---|
+| \`~/.claude/scheduler/*.mjs\` | READ ONLY — never modify scripts |
+| \`~/.claude/scheduler/logs/\` | RESTRICTED — may only be modified or deleted with explicit user permission |
+| \`~/.claude/scheduler/node_modules/\` | READ ONLY — never modify |
+| \`~/.claude/scheduler/*.json\` (except state/) | READ ONLY — never modify config or output files |
+| \`~/.claude/scheduler/state/\` | RESTRICTED — may only be modified with explicit user permission |
+
+The \`state/\` folder contains lock files and \`dag-status.lbug\` (a LadybugDB graph database tracking ticket/task DAG state).
+- You MAY query \`dag-status.lbug\` at any time using LadybugDB Cypher queries to read ticket status, dependencies, and progress.
+- You MUST NOT write to, delete, or modify any file in \`state/\` unless the user explicitly says to.`;
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
 
@@ -188,8 +225,23 @@ export async function POST(request: Request) {
         for await (const event of query({
           prompt: message,
           options: {
+            env: {
+              ...process.env, // Pass through all env vars so tools can read their configs
+            },
+            promptSuggestions: true,
             cwd: AGENTS_ROOT,
-            systemPrompt: SYSTEM_PROMPT,
+            // Expose the launchd install directory so Claude can inspect
+            // installed plist files (written by `npm run install`)
+            additionalDirectories: [
+              `${process.env.HOME}/Library/LaunchAgents`,
+              `${process.env.HOME}/.claude/scheduler`,
+            ],
+            systemPrompt: {
+              type: "preset",
+              preset: "claude_code",
+              append: SYSTEM_PROMPT,
+            },
+            permissionMode: "default",
             mcpServers: { agents: mcpServer },
             maxTurns: 15,
             // Resume the existing session so the full conversation history is preserved.
@@ -197,6 +249,7 @@ export async function POST(request: Request) {
             ...(sessionId ? { resume: sessionId } : {}),
             // Stream text tokens as they are generated
             includePartialMessages: true,
+            settingSources: ["project", "user"]
           },
         })) {
           // Narrow using SDK discriminants — no manual casts needed
