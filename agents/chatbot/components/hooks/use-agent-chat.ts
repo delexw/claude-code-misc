@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import type { ChatSseEvent } from "@/lib/chat-sse";
 
 export type MessageRole = "user" | "assistant";
 
@@ -15,6 +16,9 @@ export function useAgentChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  // sessionId is captured from the first query() response and re-sent on every
+  // subsequent request so the Agent SDK can resume the same conversation session.
+  const sessionIdRef = useRef<string | null>(null);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -41,7 +45,7 @@ export function useAgentChat() {
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: trimmed }),
+          body: JSON.stringify({ message: trimmed, sessionId: sessionIdRef.current }),
           signal: abort.signal,
         });
 
@@ -64,11 +68,26 @@ export function useAgentChat() {
             if (!line.startsWith("data: ")) continue;
             const raw = line.slice(6);
             try {
-              const event = JSON.parse(raw) as { type: string; content?: string };
-              if (event.type === "result" && event.content) {
+              const event = JSON.parse(raw) as ChatSseEvent;
+              if (event.type === "session") {
+                // Capture session_id on first turn; reuse for all subsequent turns
+                sessionIdRef.current = event.sessionId;
+              } else if (event.type === "text" && event.content) {
+                // Streaming text delta — append chunk and clear loading indicator
                 setMessages((prev) =>
                   prev.map((m) =>
-                    m.id === assistantId ? { ...m, content: event.content!, isLoading: false } : m,
+                    m.id === assistantId
+                      ? { ...m, content: m.content + event.content!, isLoading: false }
+                      : m,
+                  ),
+                );
+              } else if (event.type === "result" && event.content) {
+                // Fallback for tool-only responses (no text_delta emitted)
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId && m.content === ""
+                      ? { ...m, content: event.content!, isLoading: false }
+                      : m,
                   ),
                 );
               } else if (event.type === "error" && event.content) {
@@ -114,6 +133,7 @@ export function useAgentChat() {
     abortRef.current?.abort();
     setMessages([]);
     setIsLoading(false);
+    sessionIdRef.current = null; // Start a fresh Agent SDK session on next message
   }, []);
 
   return { messages, isLoading, sendMessage, clearMessages };

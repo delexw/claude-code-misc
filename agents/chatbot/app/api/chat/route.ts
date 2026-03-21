@@ -12,12 +12,20 @@
  *   5. Results: agent → A2A SSE → MCP tool → Claude → SSE to client
  */
 
-import { query, tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
+import {
+  query,
+  tool,
+  createSdkMcpServer,
+  type SDKSystemMessage,
+  type SDKPartialAssistantMessage,
+  type SDKResultSuccess,
+} from "@anthropic-ai/claude-agent-sdk";
 import { ClientFactory } from "@a2a-js/sdk/client";
 import type { TextPart } from "@a2a-js/sdk";
 import { readPortsManifest } from "@/a2a/lib/base-server";
 import { randomUUID } from "node:crypto";
 import { AGENTS_ROOT } from "@/lib/paths";
+import type { ChatSseEvent } from "@/lib/chat-sse";
 import { z } from "zod";
 
 export const maxDuration = 300; // 5 minutes for long-running agents
@@ -161,13 +169,18 @@ If a tool reports servers are not running, tell the user to run: npm run servers
 // ─── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-  const { message } = (await request.json()) as { message: string };
+  // sessionId is null for the first message in a chat, set for all subsequent ones.
+  // The hook captures it from the "session" SSE event and sends it back on every request.
+  const { message, sessionId } = (await request.json()) as {
+    message: string;
+    sessionId: string | null;
+  };
 
   const encoder = new TextEncoder();
 
   const readable = new ReadableStream({
     async start(controller) {
-      const send = (payload: object) => {
+      const send = (payload: ChatSseEvent) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
       };
 
@@ -179,11 +192,29 @@ export async function POST(request: Request) {
             systemPrompt: SYSTEM_PROMPT,
             mcpServers: { agents: mcpServer },
             maxTurns: 15,
-            continue: true,
+            // Resume the existing session so the full conversation history is preserved.
+            // On the first message sessionId is null and query() starts a fresh session.
+            ...(sessionId ? { resume: sessionId } : {}),
+            // Stream text tokens as they are generated
+            includePartialMessages: true,
           },
         })) {
-          if ("result" in event) {
-            send({ type: "result", content: event.result });
+          // Narrow using SDK discriminants — no manual casts needed
+          if (event.type === "system" && event.subtype === "init") {
+            // SDKSystemMessage — send session_id so the hook can resume later
+            const init = event as SDKSystemMessage;
+            send({ type: "session", sessionId: init.session_id });
+          } else if (event.type === "stream_event") {
+            // SDKPartialAssistantMessage — emit text deltas in real-time
+            const partial = event as SDKPartialAssistantMessage;
+            const e = partial.event;
+            if (e.type === "content_block_delta" && e.delta.type === "text_delta") {
+              send({ type: "text", content: e.delta.text });
+            }
+          } else if (event.type === "result" && event.subtype === "success") {
+            // SDKResultSuccess — fallback for tool-only responses (no text_delta emitted)
+            const result = event as SDKResultSuccess;
+            send({ type: "result", content: result.result });
           }
         }
         send({ type: "done" });

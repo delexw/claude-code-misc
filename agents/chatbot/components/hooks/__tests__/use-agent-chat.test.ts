@@ -62,7 +62,28 @@ describe("useAgentChat", () => {
     expect(result.current.messages[1].role).toBe("assistant");
   });
 
-  it("populates assistant message with result content", async () => {
+  it("streams text chunks progressively via text events", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      makeSseResponse([
+        { type: "text", content: "Hello" },
+        { type: "text", content: " world" },
+        { type: "text", content: "!" },
+        { type: "done" },
+      ]),
+    );
+
+    const { result } = renderHook(() => useAgentChat());
+    await act(async () => {
+      await result.current.sendMessage("question");
+    });
+
+    const assistant = result.current.messages.find((m) => m.role === "assistant");
+    expect(assistant?.content).toBe("Hello world!");
+    expect(assistant?.isLoading).toBe(false);
+  });
+
+  it("populates assistant message with result content (tool-only fallback)", async () => {
+    // result event used when no text_delta was streamed (tool-only response)
     vi.mocked(fetch).mockResolvedValue(
       makeSseResponse([{ type: "result", content: "Here is the answer." }, { type: "done" }]),
     );
