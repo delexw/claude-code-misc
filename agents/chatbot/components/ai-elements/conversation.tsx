@@ -3,9 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { UIMessage } from "ai";
+import { animate } from "animejs";
 import { ArrowDownIcon, DownloadIcon } from "lucide-react";
 import type { ComponentProps } from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
 export type ConversationProps = ComponentProps<typeof StickToBottom>;
@@ -23,7 +24,7 @@ export const Conversation = ({ className, ...props }: ConversationProps) => (
 export type ConversationContentProps = ComponentProps<typeof StickToBottom.Content>;
 
 export const ConversationContent = ({ className, ...props }: ConversationContentProps) => (
-  <StickToBottom.Content className={cn("flex flex-col gap-8 p-4", className)} {...props} />
+  <StickToBottom.Content className={cn("flex flex-col gap-4 p-4", className)} {...props} />
 );
 
 export type ConversationEmptyStateProps = ComponentProps<"div"> & {
@@ -66,16 +67,34 @@ export const ConversationScrollButton = ({
   ...props
 }: ConversationScrollButtonProps) => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const handleScrollToBottom = useCallback(() => {
     scrollToBottom();
   }, [scrollToBottom]);
 
+  // Animate in whenever the button mounts (i.e. when !isAtBottom becomes true)
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const anim = animate(wrapperRef.current, {
+      translateY: [8, 0],
+      opacity: [0, 1],
+      duration: 250,
+      ease: "outExpo",
+    });
+    return () => { anim.cancel(); };
+  }, []);
+
+  if (isAtBottom) return null;
+
   return (
-    !isAtBottom && (
+    <div
+      ref={wrapperRef}
+      className="opacity-0 absolute bottom-4 left-[50%] translate-x-[-50%]"
+    >
       <Button
         className={cn(
-          "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full dark:bg-background dark:hover:bg-muted",
+          "rounded-full dark:bg-background dark:hover:bg-muted",
           className,
         )}
         onClick={handleScrollToBottom}
@@ -86,7 +105,7 @@ export const ConversationScrollButton = ({
       >
         <ArrowDownIcon className="size-4" />
       </Button>
-    )
+    </div>
   );
 };
 

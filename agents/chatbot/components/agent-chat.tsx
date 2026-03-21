@@ -5,12 +5,19 @@
  *   Conversation · ConversationContent · ConversationEmptyState · ConversationScrollButton
  *   Message · MessageContent · MessageResponse · MessageAction · MessageToolbar
  *   PromptInput · PromptInputBody · PromptInputTextarea · PromptInputFooter · PromptInputSubmit
+ *
+ * Animations (anime.js v4):
+ *   • ThinkingDots — bounce stagger via createTimeline
+ *   • SuggestionChips — staggered entrance on mount
+ *   • FloatingCatIcon — infinite float in empty state
+ *   • AnimatedMessage — slide-in on each new message
  */
 
 "use client";
 
 import * as React from "react";
-import { Check, Copy, Trash2 } from "lucide-react";
+import { animate, createScope, createTimeline, stagger } from "animejs";
+import { Check, ChevronDown, ChevronRight, Copy, Trash2 } from "lucide-react";
 import { PiCat } from "react-icons/pi";
 import { AGENTS } from "@@/lib/agents";
 import {
@@ -37,7 +44,6 @@ import { useAgentChat } from "@/components/hooks/use-agent-chat";
 import { cn } from "@/lib/utils";
 
 // ─── Agent sidebar ────────────────────────────────────────────────────────────
-
 
 function AgentSidebar() {
   const [ports, setPorts] = React.useState<Record<string, number> | null>(null);
@@ -67,7 +73,7 @@ function AgentSidebar() {
   }, []);
 
   return (
-    <aside className="w-60 flex-shrink-0 border-r border-border bg-muted/30 p-4 flex flex-col gap-3">
+    <aside className="w-60 shrink-0 border-r border-border bg-sidebar p-4 flex flex-col gap-3">
       <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
         🐾 My Agents
       </h2>
@@ -82,7 +88,7 @@ function AgentSidebar() {
             <div className="flex items-center gap-1.5 mt-1">
               <span
                 className={cn(
-                  "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                  "w-1.5 h-1.5 rounded-full shrink-0",
                   online ? "bg-green-500 animate-pulse" : "bg-muted-foreground/40",
                 )}
               />
@@ -106,17 +112,37 @@ function AgentSidebar() {
   );
 }
 
-// ─── Loading dots ─────────────────────────────────────────────────────────────
+// ─── Thinking dots (anime.js bounce stagger) ──────────────────────────────────
 
 function ThinkingDots() {
+  const containerRef = React.useRef<HTMLSpanElement>(null);
+  const scopeRef = React.useRef<ReturnType<typeof createScope> | null>(null);
+
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    scopeRef.current = createScope({ root: containerRef.current }).add(() => {
+      createTimeline({
+        loop: true,
+        defaults: { ease: "inOutSine" },
+      })
+        .add(".thinking-dot", {
+          translateY: [0, -4],
+          duration: 350,
+          delay: stagger(120),
+        })
+        .add(".thinking-dot", {
+          translateY: [-4, 0],
+          duration: 350,
+          delay: stagger(120),
+        });
+    });
+    return () => scopeRef.current?.revert();
+  }, []);
+
   return (
-    <span className="flex gap-1 items-center py-1">
+    <span ref={containerRef} className="flex gap-1 items-center py-1 px-1">
       {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-pulse"
-          style={{ animationDelay: `${i * 0.15}s` }}
-        />
+        <span key={i} className="thinking-dot w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
       ))}
     </span>
   );
@@ -132,7 +158,11 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-1.5 px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
       >
-        <span className="text-[10px]">{open ? "▾" : "▸"}</span>
+        {open ? (
+          <ChevronDown className="w-3 h-3 shrink-0" />
+        ) : (
+          <ChevronRight className="w-3 h-3 shrink-0" />
+        )}
         <span className="font-medium">Thinking</span>
       </button>
       {open && (
@@ -144,7 +174,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
   );
 }
 
-// ─── Copy action (MessageAction → Radix tooltip + button) ─────────────────────
+// ─── Copy action ──────────────────────────────────────────────────────────────
 
 function CopyAction({ text }: { text: string }) {
   const [copied, setCopied] = React.useState(false);
@@ -160,7 +190,7 @@ function CopyAction({ text }: { text: string }) {
   );
 }
 
-// ─── Suggestion chips ─────────────────────────────────────────────────────────
+// ─── Suggestion chips (anime.js stagger entrance) ─────────────────────────────
 
 const SUGGESTIONS = [
   "What does the Experience Reflector do?",
@@ -170,17 +200,90 @@ const SUGGESTIONS = [
 ];
 
 function SuggestionChips({ onSelect }: { onSelect: (text: string) => void }) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const scopeRef = React.useRef<ReturnType<typeof createScope> | null>(null);
+
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    scopeRef.current = createScope({ root: containerRef.current }).add(() => {
+      animate(".suggestion-chip", {
+        translateY: [8, 0],
+        opacity: [0, 1],
+        duration: 400,
+        delay: stagger(60),
+        ease: "outExpo",
+      });
+    });
+    return () => scopeRef.current?.revert();
+  }, []);
+
   return (
-    <div className="flex flex-wrap gap-2 justify-center max-w-md mt-4">
+    <div ref={containerRef} className="flex flex-wrap gap-2 justify-center max-w-md mt-4">
       {SUGGESTIONS.map((s) => (
         <button
           key={s}
           onClick={() => onSelect(s)}
-          className="px-3 py-1.5 rounded-xl text-xs border border-border bg-background text-muted-foreground hover:text-foreground hover:border-ring transition-colors"
+          className="suggestion-chip opacity-0 px-3 py-1.5 rounded-xl text-xs border border-border bg-background text-muted-foreground hover:text-foreground hover:border-ring transition-colors"
         >
           {s}
         </button>
       ))}
+    </div>
+  );
+}
+
+// ─── Floating cat icon (anime.js infinite float) ──────────────────────────────
+
+function FloatingCatIcon() {
+  const ref = React.useRef<HTMLSpanElement>(null);
+
+  React.useEffect(() => {
+    if (!ref.current) return;
+    const anim = animate(ref.current, {
+      translateY: [-6, 6],
+      duration: 2200,
+      ease: "inOutSine",
+      loop: true,
+      alternate: true,
+    });
+    return () => { anim.cancel(); };
+  }, []);
+
+  return (
+    <span ref={ref} className="inline-block">
+      <PiCat className="w-16 h-16 text-foreground" />
+    </span>
+  );
+}
+
+// ─── Animated message wrapper (slide-in on mount) ─────────────────────────────
+
+function AnimatedMessage({
+  children,
+  from,
+  ...props
+}: {
+  children: React.ReactNode;
+  from: "user" | "assistant";
+} & React.HTMLAttributes<HTMLDivElement>) {
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!wrapperRef.current) return;
+    const anim = animate(wrapperRef.current, {
+      translateY: [10, 0],
+      opacity: [0, 1],
+      duration: 450,
+      ease: "outExpo",
+    });
+    return () => { anim.cancel(); };
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="opacity-0 w-full">
+      <Message from={from} {...props}>
+        {children}
+      </Message>
     </div>
   );
 }
@@ -190,7 +293,6 @@ function SuggestionChips({ onSelect }: { onSelect: (text: string) => void }) {
 export function AgentChat() {
   const { messages, isLoading, sendMessage, clearMessages } = useAgentChat();
 
-  // PromptInput.onSubmit fires with { text, files }; we only need text
   const handlePromptSubmit = React.useCallback(
     ({ text }: { text: string }) => {
       void sendMessage(text);
@@ -208,7 +310,9 @@ export function AgentChat() {
         {/* Header */}
         <header className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
           <div>
-            <h1 className="text-sm font-semibold text-foreground flex items-center gap-1.5"><PiCat className="w-4 h-4" /> Dove</h1>
+            <h1 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <PiCat className="w-4 h-4" /> Dove
+            </h1>
             <p className="text-xs text-muted-foreground">Yang&apos;s cat · A2A SSE · 5 agents</p>
           </div>
           {messages.length > 0 && (
@@ -227,7 +331,7 @@ export function AgentChat() {
           <ConversationContent>
             {messages.length === 0 ? (
               <ConversationEmptyState>
-                <PiCat className="w-16 h-16 text-foreground" />
+                <FloatingCatIcon />
                 <div className="space-y-1.5 text-center">
                   <h3 className="font-semibold text-base">Meow~ I&apos;m Dove!</h3>
                   <p className="text-muted-foreground text-sm max-w-xs">
@@ -239,7 +343,7 @@ export function AgentChat() {
               </ConversationEmptyState>
             ) : (
               messages.map((msg) => (
-                <Message key={msg.id} from={msg.role}>
+                <AnimatedMessage key={msg.id} from={msg.role}>
                   <MessageContent>
                     {msg.isLoading ? (
                       <div className="px-4 py-2.5 text-sm">
@@ -250,19 +354,19 @@ export function AgentChat() {
                         {/* Collapsible thinking block */}
                         {msg.thinking && <ThinkingBlock thinking={msg.thinking} />}
 
-                        {/* MessageResponse — Streamdown streaming markdown */}
+                        {/* Streaming markdown */}
                         <MessageResponse>{msg.content}</MessageResponse>
 
-                        {/* MessageToolbar + MessageAction — copy button */}
+                        {/* Copy button — hover-reveal */}
                         {msg.role === "assistant" && (
-                          <MessageToolbar>
+                          <MessageToolbar className="justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                             <CopyAction text={msg.content} />
                           </MessageToolbar>
                         )}
                       </>
                     )}
                   </MessageContent>
-                </Message>
+                </AnimatedMessage>
               ))
             )}
           </ConversationContent>
