@@ -1,0 +1,43 @@
+{
+  "name": "agents-chatbot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 7473",
+    "build": "next build",
+    "start": "next start -p 7473",
+    "servers": "tsx a2a/start-all.ts"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "latest",
+    "@anthropic-ai/claude-agent-sdk": "latest",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@streamdown/code": "^1.1.1",
+    "@streamdown/mermaid": "^1.0.2",
+    "ai": "^6.0.134",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "consola": "^3.4.2",
+    "express": "^5.2.1",
+    "lucide-react": "^0.577.0",
+    "nanoid": "^5.1.7",
+    "next": "^16.2.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "streamdown": "^2.5.0",
+    "tailwind-merge": "^3.5.0",
+    "use-stick-to-bottom": "^1.1.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.2.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
