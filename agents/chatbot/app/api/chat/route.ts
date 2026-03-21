@@ -24,7 +24,7 @@ import { ClientFactory } from "@a2a-js/sdk/client";
 import type { TextPart } from "@a2a-js/sdk";
 import { readPortsManifest } from "@/a2a/lib/base-server";
 import { randomUUID } from "node:crypto";
-import { AGENTS_ROOT } from "@/lib/paths";
+import { AGENTS_ROOT, SCHEDULER_ROOT, SCHEDULER_LOGS, SCHEDULER_STATE } from "@/lib/paths";
 import type { ChatSseEvent } from "@/lib/chat-sse";
 import { z } from "zod";
 
@@ -171,35 +171,35 @@ If a tool reports servers are not running, tell the user to run: npm run servers
 **launchd agent management** — use these commands and paths when asked to install, monitor, unload, or delete agents:
 
 Installed plist location: ~/Library/LaunchAgents/<label>.plist
-Scripts location:         ~/.claude/scheduler/
-Logs location:            ~/.claude/scheduler/logs/
+Scripts location:         ${SCHEDULER_ROOT}/
+Logs location:            ${SCHEDULER_LOGS}/
 
 | Task | Command |
 |---|---|
-| Install / reinstall all agents | \`cd ~/Envato/others/claude-code-misc/agents && npm run build && npm run install\` |
-| Uninstall all agents | \`npm run uninstall\` (in agents/) |
+| Install / reinstall all agents | \`cd ${AGENTS_ROOT} && npm run build && npm run install\` |
+| Uninstall all agents | \`cd ${AGENTS_ROOT} && npm run uninstall\` |
 | Load a single agent | \`launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/<label>.plist\` |
 | Unload a single agent | \`launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/<label>.plist\` |
 | Check if an agent is loaded | \`launchctl print gui/$(id -u)/<label>\` |
 | List all loaded agents | \`launchctl list | grep claude\` |
 | View last exit code / PID | \`launchctl print gui/$(id -u)/<label> | grep -E "state|pid|exit"\` |
-| Tail live logs | \`tail -f ~/.claude/scheduler/logs/.<agent-name>/<agent-name>-*.log\` |
+| Tail live logs | \`tail -f ${SCHEDULER_LOGS}/.<agent-name>/<agent-name>-*.log\` |
 | Delete a plist file | \`rm ~/Library/LaunchAgents/<label>.plist\` (unload first) |
 
 When showing plist content, read it from ~/Library/LaunchAgents/ using the Read tool.
 When checking agent status, run the launchctl commands above using the Bash tool.
 
-**~/.claude/scheduler/ directory rules:**
+**Scheduler directory rules** (\`${SCHEDULER_ROOT}/\`)**:**
 
 This directory contains scheduler scripts, logs, and build artifacts. Treat it as read-only except where noted below.
 
 | Path | Rule |
 |---|---|
-| \`~/.claude/scheduler/*.mjs\` | READ ONLY — never modify scripts |
-| \`~/.claude/scheduler/logs/\` | RESTRICTED — may only be modified or deleted with explicit user permission |
-| \`~/.claude/scheduler/node_modules/\` | READ ONLY — never modify |
-| \`~/.claude/scheduler/*.json\` (except state/) | READ ONLY — never modify config or output files |
-| \`~/.claude/scheduler/state/\` | RESTRICTED — may only be modified with explicit user permission |
+| \`${SCHEDULER_ROOT}/*.mjs\` | READ ONLY — never modify scripts |
+| \`${SCHEDULER_LOGS}/\` | RESTRICTED — may only be modified or deleted with explicit user permission |
+| \`${SCHEDULER_ROOT}/node_modules/\` | READ ONLY — never modify |
+| \`${SCHEDULER_ROOT}/*.json\` (except state/) | READ ONLY — never modify config or output files |
+| \`${SCHEDULER_STATE}/\` | RESTRICTED — may only be modified with explicit user permission |
 
 The \`state/\` folder contains lock, processed files and \`dag-status.lbug\` (a LadybugDB graph database tracking ticket/task DAG state).
 - You MAY query \`dag-status.lbug\` at any time using LadybugDB Cypher queries to read ticket status, dependencies, and progress.
@@ -236,7 +236,7 @@ export async function POST(request: Request) {
             // installed plist files (written by `npm run install`)
             additionalDirectories: [
               `${process.env.HOME}/Library/LaunchAgents`,
-              `${process.env.HOME}/.claude/scheduler`,
+              SCHEDULER_ROOT,
             ],
             systemPrompt: {
               type: "preset",

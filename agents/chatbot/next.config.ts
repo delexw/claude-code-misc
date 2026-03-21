@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
     // while still excluding the user's home-directory lockfiles from workspace detection.
     root: path.resolve(__dirname, ".."),
   },
+  webpack(config) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@@": path.resolve(__dirname, ".."),
+    };
+    return config;
+  },
 };
 
 export default nextConfig;

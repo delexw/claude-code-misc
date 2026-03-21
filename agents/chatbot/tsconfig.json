@@ -23,9 +23,8 @@
     "incremental": true,
     // Path alias used throughout the app
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"],
+      "@@/*": ["../*"]
     },
     "allowJs": true,
     "resolveJsonModule": true,

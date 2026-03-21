@@ -22,9 +22,10 @@ import {
 import { join } from "node:path";
 import { agents } from "./plist/configs.js";
 import { generatePlist, plistLabel } from "./plist/generate.js";
+import { SCHEDULER_ROOT, SCHEDULER_LOGS } from "./lib/paths.js";
 
 const HOME = process.env.HOME!;
-const INSTALL_DIR = join(HOME, ".claude/scheduler");
+const INSTALL_DIR = SCHEDULER_ROOT;
 const LAUNCH_AGENTS_DIR = join(HOME, "Library/LaunchAgents");
 const DIST_DIR = join(import.meta.dirname, "dist");
 const uid = execSync("id -u").toString().trim();
@@ -55,7 +56,7 @@ if (uninstall) {
       console.log(`  Removed ${plistPath}`);
     }
   }
-  console.log("\nDone. Scripts remain in ~/.claude/scheduler/ for manual use.");
+  console.log(`\nDone. Scripts remain in ${SCHEDULER_ROOT}/ for manual use.`);
   process.exit(0);
 }
 
@@ -80,7 +81,7 @@ for (const config of targetAgents) {
 
 // ─── Install scripts ────────────────────────────────────────────────────────
 
-console.log("\nStep 3: Installing scripts to ~/.claude/scheduler/...\n");
+console.log(`\nStep 3: Installing scripts to ${SCHEDULER_ROOT}/...\n`);
 mkdirSync(INSTALL_DIR, { recursive: true });
 
 for (const file of readdirSync(DIST_DIR)) {
@@ -112,7 +113,7 @@ for (const pkg of NATIVE_PACKAGES) {
 
 // Check for .envrc
 if (!existsSync(join(INSTALL_DIR, ".envrc"))) {
-  console.log("\n  WARNING: ~/.claude/scheduler/.envrc does not exist.");
+  console.log(`\n  WARNING: ${SCHEDULER_ROOT}/.envrc does not exist.`);
   console.log("  Copy .envrc.example and fill in your values:");
   console.log(`  cp ${INSTALL_DIR}/.envrc.example ${INSTALL_DIR}/.envrc`);
 }
@@ -128,7 +129,7 @@ for (const config of targetAgents) {
   const plistDest = join(LAUNCH_AGENTS_DIR, `${label}.plist`);
 
   // Create log directories
-  const logDir = join(INSTALL_DIR, "logs", `.${config.name}`);
+  const logDir = join(SCHEDULER_LOGS, `.${config.name}`);
   mkdirSync(logDir, { recursive: true });
 
   // Unload existing (try both label formats: file path and human-readable label)

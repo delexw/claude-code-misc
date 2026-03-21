@@ -10,11 +10,13 @@ export default defineConfig({
     setupFiles: [],
     alias: {
       "@": resolve(__dirname, "."),
+      "@@": resolve(__dirname, ".."),
     },
   },
   resolve: {
     alias: {
       "@": resolve(__dirname, "."),
+      "@@": resolve(__dirname, ".."),
     },
   },
 });

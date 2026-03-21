@@ -1,12 +1,13 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Re-export shared paths so callers can import everything from one place
+export { AGENTS_ROOT, SCHEDULER_ROOT, SCHEDULER_LOGS, SCHEDULER_STATE } from "@@/lib/paths";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** agents/chatbot/ */
 export const CHATBOT_ROOT = join(__dirname, "..");
-/** agents/ */
-export const AGENTS_ROOT = join(CHATBOT_ROOT, "..");
 /** tsx binary in chatbot's node_modules */
 export const TSX_BIN = join(CHATBOT_ROOT, "node_modules/.bin/tsx");
 /** Runtime port manifest written by a2a/start-all.ts */

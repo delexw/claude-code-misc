@@ -80,8 +80,8 @@ async function main() {
 
   devServers = new DevServerManager(
     HOME,
-    join(HOME, ".claude/scheduler/bootstrap-services.json"),
-    join(HOME, ".claude/scheduler/logs/.bootstrap"),
+    join(SCRIPT_DIR, "bootstrap-services.json"),
+    join(SCRIPT_DIR, "logs/.bootstrap"),
     log,
   );
 

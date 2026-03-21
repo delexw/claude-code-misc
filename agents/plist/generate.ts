@@ -1,4 +1,6 @@
+import { join } from "node:path";
 import type { AgentConfig } from "./configs.js";
+import { SCHEDULER_ROOT, SCHEDULER_LOGS } from "../lib/paths.js";
 
 function escapeXml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -44,10 +46,10 @@ function envVarsBlock(envVars: Record<string, string>): string {
 }
 
 export function generatePlist(config: AgentConfig, home: string): string {
-  const envrcPath = `${home}/.claude/scheduler/.envrc`;
+  const envrcPath = join(SCHEDULER_ROOT, ".envrc");
   const nodePath = `${home}/.asdf/shims/node`;
-  const scriptPath = `${home}/.claude/scheduler/${config.name}.mjs`;
-  const logDir = `${home}/.claude/scheduler/logs/.${config.name}`;
+  const scriptPath = join(SCHEDULER_ROOT, `${config.name}.mjs`);
+  const logDir = join(SCHEDULER_LOGS, `.${config.name}`);
   const runAtLoad = config.runAtLoad ?? false;
 
   // Use zsh login shell + explicitly source asdf.sh to ensure ~/.asdf/shims
