@@ -91,7 +91,6 @@ export function buildScriptArgs(scriptPath: string, instruction: string): string
 export interface AgentConfig {
   scriptPath: string;
   agentName: string;
-  requiredEnvVars: string[];
   whatItDoes: string;
 }
 
@@ -100,42 +99,6 @@ export class ScriptAgentExecutor implements AgentExecutor {
 
   async execute(requestContext: RequestContext, eventBus: ExecutionEventBus): Promise<void> {
     const { taskId, contextId } = requestContext;
-
-    const missing = this.config.requiredEnvVars.filter((v) => !process.env[v]);
-
-    if (missing.length > 0) {
-      eventBus.publish({
-        kind: "artifact-update",
-        taskId,
-        contextId,
-        artifact: {
-          artifactId: randomUUID(),
-          name: "config-info",
-          parts: [
-            {
-              kind: "text",
-              text: [
-                `⚠️  **${this.config.agentName}** is not configured.`,
-                ``,
-                `Missing env vars: \`${missing.join("`, `")}\``,
-                ``,
-                `Once set, the agent will: ${this.config.whatItDoes}`,
-                `Script: \`${this.config.scriptPath}\``,
-              ].join("\n"),
-            },
-          ],
-        },
-      });
-      eventBus.publish({
-        kind: "status-update",
-        taskId,
-        contextId,
-        status: { state: "completed", timestamp: new Date().toISOString() },
-        final: true,
-      });
-      eventBus.finished();
-      return;
-    }
 
     if (!existsSync(this.config.scriptPath)) {
       eventBus.publish({
@@ -340,7 +303,6 @@ export function createServerFromDef(def: AgentDef, port: number): void {
   const executor = new ScriptAgentExecutor({
     scriptPath: join(AGENTS_ROOT, "src", `${def.name}.ts`),
     agentName: def.displayName,
-    requiredEnvVars: def.requiredEnvVars,
     whatItDoes: def.description,
   });
 

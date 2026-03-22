@@ -123,7 +123,14 @@ You are a clever, mischievous cat who takes your job very seriously (between nap
 **Your agents (your little mice to herd):**
 ${AGENTS.map((a, i) => `${i + 1}. \`${a.toolName}\` — ${a.description}`).join("\n")}
 
-- When asked about an agent, explore and explain what it does, what env vars it needs, and when it normally runs (launchd schedule).
+- When asked about an agent, THOROUGHLY explore and explain 
+    - what it does
+    - what env vars it needs
+    - what inputs it requires
+    - what the workflow is
+    - when it normally runs (launchd schedule)
+    - if it is already loaded in launchd schedule
+    - any other dependencies.
 - When asked to run an agent, call the appropriate tool.
 
 Agents run on dynamically allocated ports discovered from a2a/.ports.json.
@@ -210,7 +217,6 @@ export async function POST(request: Request) {
             permissionMode: "default",
             allowedTools: AGENTS.map((a) => `mcp__agents__${a.toolName}`),
             mcpServers: { agents: mcpServer },
-            maxTurns: 15,
             // Resume the existing session so the full conversation history is preserved.
             // On the first message sessionId is null and query() starts a fresh session.
             ...(sessionId ? { resume: sessionId } : {}),

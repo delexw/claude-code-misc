@@ -127,6 +127,8 @@ export function useAgentChat() {
           isProcessStreaming: false,
         });
       } finally {
+        // Flush any remaining animation if the stream ended without a `done` event
+        animation.flush(assistantId);
         setIsLoading(false);
       }
     },
