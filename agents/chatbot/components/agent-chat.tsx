@@ -1,75 +1,67 @@
 "use client";
 
 import * as React from "react";
-import { Trash2 } from "lucide-react";
-import { PiCat } from "react-icons/pi";
+import { Bell, Settings, Trash2 } from "lucide-react";
+import { USER_AVATAR } from "@/lib/avatars";
 import {
   Conversation,
   ConversationContent,
   ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import {
-  PromptInput,
-  PromptInputBody,
-  PromptInputFooter,
-  PromptInputSubmit,
-  PromptInputTextarea,
-} from "@/components/ai-elements/prompt-input";
+import { ChatInputBar } from "./agent-chat/chat-input-bar";
 import { useAgentChat } from "@/components/hooks/use-agent-chat";
+import { AGENTS } from "@@/lib/agents";
 import { AgentSidebar } from "./agent-chat/agent-sidebar";
 import { ChatMessageItem } from "./agent-chat/chat-message";
-import { FloatingCatIcon } from "./agent-chat/floating-cat-icon";
-import { SuggestionChips } from "./agent-chat/suggestion-chips";
+import { IntroCard } from "./agent-chat/intro-card";
 
 export function AgentChat() {
-  const { messages, isLoading, sendMessage, clearMessages } = useAgentChat();
-
-  const handlePromptSubmit = React.useCallback(
-    ({ text }: { text: string }) => {
-      void sendMessage(text);
-    },
-    [sendMessage],
-  );
-
-  const status = isLoading ? "submitted" : "ready";
+  const { messages, isLoading, sendMessage, cancelMessage, clearMessages } = useAgentChat();
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <AgentSidebar />
 
-      <div className="flex flex-col flex-1 min-w-0">
-        <header className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
-          <div>
-            <h1 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-              <PiCat className="w-4 h-4" /> Dove
+      <main className="flex-1 flex flex-col bg-background relative min-w-0">
+        {/* Glass header */}
+        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/20 flex justify-between items-center w-full px-8 py-4 shrink-0">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold text-foreground tracking-tight">
+              Dove
             </h1>
-            <p className="text-xs text-muted-foreground">Yang&apos;s cat · A2A SSE · 5 agents</p>
+            <span className="px-2.5 py-0.5 rounded-full bg-accent text-[10px] font-bold text-accent-foreground tracking-wider uppercase">
+              Active Session
+            </span>
           </div>
-          {messages.length > 0 && (
-            <button
-              onClick={clearMessages}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Clear
+          <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <button
+                onClick={clearMessages}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+                title="Clear chat"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+            <button className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
+              <Bell className="w-4 h-4" />
             </button>
-          )}
+            <button className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
+              <Settings className="w-4 h-4" />
+            </button>
+            <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-primary/10">
+              <img src={USER_AVATAR} alt="User" className="w-full h-full object-cover" />
+            </div>
+          </div>
         </header>
 
-        <Conversation className="flex-1">
+        {/* Chat area */}
+        <Conversation className="flex-1 bg-background">
           <ConversationContent>
             {messages.length === 0 ? (
-              <ConversationEmptyState>
-                <FloatingCatIcon />
-                <div className="space-y-1.5 text-center">
-                  <h3 className="font-semibold text-base">Meow~ I&apos;m Dove!</h3>
-                  <p className="text-muted-foreground text-sm max-w-xs">
-                    Yang&apos;s cat and your agent wrangler. I&apos;ve got 5 agents napping until
-                    you need them. Just say the word — or a treat works too. 🐾
-                  </p>
-                </div>
-                <SuggestionChips onSelect={sendMessage} />
+              <ConversationEmptyState className="justify-start pt-8">
+                <IntroCard onSelect={sendMessage} />
               </ConversationEmptyState>
             ) : (
               messages.map((msg) => <ChatMessageItem key={msg.id} msg={msg} />)
@@ -78,21 +70,17 @@ export function AgentChat() {
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="px-4 pb-4 pt-2 border-t border-border shrink-0">
-          <PromptInput onSubmit={handlePromptSubmit}>
-            <PromptInputBody>
-              <PromptInputTextarea placeholder="Meow… what do you need, Yang?" />
-            </PromptInputBody>
-            <PromptInputFooter>
-              <PromptInputSubmit status={status} />
-            </PromptInputFooter>
-          </PromptInput>
-          <p className="text-center text-xs text-muted-foreground mt-2">
-            Uses <code className="text-xs">~/.claude/</code> ·{" "}
-            <span className="font-medium">@anthropic-ai/claude-agent-sdk</span>
+        <footer className="px-6 pb-6 pt-0 w-full max-w-5xl mx-auto shrink-0">
+          <ChatInputBar onSubmit={sendMessage} onCancel={cancelMessage} isLoading={isLoading} />
+          <p className="text-center mt-3 text-[10px] text-muted-foreground/40 font-medium tracking-widest uppercase">
+            Secured by DovePaw Sentinel
           </p>
-        </div>
-      </div>
+        </footer>
+
+        {/* Background gradient overlays */}
+        <div className="fixed top-0 right-0 w-1/3 h-full bg-linear-to-l from-primary/5 to-transparent pointer-events-none z-0" />
+        <div className="fixed bottom-0 left-0 w-1/2 h-1/2 bg-linear-to-tr from-accent/10 to-transparent pointer-events-none z-0" />
+      </main>
     </div>
   );
 }

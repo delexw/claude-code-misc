@@ -208,6 +208,7 @@ export async function POST(request: Request) {
               append: SYSTEM_PROMPT,
             },
             permissionMode: "default",
+            allowedTools: AGENTS.map((a) => `mcp__agents__${a.toolName}`),
             mcpServers: { agents: mcpServer },
             maxTurns: 15,
             // Resume the existing session so the full conversation history is preserved.

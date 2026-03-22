@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { animate } from "animejs";
-import { PiCat } from "react-icons/pi";
+import { PawPrint } from "lucide-react";
 
 export function FloatingCatIcon() {
   const ref = React.useRef<HTMLSpanElement>(null);
@@ -23,7 +23,7 @@ export function FloatingCatIcon() {
 
   return (
     <span ref={ref} className="inline-block">
-      <PiCat className="w-16 h-16 text-foreground" />
+      <PawPrint className="w-16 h-16 text-primary/60" />
     </span>
   );
 }

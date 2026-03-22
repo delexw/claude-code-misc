@@ -1,13 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Agent Orchestrator",
-  description:
-    "Chat interface for Claude Code background agents — powered by Claude Agent SDK and A2A SSE",
+  title: "DovePaw",
+  description: "DovePaw AI agent orchestrator — your crew of background Claude Code agents",
 };
 
 export const viewport: Viewport = {
@@ -18,7 +17,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${plusJakartaSans.variable} font-sans antialiased`}>{children}</body>
     </html>
   );
 }

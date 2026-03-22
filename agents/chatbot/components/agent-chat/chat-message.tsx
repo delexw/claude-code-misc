@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { Ban } from "lucide-react";
+import { DOVE_AVATAR } from "@/lib/avatars";
 import { MessageContent, MessageResponse, MessageToolbar } from "@/components/ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Shimmer } from "@/components/ai-elements/shimmer";
@@ -10,10 +12,18 @@ import { CopyAction } from "./copy-action";
 import { ThinkingDots } from "./thinking-dots";
 
 const MESSAGE_RESPONSE_SPACING =
-  "[&_p]:my-3 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_h1]:mt-5 [&_h1]:mb-2 [&_h2]:mt-5 [&_h2]:mb-2 [&_h3]:mt-4 [&_h3]:mb-1.5 [&_h4]:mt-3 [&_h4]:mb-1 [&_ul]:my-2 [&_ul]:pl-6 [&_ol]:my-2 [&_ol]:pl-6 [&_li]:my-1 [&_pre]:my-3";
+  "[&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:mt-4 [&_h2]:mb-1.5 [&_h3]:mt-3 [&_h3]:mb-1 [&_h4]:mt-2.5 [&_h4]:mb-1 [&_ul]:my-2 [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:pl-5 [&_li]:my-0.5 [&_pre]:my-2";
+
+function AssistantAvatar() {
+  return (
+    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border-2 border-secondary shadow-sm mb-0.5">
+      <img src={DOVE_AVATAR} alt="Dove" className="w-full h-full object-cover" />
+    </div>
+  );
+}
 
 export function ChatMessageItem({ msg }: { msg: ChatMessage }) {
-  return (
+  const messageContent = (
     <AnimatedMessage from={msg.role}>
       {/* Process block — collapsed by default, live preview in trigger while streaming */}
       {msg.processContent ? (
@@ -37,23 +47,49 @@ export function ChatMessageItem({ msg }: { msg: ChatMessage }) {
         </Reasoning>
       ) : null}
 
-      <MessageContent>
-        {msg.isLoading && !msg.processContent && (
-          <div className="px-4 py-2.5 text-sm">
-            <ThinkingDots />
-          </div>
-        )}
-
-        {msg.content && (
-          <MessageResponse className={MESSAGE_RESPONSE_SPACING}>{msg.content}</MessageResponse>
-        )}
-
-        {!msg.isLoading && msg.role === "assistant" && (
-          <MessageToolbar className="justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-            <CopyAction text={msg.content} />
-          </MessageToolbar>
-        )}
-      </MessageContent>
+      {(msg.content || (!msg.isLoading && msg.role === "assistant")) && (
+        <MessageContent>
+          {msg.content && (
+            <MessageResponse className={MESSAGE_RESPONSE_SPACING}>{msg.content}</MessageResponse>
+          )}
+          {!msg.isLoading && msg.role === "assistant" && (
+            <MessageToolbar className="justify-start mt-0 max-h-0 overflow-hidden opacity-0 group-hover:max-h-8 group-hover:mt-1 group-hover:opacity-100 transition-all duration-150">
+              <CopyAction text={msg.content} />
+            </MessageToolbar>
+          )}
+        </MessageContent>
+      )}
     </AnimatedMessage>
   );
+
+  if (msg.role === "assistant") {
+    // Cancelled state — amber indicator
+    if (msg.isCancelled && !msg.content) {
+      return (
+        <div className="flex items-end gap-2.5 w-full">
+          <AssistantAvatar />
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl rounded-bl-none bg-amber-50 border border-amber-200 text-amber-600 text-sm font-medium">
+            <Ban className="w-3.5 h-3.5 shrink-0" />
+            Cancelled
+          </div>
+        </div>
+      );
+    }
+
+    // Pure loading state — no avatar, just dots
+    if (msg.isLoading && !msg.content && !msg.processContent) {
+      return <ThinkingDots />;
+    }
+
+    const hasContent = msg.content || (!msg.isLoading && msg.role === "assistant");
+
+    return (
+      <div className="flex items-end gap-2.5 w-full">
+        {hasContent && <AssistantAvatar />}
+        {messageContent}
+      </div>
+    );
+  }
+
+  return messageContent;
 }

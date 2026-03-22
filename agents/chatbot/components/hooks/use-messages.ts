@@ -11,6 +11,7 @@ export interface ChatMessage {
   processContent?: string;
   isProcessStreaming?: boolean;
   isLoading?: boolean;
+  isCancelled?: boolean;
 }
 
 export function useMessages() {

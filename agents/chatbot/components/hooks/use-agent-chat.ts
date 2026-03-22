@@ -12,6 +12,7 @@ export function useAgentChat() {
   const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const assistantIdRef = useRef<string | null>(null);
 
   const animation = useTextAnimation((id, content) => {
     patch(id, { content, isLoading: false });
@@ -28,6 +29,7 @@ export function useAgentChat() {
       abortRef.current = abort;
 
       const assistantId = crypto.randomUUID();
+      assistantIdRef.current = assistantId;
       append(
         { id: crypto.randomUUID(), role: "user", content: trimmed },
         { id: assistantId, role: "assistant", content: "", isLoading: true },
@@ -131,6 +133,19 @@ export function useAgentChat() {
     [isLoading, animation, patch, patchWhere, appendToProcess, append],
   );
 
+  const cancelMessage = useCallback(() => {
+    abortRef.current?.abort();
+    animation.reset();
+    if (assistantIdRef.current) {
+      patch(assistantIdRef.current, {
+        isLoading: false,
+        isCancelled: true,
+      });
+      assistantIdRef.current = null;
+    }
+    setIsLoading(false);
+  }, [animation, patch]);
+
   const clearMessages = useCallback(() => {
     abortRef.current?.abort();
     animation.reset();
@@ -139,5 +154,5 @@ export function useAgentChat() {
     sessionIdRef.current = null;
   }, [animation, clear]);
 
-  return { messages, isLoading, sendMessage, clearMessages };
+  return { messages, isLoading, sendMessage, cancelMessage, clearMessages };
 }
