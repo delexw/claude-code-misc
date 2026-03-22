@@ -8,7 +8,8 @@ import { useTextAnimation } from "./use-text-animation";
 export type { MessageRole, ChatMessage } from "./use-messages";
 
 export function useAgentChat() {
-  const { messages, patch, patchWhere, appendToProcess, append, clear } = useMessages();
+  const { messages, patch, patchWhere, appendToProcess, appendToolCall, append, clear } = useMessages();
+  const pendingToolNameRef = useRef<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -69,16 +70,17 @@ export function useAgentChat() {
               } else if (event.type === "thinking" && event.content) {
                 appendToProcess(assistantId, event.content);
               } else if (event.type === "tool_call") {
-                appendToProcess(assistantId, `\n\n**Tool: ${event.name}**\n\n`);
+                pendingToolNameRef.current = event.name;
               } else if (event.type === "tool_input") {
-                try {
-                  const parsed = JSON.parse(event.content) as Record<string, unknown>;
-                  const [key, val] = Object.entries(parsed)[0] ?? [];
-                  if (key !== undefined) {
-                    appendToProcess(assistantId, `${key}: \`${String(val)}\`\n\n`);
+                const toolName = pendingToolNameRef.current;
+                pendingToolNameRef.current = null;
+                if (toolName) {
+                  try {
+                    const input = JSON.parse(event.content) as Record<string, unknown>;
+                    appendToolCall(assistantId, { name: toolName, input });
+                  } catch {
+                    appendToolCall(assistantId, { name: toolName, input: { raw: event.content } });
                   }
-                } catch {
-                  // ignore unparseable input
                 }
               } else if (event.type === "text" && event.content) {
                 patch(assistantId, { isProcessStreaming: false });
@@ -132,7 +134,7 @@ export function useAgentChat() {
         setIsLoading(false);
       }
     },
-    [isLoading, animation, patch, patchWhere, appendToProcess, append],
+    [isLoading, animation, patch, patchWhere, appendToProcess, appendToolCall, append],
   );
 
   const cancelMessage = useCallback(() => {

@@ -10,6 +10,7 @@ import type { ChatMessage } from "@/components/hooks/use-agent-chat";
 import { AnimatedMessage } from "./animated-message";
 import { CopyAction } from "./copy-action";
 import { ThinkingDots } from "./thinking-dots";
+import { EditDiffList, ToolCallList } from "./tool-call-badge";
 
 const MESSAGE_RESPONSE_SPACING =
   "[&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:mt-4 [&_h2]:mb-1.5 [&_h3]:mt-3 [&_h3]:mb-1 [&_h4]:mt-2.5 [&_h4]:mb-1 [&_ul]:my-2 [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:pl-5 [&_li]:my-0.5 [&_pre]:my-2";
@@ -46,6 +47,13 @@ export function ChatMessageItem({ msg }: { msg: ChatMessage }) {
           <ReasoningContent>{msg.processContent}</ReasoningContent>
         </Reasoning>
       ) : null}
+
+      {msg.toolCalls && msg.toolCalls.length > 0 && (
+        <ToolCallList toolCalls={msg.toolCalls} />
+      )}
+      {msg.toolCalls && msg.toolCalls.length > 0 && (
+        <EditDiffList toolCalls={msg.toolCalls} />
+      )}
 
       {(msg.content || (!msg.isLoading && msg.role === "assistant")) && (
         <MessageContent>

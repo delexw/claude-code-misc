@@ -4,6 +4,11 @@ import { useState, useCallback, useRef, useEffect } from "react";
 
 export type MessageRole = "user" | "assistant";
 
+export interface ToolCall {
+  name: string;
+  input: Record<string, unknown>;
+}
+
 export interface ChatMessage {
   id: string;
   role: MessageRole;
@@ -12,6 +17,7 @@ export interface ChatMessage {
   isProcessStreaming?: boolean;
   isLoading?: boolean;
   isCancelled?: boolean;
+  toolCalls?: ToolCall[];
 }
 
 export function useMessages() {
@@ -52,6 +58,16 @@ export function useMessages() {
     [],
   );
 
+  const appendToolCall = useCallback(
+    (id: string, toolCall: ToolCall) =>
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === id ? { ...m, toolCalls: [...(m.toolCalls ?? []), toolCall] } : m,
+        ),
+      ),
+    [],
+  );
+
   const append = useCallback(
     (...newMessages: ChatMessage[]) => setMessages((prev) => [...prev, ...newMessages]),
     [],
@@ -61,5 +77,5 @@ export function useMessages() {
 
   const find = useCallback((id: string) => ref.current.find((m) => m.id === id), []);
 
-  return { messages, setMessages, patch, patchWhere, appendToProcess, append, clear, find };
+  return { messages, setMessages, patch, patchWhere, appendToProcess, appendToolCall, append, clear, find };
 }
