@@ -6,6 +6,7 @@ import { AGENTS } from "@@/lib/agents";
 import { cn } from "@/lib/utils";
 import { WS_PORT } from "@/a2a/heartbeat-types";
 import type { AgentStatus, StatusMessage } from "@/a2a/heartbeat-types";
+import { AgentButton } from "./agent-button";
 
 const WS_URL = `ws://127.0.0.1:${WS_PORT}`;
 const RECONNECT_DELAY_MS = 3_000;
@@ -57,6 +58,7 @@ export function AgentSidebar() {
   const statuses = useAgentStatuses();
   const [activeIndex, setActiveIndex] = React.useState(0);
 
+  const hasData = Object.keys(statuses).length > 0;
   const onlineCount = Object.values(statuses).filter((s) => s.online).length;
   const anyOnline = onlineCount > 0;
 
@@ -81,44 +83,16 @@ export function AgentSidebar() {
 
       {/* Agent nav */}
       <nav className="flex flex-col gap-1 flex-1 overflow-y-auto misty-scroll px-2">
-        {AGENTS.map((agent, i) => {
-          const Icon = agent.icon;
-          const isActive = i === activeIndex;
-          const status = statuses[agent.manifestKey];
-          const isOnline = status?.online ?? false;
-
-          return (
-            <button
-              key={agent.manifestKey}
-              onClick={() => setActiveIndex(i)}
-              className={cn(
-                "mx-2 my-0.5 rounded-lg px-4 py-3 flex items-center gap-3 text-left transition-all w-[calc(100%-1rem)]",
-                isActive
-                  ? "bg-blue-100/60 text-blue-900 border-l-4 border-blue-500"
-                  : "text-muted-foreground hover:bg-muted hover:translate-x-0.5 duration-200",
-              )}
-            >
-              <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-blue-700" : "")} />
-              <span
-                className={cn("flex-1 text-sm font-medium", !isActive && "text-foreground/80")}
-              >
-                {agent.displayName}
-              </span>
-              <span
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-500",
-                  isActive
-                    ? "bg-blue-500"
-                    : isOnline
-                      ? "bg-green-500 animate-pulse"
-                      : Object.keys(statuses).length === 0
-                        ? "bg-muted-foreground/20"
-                        : "bg-red-400/60",
-                )}
-              />
-            </button>
-          );
-        })}
+        {AGENTS.map((agent, i) => (
+          <AgentButton
+            key={agent.manifestKey}
+            agent={agent}
+            isActive={i === activeIndex}
+            status={statuses[agent.manifestKey]}
+            hasData={hasData}
+            onClick={() => setActiveIndex(i)}
+          />
+        ))}
       </nav>
 
       {/* Bottom branding */}
@@ -133,7 +107,7 @@ export function AgentSidebar() {
               )}
             />
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              {Object.keys(statuses).length === 0
+              {!hasData
                 ? "Connecting…"
                 : anyOnline
                   ? `System Status: Optimal · ${onlineCount} active`
