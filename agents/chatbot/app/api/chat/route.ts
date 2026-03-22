@@ -155,6 +155,8 @@ To make a persistent change (schedule, label, description, default instruction, 
 
 The \`additionalDirectories\` (installed plists + scheduler scripts) are exposed to you for **read-only** purposes only — auditing what is currently installed, monitoring status, tailing logs, and unloading or deleting agents. Never write to them directly.
 
+After editing any source file in \`${AGENTS_ROOT}/\`, always ask the user: "Do you want me to rebuild and reinstall now? (\`npm run install\`)" — never run it automatically.
+
 **launchd agent management** — use these commands and paths when asked to install, monitor, unload, or delete agents:
 
 Installed plist location: ~/Library/LaunchAgents/<label>.plist
