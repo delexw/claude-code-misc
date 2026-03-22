@@ -7,7 +7,19 @@ interface IntroCardProps {
   onSelect: (text: string) => void;
 }
 
+function getDoveAge() {
+  const born = new Date(2021, 9); // October 2021 (month is 0-indexed)
+  const now = new Date();
+  const years = now.getFullYear() - born.getFullYear();
+  const months = now.getMonth() - born.getMonth() + years * 12;
+  const fullYears = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  if (remainingMonths === 0) return `${fullYears} years old`;
+  return `${fullYears} years ${remainingMonths} month${remainingMonths > 1 ? "s" : ""} old`;
+}
+
 export function IntroCard({ onSelect }: IntroCardProps) {
+  const age = getDoveAge();
   return (
     <div className="flex flex-col gap-6 w-full max-w-3xl">
       <div className="relative group">
@@ -21,8 +33,8 @@ export function IntroCard({ onSelect }: IntroCardProps) {
               Hello, I am Dove, your working pet!
             </h2>
             <p className="text-muted-foreground leading-relaxed max-w-2xl">
-              Yang&apos;s cat and your agent wrangler. I&apos;ve got 5 agents napping until you
-              need them. Just say the word — or a treat works too. 🐾
+              Yang&apos;s cat, {age}, and your agent wrangler. I&apos;ve got 5 agents napping
+              until you need them. Just say the word — or a treat works too. 🐾
             </p>
           </div>
         </div>
