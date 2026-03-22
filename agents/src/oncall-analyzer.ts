@@ -1,7 +1,12 @@
 /**
- * Oncall Analyzer - Daily Post Incident Record generator
- * Runs daily at 9:00 AM via launchd
- * Analyzes PagerDuty incidents from the past 24 hours using the /pir skill
+ * Oncall Analyzer - Post Incident Record generator
+ * Runs daily at 9:00 AM via launchd (default: past 24 hours)
+ *
+ * When spawned by the chatbot A2A server, receives the user's instruction as argv[2].
+ * When run via launchd, argv[2] is set in the plist ProgramArguments, defaulting to "incidents today".
+ *
+ * The instruction is passed directly to the /pir skill as its argument string.
+ * Examples: "incidents today", "P1AB1234", "past 6 hours elements.envato.com:zone123"
  */
 
 import { basename, join, dirname } from "node:path";
@@ -14,8 +19,8 @@ import { parseRepos } from "./lib/repos.js";
 // ─── Configuration ──────────────────────────────────────────────────────────
 
 const REPOS = parseRepos("PIR_REPOS");
-const DOMAIN = process.env.PIR_DOMAIN || "";
-const ZONE_ID = process.env.PIR_ZONE_ID || "";
+// Instruction passed as argv[2] from chatbot or launchd ProgramArguments.
+const INSTRUCTION = process.argv[2] || "incidents today";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const LOG_DIR = join(SCRIPT_DIR, "logs/.oncall-analyzer");
@@ -26,7 +31,7 @@ const { log } = createLogger(LOG_DIR, LOG_FILE);
 
 async function main() {
   log("=== Oncall Analyzer started ===");
-  log("Analyzing incidents from the past 24 hours");
+  log(`Instruction: ${INSTRUCTION}`);
 
   // Fetch latest from remote main for each repo
   log("Fetching latest remote main for all repos...");
@@ -38,7 +43,7 @@ async function main() {
     }),
   );
 
-  const prompt = `/pir 'the past 24 hours' ${DOMAIN}:${ZONE_ID}`;
+  const prompt = `/pir ${INSTRUCTION}`;
   log("Invoking Claude CLI...");
 
   const { code: exitCode, stdout: claudeOutput } = await spawnClaude(

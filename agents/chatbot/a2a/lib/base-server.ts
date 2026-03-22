@@ -18,6 +18,7 @@ import { consola } from "consola";
 import express from "express";
 import { AGENT_CARD_PATH } from "@a2a-js/sdk";
 import type { AgentCard } from "@a2a-js/sdk";
+import type { TextPart } from "@a2a-js/sdk";
 import type { AgentExecutor, RequestContext, ExecutionEventBus } from "@a2a-js/sdk/server";
 import type { AgentDef } from "@@/lib/agents";
 import { DefaultRequestHandler, InMemoryTaskStore } from "@a2a-js/sdk/server";
@@ -67,6 +68,22 @@ export function readPortsManifest(): PortsManifest | null {
   } catch {
     return null;
   }
+}
+
+// ─── Pure helpers (exported for testing) ─────────────────────────────────────
+
+/** Extract the plain text instruction from an A2A user message's parts. */
+export function extractInstruction(parts: { kind: string; text?: string }[]): string {
+  return parts
+    .filter((p) => p.kind === "text")
+    .map((p) => p.text ?? "")
+    .join(" ")
+    .trim();
+}
+
+/** Build the argv array for spawning the agent script. */
+export function buildScriptArgs(scriptPath: string, instruction: string): string[] {
+  return instruction ? [scriptPath, instruction] : [scriptPath];
 }
 
 // ─── Script-spawning executor ─────────────────────────────────────────────────
@@ -142,6 +159,10 @@ export class ScriptAgentExecutor implements AgentExecutor {
       return;
     }
 
+    // Extract the user's instruction from the A2A message and pass it as argv[2]
+    // so the script receives context from the chatbot rather than relying on env vars.
+    const instruction = extractInstruction(requestContext.userMessage.parts);
+
     consola.start(`Running ${this.config.agentName}…`);
 
     eventBus.publish({
@@ -153,7 +174,8 @@ export class ScriptAgentExecutor implements AgentExecutor {
     });
 
     const tsxBin = existsSync(TSX_BIN) ? TSX_BIN : "tsx";
-    const proc = spawn(tsxBin, [this.config.scriptPath], {
+    const scriptArgs = buildScriptArgs(this.config.scriptPath, instruction);
+    const proc = spawn(tsxBin, scriptArgs, {
       env: process.env,
       cwd: AGENTS_ROOT,
       stdio: ["ignore", "pipe", "pipe"],

@@ -1,5 +1,4 @@
 import { existsSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // vi.hoisted initialises the value before vi.mock factories run.
@@ -108,3 +107,4 @@ describe("writePortsManifest", () => {
     expect(readPortsManifest()?.experience_reflector).toBe(99999);
   });
 });
+
