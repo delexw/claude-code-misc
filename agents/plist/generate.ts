@@ -54,10 +54,9 @@ export function generatePlist(config: AgentConfig, home: string): string {
 
   // Use zsh login shell + explicitly source asdf.sh to ensure ~/.asdf/shims
   // is on PATH (login shell alone doesn't source .zshrc in launchd context).
-  // "$@" forwards any extra ProgramArguments entries (after "--") as positional args to the script.
   const asdfSh = "/opt/homebrew/opt/asdf/libexec/asdf.sh";
   const shellCmd = escapeXml(
-    `[ -f '${asdfSh}' ] && . '${asdfSh}'; [ -f '${envrcPath}' ] && source '${envrcPath}'; exec '${nodePath}' '${scriptPath}' "$@"`,
+    `[ -f '${asdfSh}' ] && . '${asdfSh}'; [ -f '${envrcPath}' ] && source '${envrcPath}'; exec '${nodePath}' '${scriptPath}'`,
   );
 
   const sections: string[] = [];
@@ -73,16 +72,12 @@ export function generatePlist(config: AgentConfig, home: string): string {
   // ProcessType
   sections.push("    <key>ProcessType</key>", "    <string>Interactive</string>");
 
-  // ProgramArguments — "--" separator passes subsequent entries as "$@" to the script
+  // ProgramArguments
   const programArgs = [
     "        <string>/bin/zsh</string>",
     "        <string>-l</string>",
     "        <string>-c</string>",
     `        <string>${shellCmd}</string>`,
-    "        <string>--</string>",
-    ...(config.defaultInstruction
-      ? [`        <string>${escapeXml(config.defaultInstruction)}</string>`]
-      : []),
   ];
   sections.push("    <key>ProgramArguments</key>", "    <array>", ...programArgs, "    </array>");
 

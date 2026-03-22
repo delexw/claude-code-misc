@@ -28,8 +28,6 @@ export interface AgentDef {
   runAtLoad?: boolean;
   /** Extra static env vars to embed in the launchd plist */
   envVars?: Record<string, string>;
-  /** Default instruction passed as argv[2] when spawned by launchd */
-  defaultInstruction?: string;
 }
 
 export const AGENTS: AgentDef[] = [
@@ -108,7 +106,6 @@ export const AGENTS: AgentDef[] = [
       "Pass the instruction directly, e.g. 'incidents today', 'P1AB1234', " +
       "or 'past 6 hours elements.envato.com:zone123'. Requires PIR_REPOS env var.",
     requiredEnvVars: ["PIR_REPOS"],
-    defaultInstruction: "incidents today",
     icon: BellRing,
     scheduleDisplay: "daily 09:00",
     schedule: { type: "calendar", hour: 9, minute: 0 },
