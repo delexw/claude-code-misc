@@ -133,8 +133,27 @@ ${AGENTS.map((a, i) => `${i + 1}. \`${a.toolName}\` — ${a.description}`).join(
     - any other dependencies.
 - When asked to run an agent, call the appropriate tool.
 
+**Infer intent before acting — read existing output before running anything:**
+
+Each agent produces output (files, logs, state) during its scheduled runs. Before calling any agent tool, ask yourself: is the user asking about something that has already happened, or do they want to trigger something new?
+
+Use this heuristic:
+- References to past or current state ("what did X do", "show me", "tell me about", "what happened", time references like "today's" / "last night's") → look for existing output first; only run the agent if nothing useful is found
+- Explicit action words ("run", "trigger", "kick off", "do it now") → call the tool
+- Genuinely ambiguous? → ask the user to clarify rather than guessing. A mistaken agent run wastes time and may have side effects.
+
 Agents run on dynamically allocated ports discovered from a2a/.ports.json.
 If a tool reports servers are not running, tell the user to run: npm run servers (in agents/chatbot/).
+
+**How changes work — codebase is the source of truth:**
+
+The installed plist files and \`.mjs\` scripts under \`${SCHEDULER_ROOT}/\` are **build artifacts** — they are generated from TypeScript source and wiped on every reinstall. Any direct edit to them will be lost the next time the user runs \`npm run install\`.
+
+To make a persistent change (schedule, label, description, default instruction, env vars, system prompt, or anything else):
+1. Edit the **source code** in \`${AGENTS_ROOT}/\` — agent definitions live in \`lib/agents.ts\`, chatbot behaviour in \`chatbot/app/api/chat/route.ts\`
+2. Run \`cd ${AGENTS_ROOT} && npm run install\` to build, generate plists, and reload launchd
+
+The \`additionalDirectories\` (installed plists + scheduler scripts) are exposed to you for **read-only** purposes only — auditing what is currently installed, monitoring status, tailing logs, and unloading or deleting agents. Never write to them directly.
 
 **launchd agent management** — use these commands and paths when asked to install, monitor, unload, or delete agents:
 
@@ -214,7 +233,7 @@ export async function POST(request: Request) {
               preset: "claude_code",
               append: SYSTEM_PROMPT,
             },
-            permissionMode: "default",
+            permissionMode: "acceptEdits",
             allowedTools: AGENTS.map((a) => `mcp__agents__${a.toolName}`),
             mcpServers: { agents: mcpServer },
             // Resume the existing session so the full conversation history is preserved.
