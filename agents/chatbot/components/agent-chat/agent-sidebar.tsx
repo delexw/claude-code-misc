@@ -4,34 +4,61 @@ import * as React from "react";
 import { PawPrint } from "lucide-react";
 import { AGENTS } from "@@/lib/agents";
 import { cn } from "@/lib/utils";
+import { WS_PORT } from "@/a2a/heartbeat-types";
+import type { AgentStatus, StatusMessage } from "@/a2a/heartbeat-types";
 
-export function AgentSidebar() {
-  const [ports, setPorts] = React.useState<Record<string, number> | null>(null);
-  const [online, setOnline] = React.useState(false);
-  const [activeIndex, setActiveIndex] = React.useState(0);
+const WS_URL = `ws://127.0.0.1:${WS_PORT}`;
+const RECONNECT_DELAY_MS = 3_000;
+
+function useAgentStatuses() {
+  const [statuses, setStatuses] = React.useState<Record<string, AgentStatus>>({});
 
   React.useEffect(() => {
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
-    const poll = async () => {
-      try {
-        const res = await fetch("/api/ports");
-        if (!cancelled && res.ok) {
-          setPorts((await res.json()) as Record<string, number>);
-          setOnline(true);
-        } else if (!cancelled) {
-          setOnline(false);
+
+    function connect() {
+      ws = new WebSocket(WS_URL);
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data as string) as StatusMessage;
+          if (msg.type === "status") setStatuses(msg.agents);
+        } catch {
+          // ignore malformed messages
         }
-      } catch {
-        if (!cancelled) setOnline(false);
-      }
-    };
-    void poll();
-    const id = setInterval(() => void poll(), 10_000);
+      };
+
+      ws.onclose = () => {
+        if (!cancelled) {
+          reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
+        }
+      };
+
+      ws.onerror = () => {
+        ws?.close();
+      };
+    }
+
+    connect();
+
     return () => {
       cancelled = true;
-      clearInterval(id);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      ws?.close();
     };
   }, []);
+
+  return statuses;
+}
+
+export function AgentSidebar() {
+  const statuses = useAgentStatuses();
+  const [activeIndex, setActiveIndex] = React.useState(0);
+
+  const onlineCount = Object.values(statuses).filter((s) => s.online).length;
+  const anyOnline = onlineCount > 0;
 
   return (
     <aside className="h-screen w-72 shrink-0 flex flex-col bg-background border-r border-border/30">
@@ -57,6 +84,9 @@ export function AgentSidebar() {
         {AGENTS.map((agent, i) => {
           const Icon = agent.icon;
           const isActive = i === activeIndex;
+          const status = statuses[agent.manifestKey];
+          const isOnline = status?.online ?? false;
+
           return (
             <button
               key={agent.manifestKey}
@@ -69,12 +99,23 @@ export function AgentSidebar() {
               )}
             >
               <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-blue-700" : "")} />
-              <span className={cn("flex-1 text-sm font-medium", !isActive && "text-foreground/80")}>
+              <span
+                className={cn("flex-1 text-sm font-medium", !isActive && "text-foreground/80")}
+              >
                 {agent.displayName}
               </span>
-              {isActive && (
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-              )}
+              <span
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-500",
+                  isActive
+                    ? "bg-blue-500"
+                    : isOnline
+                      ? "bg-green-500 animate-pulse"
+                      : Object.keys(statuses).length === 0
+                        ? "bg-muted-foreground/20"
+                        : "bg-red-400/60",
+                )}
+              />
             </button>
           );
         })}
@@ -88,13 +129,15 @@ export function AgentSidebar() {
             <span
               className={cn(
                 "w-1.5 h-1.5 rounded-full shrink-0",
-                online ? "bg-green-500 animate-pulse" : "bg-muted-foreground/40",
+                anyOnline ? "bg-green-500 animate-pulse" : "bg-muted-foreground/40",
               )}
             />
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              {online
-                ? `System Status: Optimal · ${ports ? Object.keys(ports).length : 0} active`
-                : "Agents Offline"}
+              {Object.keys(statuses).length === 0
+                ? "Connecting…"
+                : anyOnline
+                  ? `System Status: Optimal · ${onlineCount} active`
+                  : "Agents Offline"}
             </p>
           </div>
         </div>

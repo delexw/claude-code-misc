@@ -7,6 +7,8 @@
 
 import { consola } from "consola";
 import { getAvailablePort, writePortsManifest, createServerFromDef } from "./lib/base-server.js";
+import { startHeartbeatServer } from "./heartbeat-server.js";
+import { WS_PORT } from "./heartbeat-types.js";
 import { PORTS_FILE } from "@/lib/paths";
 import { AGENTS } from "@@/lib/agents";
 
@@ -20,7 +22,9 @@ for (let i = 0; i < AGENTS.length; i++) {
   createServerFromDef(AGENTS[i], ports[i]);
 }
 
-writePortsManifest(manifest as Parameters<typeof writePortsManifest>[0]);
+const typedManifest = manifest as Parameters<typeof writePortsManifest>[0];
+writePortsManifest(typedManifest);
+startHeartbeatServer({ ...typedManifest, updatedAt: new Date().toISOString() });
 
 consola.box(
   [
@@ -28,6 +32,7 @@ consola.box(
     ...AGENTS.map((a, i) => `  ${a.displayName.padEnd(22)}:${ports[i]}`),
     "",
     `  📄  Port manifest → ${PORTS_FILE}`,
+    `  🔌  Heartbeat WS   → ws://127.0.0.1:${WS_PORT}`,
   ].join("\n"),
 );
 
