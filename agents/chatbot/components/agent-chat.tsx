@@ -73,7 +73,7 @@ export function AgentChat() {
         <footer className="px-6 pb-6 pt-0 w-full max-w-5xl mx-auto shrink-0">
           <ChatInputBar onSubmit={sendMessage} onCancel={cancelMessage} isLoading={isLoading} />
           <p className="text-center mt-3 text-[10px] text-muted-foreground/40 font-medium tracking-widest uppercase">
-            Secured by DovePaw Sentinel
+            Secured by Dove's whiskers
           </p>
         </footer>
 
