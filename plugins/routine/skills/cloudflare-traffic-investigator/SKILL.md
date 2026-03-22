@@ -16,9 +16,11 @@ Raw arguments: $ARGUMENTS
 Infer from the arguments:
 - DOMAIN: Cloudflare-protected domain to investigate
 - ZONE_ID: Cloudflare zone ID for the domain
-- TIME_RANGE: (optional) time range to investigate, in current agent's local timezone (detect via system clock), not UTC
+- TIME_RANGE: (optional) time range to investigate, in current agent's local timezone (detect via system clock)
+- SINCE: (optional) UTC ISO8601 start of analysis window. When provided, takes precedence over TIME_RANGE for all GraphQL queries.
+- UNTIL: (optional) UTC ISO8601 end of analysis window. When provided, takes precedence over TIME_RANGE for all GraphQL queries.
 
-If domain or zone ID cannot be inferred, ask the user via `AskUserQuestion`. Time range is collected in Step 1 if not provided.
+If domain or zone ID cannot be inferred, ask the user via `AskUserQuestion`. Time range is collected in Step 1 if neither TIME_RANGE nor SINCE/UNTIL are provided.
 
 ---
 

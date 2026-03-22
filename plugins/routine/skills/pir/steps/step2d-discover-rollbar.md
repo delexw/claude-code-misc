@@ -2,7 +2,16 @@
 
 This step runs concurrently with PagerDuty, Datadog, and Cloudflare discovery.
 
-Use the Skill tool to invoke "rollbar-reader" with args "QUERY". Then read and return the report contents from .rollbar-reader-tmp/report.md
+Build args and invoke the skill:
+
+- If SINCE, UNTIL, and TITLE_HINT are all set:
+  `Skill("rollbar-reader")` with args `"QUERY --since SINCE --until UNTIL --title TITLE_HINT"`
+- If SINCE and UNTIL are set (no TITLE_HINT):
+  `Skill("rollbar-reader")` with args `"QUERY --since SINCE --until UNTIL"`
+- Otherwise:
+  `Skill("rollbar-reader")` with args `"QUERY"`
+
+Then read and return the report contents from `.rollbar-reader-tmp/report.md`
 
 **Extract from report** (`.rollbar-reader-tmp/report.md`):
 - Active error items and occurrence counts → **What**

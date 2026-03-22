@@ -34,7 +34,9 @@ Use `AskUserQuestion` to collect required information if not already provided.
 
 ## Time range
 
-If TIME_RANGE was provided, use it directly — **do not ask the user again**.
+If SINCE and UNTIL were provided as UTC ISO8601, use them directly for all GraphQL queries (`datetimeGeq`/`datetimeLt` fields) — **do not ask the user again**. Convert to local timezone for display in reports only.
+
+Otherwise, if TIME_RANGE was provided, use it directly — **do not ask the user again**.
 
 Otherwise, ask: "What time range should I investigate? (Please include your timezone)"
 

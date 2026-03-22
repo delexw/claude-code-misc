@@ -19,6 +19,13 @@ Infer from the arguments:
 - QUERY: what to investigate. Passed directly to each sub-skill. Defaults to "incidents today".
 - CF_DOMAIN_ZONE: (optional) Cloudflare domain and zone ID in domain:zone_id format. Passed to the cloudflare-traffic-investigator skill. If not provided, the cloudflare skill will ask the user.
 
+Resolved during Step 1 (not provided directly):
+- SINCE: UTC ISO8601 start of analysis window. Auto-derived from explicit time in QUERY or from PD incident timestamps.
+- UNTIL: UTC ISO8601 end of analysis window. Auto-derived from explicit time in QUERY or from PD incident timestamps.
+- PD_INCIDENT: PagerDuty incident ID detected from QUERY (triggers PD-first orchestration path).
+- SERVICE_HINT: Service name extracted from PD incident (used to scope Datadog/Rollbar queries).
+- TITLE_HINT: Incident title extracted from PD incident (used as Rollbar keyword search terms).
+
 ## PIR Form Fields
 
 Each PIR maps to these fields — see [PIR Form Fields](references/pir-form-fields.md) for format, examples, and output template:
@@ -48,29 +55,37 @@ Use the highest applicable severity when multiple criteria match.
 
 ## Execution
 
-### Step 1: Prepare
+### Step 1: Prepare — Resolve Time Scope
 See [step1-gather-date-range.md](steps/step1-gather-date-range.md)
-— If `QUERY` is empty, ask the user what to investigate. Otherwise proceed directly.
+
+Detects the input mode from QUERY and resolves SINCE/UNTIL:
+- **PD URL/ID in QUERY** → runs pagerduty-oncall first (step 1b), extracts timestamps → sets SINCE, UNTIL, SERVICE_HINT, TITLE_HINT, PD_INCIDENT
+- **Explicit time in QUERY** → parses into UTC ISO8601 SINCE/UNTIL → all four sub-skills run in parallel
+- **Vague or empty QUERY** → defaults to past 24 hours → all four sub-skills run in parallel
 
 ### Step 2: Discover — PagerDuty, Datadog, Cloudflare, Rollbar
 
-Run all four in parallel (each sub-skill uses `context: fork` for isolation):
+Orchestration depends on whether PD_INCIDENT was resolved in Step 1:
+- **If PD_INCIDENT is set**: step 2a is skipped (data already collected). Run 2b + 2c + 2d in parallel.
+- **Otherwise**: run all four (2a + 2b + 2c + 2d) in parallel.
+
+Each sub-skill receives SINCE and UNTIL (UTC ISO8601) when available, ensuring a consistent analysis window across all data sources.
 
 #### 2a. PagerDuty — Incidents
 See [step2a-discover-incidents.md](steps/step2a-discover-incidents.md)
-— Invokes `Skill("pagerduty-oncall")`.
+— Invokes `Skill("pagerduty-oncall")`. Skipped if PD_INCIDENT was resolved in Step 1b.
 
 #### 2b. Datadog — Observability Data
 See [step2b-discover-datadog.md](steps/step2b-discover-datadog.md)
-— Invokes `Skill("datadog-analyser")`.
+— Invokes `Skill("datadog-analyser")`. Passes SINCE, UNTIL, SERVICE_HINT when available.
 
 #### 2c. Cloudflare — Traffic Analysis
 See [step2c-discover-cloudflare.md](steps/step2c-discover-cloudflare.md)
-— Invokes `Skill("cloudflare-traffic-investigator")`. Passes domain and zone ID from `CF_DOMAIN_ZONE` if provided.
+— Invokes `Skill("cloudflare-traffic-investigator")`. Passes domain and zone ID from `CF_DOMAIN_ZONE` if provided. Passes SINCE, UNTIL when available.
 
 #### 2d. Rollbar — Error Tracking
 See [step2d-discover-rollbar.md](steps/step2d-discover-rollbar.md)
-— Invokes `Skill("rollbar-reader")`.
+— Invokes `Skill("rollbar-reader")`. Passes SINCE, UNTIL, TITLE_HINT when available.
 
 ### Step 3a: Codebase Analysis
 See [step3a-codebase-analysis.md](steps/step3a-codebase-analysis.md)

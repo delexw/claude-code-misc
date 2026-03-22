@@ -2,7 +2,16 @@
 
 One of four concurrent discovery sources (alongside Datadog, Cloudflare, and Rollbar). All sources carry equal weight for incident discovery.
 
-Use the Skill tool to invoke "pagerduty-oncall" with args "QUERY". Then read and return the report contents from .pagerduty-oncall-tmp/report.md
+**If PD_INCIDENT was resolved in Step 1b**: Skip this step entirely. PagerDuty data is already in `.pagerduty-oncall-tmp/report.md`.
+
+Otherwise, build args and invoke the skill:
+
+- If SINCE and UNTIL are set (UTC ISO8601):
+  `Skill("pagerduty-oncall")` with args `"QUERY --since SINCE --until UNTIL"`
+- Otherwise:
+  `Skill("pagerduty-oncall")` with args `"QUERY"`
+
+Then read and return the report contents from `.pagerduty-oncall-tmp/report.md`
 
 **Extract from report** (`.pagerduty-oncall-tmp/report.md`):
 - All incident IDs, titles, services, statuses

@@ -16,7 +16,10 @@ Investigate and analyse Datadog observability data using the `pup` CLI.
 Raw arguments: $ARGUMENTS
 
 Infer from the arguments:
-- QUERY: what to analyse. Use current agent's local timezone (detect via system clock) for any time-based queries, not UTC.
+- QUERY: what to analyse.
+- SINCE: (optional) UTC ISO8601 start of analysis window. When provided, convert to epoch seconds for `pup` `--from` flags (e.g. `date -d "2026-03-20T02:30:00Z" +%s` on Linux, or `date -jf "%Y-%m-%dT%H:%M:%SZ" "2026-03-20T02:30:00Z" +%s` on macOS).
+- UNTIL: (optional) UTC ISO8601 end of analysis window. When provided, convert to epoch seconds for `pup` `--to` flags where supported; otherwise omit (defaults to now).
+- SERVICE_HINT: (optional) Service name to prioritise in queries (filter monitors, logs, APM by this service first).
 
 ## System Requirements
 - `pup` CLI installed — see https://github.com/datadog-labs/pup/blob/main/README.md
@@ -58,6 +61,37 @@ If `pup agent guide` is not available (command not found), use the known command
 
 Based on `QUERY`, determine which `pup` commands are most relevant. Use `--output=json` (default) for all commands to get structured output. Run commands sequentially.
 
+**Time window rule** — when QUERY contains a named day ("today", "yesterday") or a calendar range, compute the window using local day boundaries, not UTC calendar days. A user saying "today" means since local midnight, so an event at 11am local is included even if it falls on a different UTC date.
+
+For relative durations ("last 1h", "last 24h"), pass them directly as pup relative strings: `--from="1h"`, `--from="24h"`.
+
+For named days, compute the local day boundary as epoch seconds and pass to `--from`/`--to`:
+```bash
+# Start of local today as epoch (Linux / macOS)
+date -d "$(date +%Y-%m-%d) 00:00:00" +%s          # Linux
+date -jf "%Y-%m-%d %H:%M:%S" "$(date +%Y-%m-%d) 00:00:00" +%s  # macOS
+# Current time as epoch
+date +%s
+# Start of local yesterday
+date -d "$(date -d yesterday +%Y-%m-%d) 00:00:00" +%s          # Linux
+date -jf "%Y-%m-%d %H:%M:%S" "$(date -v-1d +%Y-%m-%d) 00:00:00" +%s  # macOS
+```
+
+**When SINCE and UNTIL are provided as UTC ISO8601**, convert each to epoch seconds and use them for all `--from`/`--to` flags instead of inferring time windows from QUERY. This ensures all Datadog queries cover exactly the same window as the other PIR sub-skills:
+```bash
+# Linux
+SINCE_EPOCH=$(date -d "2026-03-20T02:30:00Z" +%s)
+UNTIL_EPOCH=$(date -d "2026-03-20T06:00:00Z" +%s)
+# macOS
+SINCE_EPOCH=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "2026-03-20T02:30:00Z" +%s)
+UNTIL_EPOCH=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "2026-03-20T06:00:00Z" +%s)
+```
+
+**When SERVICE_HINT is provided**, prioritise it in queries:
+- Filter monitors: `pup monitors search --query="service:<SERVICE_HINT>"`
+- Scope log searches with `service:<SERVICE_HINT>` in the query string
+- Focus APM traces on that service first
+
 **Common analysis patterns:**
 
 | Goal | Commands |
@@ -77,7 +111,7 @@ All commands default to JSON output. Use flags like `--from`, `--to`, `--query`,
 
 ### 4. Report
 
-All timestamps in the report must use current agent's local timezone (detect via system clock), not UTC.
+All timestamps in the report must use current agent's local timezone (detect via system clock), not UTC. Format: `2026-03-20 15:30 NZDT` (with TZ abbreviation). Do NOT use UTC in user-facing report sections — this includes timestamps that come directly from API responses (e.g. `last_triggered`, `overall_state_modified`, event times). Convert every timestamp to local time before writing it to the report.
 
 Write a structured analysis to `.datadog-analyser-tmp/report.md` using the Write tool:
 

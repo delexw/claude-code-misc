@@ -2,7 +2,7 @@
 name: pagerduty-oncall
 description: Investigate PagerDuty incidents for Envato on-call escalation policies. Use when asked about incidents, on-call status, incident analysis, or PagerDuty investigation.
 argument-hint: <what-to-investigate>
-allowed-tools: Bash(pd auth *), Bash(pd ep list *), Bash(pd incident list *), Bash(pd incident log *), Bash(pd incident notes *), Bash(pd incident analytics *), Bash(node *), Bash(mkdir *), Bash(test *), Bash(chmod *), Read, Write, Edit
+allowed-tools: Bash(pd auth *), Bash(pd ep list *), Bash(pd incident list *), Bash(pd rest *), Bash(pd incident log *), Bash(pd incident notes *), Bash(pd incident analytics *), Bash(node *), Bash(mkdir *), Bash(test *), Bash(chmod *), Bash(date *), Read, Write, Edit
 model: sonnet
 context: fork
 ---
@@ -16,7 +16,12 @@ Authenticate, list escalation policies, fetch all incidents and their details, t
 Raw arguments: $ARGUMENTS
 
 Infer from the arguments:
-- QUERY: what to investigate. Defaults to "incidents today". Interpret the time range to derive --since and --until dates (YYYY-MM-DD) in the agent's local timezone (detect via system clock), not UTC. See the date derivation table in Step 5.
+- QUERY: what to investigate. Defaults to "incidents today". Interpret the time range to derive --since and --until dates (YYYY-MM-DD) in UTC (not local timezone). See the date derivation table in Step 5.
+- MODE: Inferred from QUERY.
+  - If QUERY starts with "incident <ID>" or contains a PagerDuty URL (matching `pagerduty\.com/incidents/([A-Z0-9]+)`) → **SINGLE-INCIDENT mode**
+  - Otherwise → **LIST mode** (existing behaviour)
+- SINCE: (optional) UTC ISO8601 start of analysis window. Takes precedence over QUERY-derived dates in LIST mode.
+- UNTIL: (optional) UTC ISO8601 end of analysis window. Takes precedence over QUERY-derived dates in LIST mode.
 
 ## Target Escalation Policies
 
@@ -98,21 +103,83 @@ pd ep list --json 2>&1 | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node
 
 Pass each target EP name as a separate argument to `filter-eps.js`. If no target names, omit the arguments (all EPs pass through).
 
-### 5. Fetch and Filter Incidents
+### 5-ALT. Single-Incident Mode (when MODE = SINGLE-INCIDENT)
 
-Derive `SINCE_DATE` and `UNTIL_DATE` (YYYY-MM-DD) from `QUERY` in the agent's local timezone. **Important:** `--until` is **exclusive** in the `pd` CLI — it does NOT include that day. Use this table (assuming today is 2026-03-06):
+Extract the incident ID from QUERY:
+- From URL: match `pagerduty\.com/incidents/([A-Z0-9]+)` → capture group is the ID
+- From shorthand: match `incident ([A-Z0-9]+)` → capture group is the ID
 
-| Input | SINCE_DATE | UNTIL_DATE | Why |
-|-------|-----------|-----------|-----|
-| "last 24h" | 2026-03-05 | 2026-03-07 | 24h back from now, until must be tomorrow to include today |
-| "today" | 2026-03-06 | 2026-03-07 | until=tomorrow to include today |
-| "yesterday" | 2026-03-05 | 2026-03-06 | until=today to include yesterday |
-| "last 3 days" | 2026-03-03 | 2026-03-07 | 3 days back, until=tomorrow |
-| "2026-03-01 to 2026-03-05" | 2026-03-01 | 2026-03-06 | until=day after end date |
-
-Then fetch, extract JSON, filter by service IDs from `ep-list.json`, and save:
+Fetch the specific incident:
 ```bash
-pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved --since=SINCE_DATE --until=UNTIL_DATE 2>&1 | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js | node ${CLAUDE_SKILL_DIR}/scripts/filter-incidents.js .pagerduty-oncall-tmp/ep-list.json > .pagerduty-oncall-tmp/incidents.json
+pd rest get --endpoint "/incidents/<INCIDENT_ID>" 2>&1 \
+  | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js \
+  > .pagerduty-oncall-tmp/incidents.json
+```
+
+Extract from the incident JSON:
+- `id`, `incident_number`, `title`, `status`, `urgency`
+- `created_at`, `resolved_at` (null if still open)
+- `service.summary` → SERVICE
+- `escalation_policy.summary` → EP
+
+Also fetch related incidents on the same service within ±2h of `created_at`:
+```bash
+pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved \
+  --since=<created_at minus 2h, YYYY-MM-DD UTC> --until=<created_at plus 2h, YYYY-MM-DD UTC> 2>&1 \
+  | node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js \
+  | node ${CLAUDE_SKILL_DIR}/scripts/filter-incidents.js .pagerduty-oncall-tmp/ep-list.json \
+  > .pagerduty-oncall-tmp/related-incidents.json
+```
+
+Then continue to Step 6 (gather details) and Step 7 (report) as normal.
+
+The report MUST include a structured metadata section at the top (UTC ISO8601 for machine parsing):
+
+```markdown
+## Incident Metadata
+- created_at: <ISO8601 UTC>
+- resolved_at: <ISO8601 UTC or "ongoing">
+- service: <name>
+- title: <title>
+```
+
+Followed by the human-readable timeline in local timezone (see Step 7).
+
+### 5. Fetch and Filter Incidents (LIST mode)
+
+Derive `SINCE_DATE` and `UNTIL_DATE` (YYYY-MM-DD, in UTC) from `QUERY`. **Important:** `--until` is **exclusive** in the `pd` CLI — it does NOT include that day.
+
+**If SINCE and UNTIL are provided as UTC ISO8601 timestamps**, pass them directly to `pd incident list` — the pd CLI accepts ISO8601 for `--since` / `--until`:
+```bash
+pd incident list --json ... --since=<SINCE> --until=<UNTIL> ...
+```
+
+**Otherwise**, derive SINCE and UNTIL as **UTC ISO8601 timestamps** from QUERY using the agent's **local timezone**. "Today" means the local calendar day — an incident at 11am local is in "today" even if it falls on a different UTC date. Compute local day boundaries and convert to UTC ISO8601 for the pd API.
+
+For relative durations, use pd CLI natural language directly:
+```bash
+pd incident list --json ... --since "24 hours ago" --until "now" ...
+```
+
+For named days and calendar ranges, compute local midnight as UTC ISO8601:
+```bash
+# Start of local today as UTC ISO8601 (Linux / macOS)
+date -d "$(date +%Y-%m-%d) 00:00:00" -u +%Y-%m-%dT%H:%M:%SZ          # Linux
+date -jf "%Y-%m-%d %H:%M:%S" "$(date +%Y-%m-%d) 00:00:00" -u +%Y-%m-%dT%H:%M:%SZ  # macOS
+
+# Start of local yesterday
+date -d "$(date -d yesterday +%Y-%m-%d) 00:00:00" -u +%Y-%m-%dT%H:%M:%SZ       # Linux
+date -jf "%Y-%m-%d %H:%M:%S" "$(date -v-1d +%Y-%m-%d) 00:00:00" -u +%Y-%m-%dT%H:%M:%SZ  # macOS
+```
+
+Use these ISO8601 values directly as `--since` / `--until` on `pd incident list`. For "today": SINCE = start of local today as UTC ISO8601, UNTIL = omit (defaults to now). For "yesterday": SINCE = start of local yesterday, UNTIL = start of local today. For explicit date ranges: SINCE = start of first local day, UNTIL = start of day after last local day.
+
+Then fetch, extract JSON, filter by service IDs from `ep-list.json`, and save. **Run this as two separate commands** — do NOT chain Step 4 and Step 5 into a single pipeline, as `filter-incidents.js` reads `ep-list.json` from disk and the file must be fully written before Step 5 begins:
+
+```bash
+# Step 4 must be complete before running this
+pd incident list --json --statuses=open --statuses=closed --statuses=triggered --statuses=acknowledged --statuses=resolved --since=SINCE_DATE --until=UNTIL_DATE 2>&1 > /tmp/pd-incidents-raw.json
+node ${CLAUDE_SKILL_DIR}/scripts/extract-json.js < /tmp/pd-incidents-raw.json | node ${CLAUDE_SKILL_DIR}/scripts/filter-incidents.js .pagerduty-oncall-tmp/ep-list.json > .pagerduty-oncall-tmp/incidents.json
 ```
 
 Read `.pagerduty-oncall-tmp/incidents.json` to check the result. If the array is empty, write a report noting zero incidents and stop.
@@ -140,10 +207,26 @@ pd incident analytics -i <INCIDENT_ID> --json 2>&1 | node ${CLAUDE_SKILL_DIR}/sc
 
 Read all saved JSON files from `.pagerduty-oncall-tmp/` using the Read tool. Produce a structured analysis and save it using Write to `.pagerduty-oncall-tmp/report.md`:
 
-1. **Incident Summary Table** — For each incident: ID, title, service, escalation policy, status, urgency, created/resolved timestamps (current agent's local timezone via system clock, not UTC), duration
+**When in SINGLE-INCIDENT mode**, begin the report with the structured metadata block (UTC ISO8601, for machine parsing by the PIR orchestrator):
+
+```markdown
+## Incident Metadata
+- created_at: 2026-03-20T02:30:00Z
+- resolved_at: 2026-03-20T04:15:00Z
+- service: storefront
+- title: High error rate on checkout
+```
+
+Then include:
+
+1. **Incident Summary Table** — For each incident: ID, title, service, escalation policy, status, urgency, created/resolved timestamps in **local timezone** (detect via system clock, format: `2026-03-20 15:30 NZDT`), duration
 2. **Cross-Team Correlation** — Identify incidents that overlap in time across different escalation policies. Flag potential cascading failures or shared root causes
-3. **Timeline** — Chronological view of all incidents across all teams in current agent's local timezone, highlighting clusters of activity
+3. **Timeline** — Chronological view of all incidents across all teams in **local timezone**, highlighting clusters of activity
 4. **Key Findings** — Patterns, recurring services, repeated triggers, or escalation policy gaps
 5. **Recommendations** — Actionable suggestions based on the analysis
 
-After writing the report, inform the user of the report location: `.pagerduty-oncall-tmp/report.md`
+All timestamps displayed to users must use local timezone with TZ abbreviation. Do NOT use UTC in human-readable sections.
+
+After writing the report, **explicitly tell the user** its location as the final line of your response:
+
+> Report saved to `.pagerduty-oncall-tmp/report.md`

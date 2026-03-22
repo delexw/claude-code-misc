@@ -16,7 +16,10 @@ Investigate and analyse Rollbar error tracking data using the `rollbar` CLI (htt
 Raw arguments: $ARGUMENTS
 
 Infer from the arguments:
-- QUERY: what to investigate. Use current agent's local timezone for any time-based queries, not UTC. Defaults to last 24 hours if no time range is mentioned.
+- QUERY: what to investigate. Defaults to last 24 hours if no time range is mentioned.
+- SINCE: (optional) UTC ISO8601 start of analysis window. When provided, takes precedence over time derived from QUERY. Convert to epoch seconds for time-based CLI flags: `date -d "<SINCE>" +%s` (Linux) or `date -jf "%Y-%m-%dT%H:%M:%SZ" "<SINCE>" +%s` (macOS).
+- UNTIL: (optional) UTC ISO8601 end of analysis window. When provided, takes precedence over time derived from QUERY. Convert to epoch seconds the same way.
+- TITLE_HINT: (optional) Incident title keywords to use in error item search queries (e.g. the PD incident title).
 - OUT_DIR: output directory for temp assets, or `.rollbar-reader-tmp/` if not provided
 
 ## System Requirements
@@ -182,10 +185,23 @@ This returns the complete occurrence payload — stack trace, request params, pe
 6. **Get full occurrence detail** → `rollbar occurrences get <occurrence_id>` (to see stack trace, request data)
 7. **Repeat** for other high-priority items
 
-**Time range handling:**
-- Extract time range from QUERY
-- Convert to appropriate `--hours` flags for report commands or date ranges for RQL queries
-- Default: last 24 hours if no time range is mentioned in QUERY
+**Time range handling** — when QUERY contains a named day ("today", "yesterday") or a calendar range, compute the window using local day boundaries, not UTC calendar days. A user saying "today" means since local midnight, so an event at 11am local is included even if it falls on a different UTC date.
+
+For relative durations ("last 24h"), use `--hours 24` where the CLI supports it, or compute as `now - N*3600` in epoch seconds.
+
+For named days, compute local day boundaries as epoch seconds:
+```bash
+# Start of local today (Linux / macOS)
+date -d "$(date +%Y-%m-%d) 00:00:00" +%s          # Linux
+date -jf "%Y-%m-%d %H:%M:%S" "$(date +%Y-%m-%d) 00:00:00" +%s  # macOS
+# Start of local yesterday
+date -d "$(date -d yesterday +%Y-%m-%d) 00:00:00" +%s          # Linux
+date -jf "%Y-%m-%d %H:%M:%S" "$(date -v-1d +%Y-%m-%d) 00:00:00" +%s  # macOS
+```
+
+Use these epoch values in RQL queries: `WHERE timestamp > SINCE_EPOCH AND timestamp < UNTIL_EPOCH`.
+
+Default: last 24 hours if no time range is mentioned in QUERY.
 
 Save intermediate results as JSON to the output directory for reference.
 
