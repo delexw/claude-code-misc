@@ -68,5 +68,22 @@ export function useTextAnimation(onUpdate: (id: string, content: string) => void
     [start],
   );
 
-  return { enqueue, flush, reset, stop };
+  /**
+   * Flush pending text into the current segment, emit a final update, then reset
+   * the displayed buffer so the next text event writes into a fresh segment.
+   */
+  const cut = useCallback(
+    (id: string) => {
+      stop();
+      if (pendingRef.current.length > 0) {
+        displayedRef.current += pendingRef.current;
+        pendingRef.current = "";
+        onUpdate(id, displayedRef.current);
+      }
+      displayedRef.current = "";
+    },
+    [stop, onUpdate],
+  );
+
+  return { enqueue, flush, reset, stop, cut };
 }

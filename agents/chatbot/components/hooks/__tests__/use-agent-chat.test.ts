@@ -1,6 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAgentChat } from "../use-agent-chat";
+import { messageText } from "../use-messages";
+import type { ChatMessage } from "../use-messages";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -10,6 +12,14 @@ function makeSseResponse(events: object[]) {
     status: 200,
     headers: { "Content-Type": "text/event-stream" },
   });
+}
+
+function text(m: ChatMessage | undefined): string {
+  return m ? messageText(m) : "";
+}
+
+function toolCalls(m: ChatMessage | undefined) {
+  return (m?.segments ?? []).filter((s) => s.type === "tool_call").map((s) => s.tool);
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -49,7 +59,7 @@ describe("useAgentChat", () => {
     });
 
     expect(result.current.messages[0].role).toBe("user");
-    expect(result.current.messages[0].content).toBe("hi there");
+    expect(text(result.current.messages[0])).toBe("hi there");
   });
 
   it("adds assistant placeholder while loading", async () => {
@@ -136,12 +146,13 @@ describe("useAgentChat", () => {
     expect(assistant?.processContent).toBe("Step 1. Step 2.");
   });
 
-  // ─── tool_call event → processContent ────────────────────────────────────────
+  // ─── tool_call event → segments ───────────────────────────────────────────────
 
-  it("appends tool_call label to processContent with bold markdown", async () => {
+  it("adds tool_call segment with name and input", async () => {
     vi.mocked(fetch).mockResolvedValue(
       makeSseResponse([
         { type: "tool_call", name: "search" },
+        { type: "tool_input", content: JSON.stringify({ query: "test" }) },
         { type: "result", content: "results" },
         { type: "done" },
       ]),
@@ -153,17 +164,17 @@ describe("useAgentChat", () => {
     });
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.processContent).toContain("**Tool: search**");
+    const calls = toolCalls(assistant);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("search");
+    expect(calls[0].input).toEqual({ query: "test" });
   });
 
-  it("sets isProcessStreaming=true on tool_call event", async () => {
-    let capturedStreaming: boolean | undefined;
-
+  it("tool_call does not appear in processContent", async () => {
     vi.mocked(fetch).mockResolvedValue(
       makeSseResponse([
-        // Only tool_call, no done — so we can inspect state mid-stream if needed.
-        // Use result+done here; isProcessStreaming is set to false by done.
         { type: "tool_call", name: "calc" },
+        { type: "tool_input", content: JSON.stringify({ expr: "1+1" }) },
         { type: "result", content: "42" },
         { type: "done" },
       ]),
@@ -174,23 +185,17 @@ describe("useAgentChat", () => {
       await result.current.sendMessage("compute");
     });
 
-    // After done, isProcessStreaming should be false (done clears it)
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    // Verify processContent was set (confirms tool_call was processed)
-    expect(assistant?.processContent).toContain("**Tool: calc**");
-    // done event sets isLoading=false and isProcessStreaming=false
+    expect(assistant?.processContent).toBeUndefined();
     expect(assistant?.isProcessStreaming).toBe(false);
-
-    // Suppress unused variable warning
-    capturedStreaming = assistant?.isProcessStreaming;
-    void capturedStreaming;
   });
 
-  it("appends thinking and tool_call content together in processContent", async () => {
+  it("thinking goes to processContent, tool_call goes to segments", async () => {
     vi.mocked(fetch).mockResolvedValue(
       makeSseResponse([
         { type: "thinking", content: "I need to search." },
         { type: "tool_call", name: "web_search" },
+        { type: "tool_input", content: JSON.stringify({ q: "foo" }) },
         { type: "result", content: "found it" },
         { type: "done" },
       ]),
@@ -203,7 +208,30 @@ describe("useAgentChat", () => {
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
     expect(assistant?.processContent).toContain("I need to search.");
-    expect(assistant?.processContent).toContain("**Tool: web_search**");
+    expect(toolCalls(assistant)[0].name).toBe("web_search");
+  });
+
+  it("interleaves tool_call segments between text segments in stream order", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      makeSseResponse([
+        { type: "text", content: "Before." },
+        { type: "tool_call", name: "Read" },
+        { type: "tool_input", content: JSON.stringify({ file_path: "/foo.ts" }) },
+        { type: "text", content: "After." },
+        { type: "done" },
+      ]),
+    );
+
+    const { result } = renderHook(() => useAgentChat());
+    await act(async () => {
+      await result.current.sendMessage("question");
+    });
+
+    const assistant = result.current.messages.find((m) => m.role === "assistant");
+    const segs = assistant?.segments ?? [];
+    expect(segs[0]).toMatchObject({ type: "text", content: "Before." });
+    expect(segs[1]).toMatchObject({ type: "tool_call" });
+    expect(segs[2]).toMatchObject({ type: "text", content: "After." });
   });
 
   // ─── text event → animation + isProcessStreaming ──────────────────────────────
@@ -224,7 +252,7 @@ describe("useAgentChat", () => {
     });
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.content).toBe("Hello world!");
+    expect(text(assistant)).toBe("Hello world!");
     expect(assistant?.isLoading).toBe(false);
   });
 
@@ -243,14 +271,12 @@ describe("useAgentChat", () => {
     });
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    // isProcessStreaming must be false after text events arrive
     expect(assistant?.isProcessStreaming).toBe(false);
   });
 
   // ─── result event (tool-only fallback) ───────────────────────────────────────
 
   it("populates assistant message with result content (tool-only fallback)", async () => {
-    // result event used when no text_delta was streamed (tool-only response)
     vi.mocked(fetch).mockResolvedValue(
       makeSseResponse([{ type: "result", content: "Here is the answer." }, { type: "done" }]),
     );
@@ -262,7 +288,7 @@ describe("useAgentChat", () => {
 
     await waitFor(() => !result.current.isLoading);
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.content).toBe("Here is the answer.");
+    expect(text(assistant)).toBe("Here is the answer.");
     expect(assistant?.isLoading).toBe(false);
   });
 
@@ -281,8 +307,8 @@ describe("useAgentChat", () => {
     });
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.content).toBe("Streamed answer");
-    expect(assistant?.content).not.toContain("Should not overwrite");
+    expect(text(assistant)).toBe("Streamed answer");
+    expect(text(assistant)).not.toContain("Should not overwrite");
   });
 
   it("result event sets isProcessStreaming=false", async () => {
@@ -317,7 +343,7 @@ describe("useAgentChat", () => {
 
     await waitFor(() => !result.current.isLoading);
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.content).toContain("Something went wrong");
+    expect(text(assistant)).toContain("Something went wrong");
   });
 
   it("error event sets isLoading=false and isProcessStreaming=false", async () => {
@@ -350,7 +376,7 @@ describe("useAgentChat", () => {
     });
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.content).toMatch(/^⚠️/);
+    expect(text(assistant)).toMatch(/^⚠️/);
   });
 
   // ─── done event ───────────────────────────────────────────────────────────────
@@ -379,7 +405,7 @@ describe("useAgentChat", () => {
     });
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.content).toBe("(no response)");
+    expect(text(assistant)).toBe("(no response)");
     expect(assistant?.isLoading).toBe(false);
   });
 
@@ -394,8 +420,8 @@ describe("useAgentChat", () => {
     });
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.content).toContain("Connection error");
-    expect(assistant?.content).toContain("Network failure");
+    expect(text(assistant)).toContain("Connection error");
+    expect(text(assistant)).toContain("Network failure");
     expect(assistant?.isLoading).toBe(false);
   });
 
@@ -420,7 +446,7 @@ describe("useAgentChat", () => {
     });
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.content).toContain("HTTP 500");
+    expect(text(assistant)).toContain("HTTP 500");
   });
 
   // ─── clearMessages ────────────────────────────────────────────────────────────
@@ -498,7 +524,6 @@ describe("useAgentChat", () => {
     resolveFirst(makeSseResponse([{ type: "result", content: "ok" }, { type: "done" }]));
     await waitFor(() => !result.current.isLoading);
 
-    // fetch called only once — second message ignored while loading
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -534,7 +559,6 @@ describe("useAgentChat", () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.messages).toEqual([]);
 
-    // Resolve the pending fetch after abort — should not add messages back
     resolveFirst(makeSseResponse([{ type: "result", content: "late" }, { type: "done" }]));
     await new Promise((r) => setTimeout(r, 10));
 
@@ -562,11 +586,9 @@ describe("useAgentChat", () => {
     });
 
     const messages = result.current.messages;
-    // [user1, assistant1, user2, assistant2]
     expect(messages).toHaveLength(4);
-    expect(messages[1].content).toBe("first answer");
-    expect(messages[3].content).toBe("second answer");
-    // First assistant message remains intact
+    expect(text(messages[1])).toBe("first answer");
+    expect(text(messages[3])).toBe("second answer");
     expect(messages[1].role).toBe("assistant");
     expect(messages[1].isLoading).toBe(false);
   });
@@ -589,6 +611,6 @@ describe("useAgentChat", () => {
     });
 
     const assistant = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistant?.content).toBe("ok");
+    expect(text(assistant)).toBe("ok");
   });
 });

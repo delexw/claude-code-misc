@@ -1,13 +1,16 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { useMessages } from "../use-messages";
+import { useMessages, messageText } from "../use-messages";
 import type { ChatMessage } from "../use-messages";
 
 const msg = (overrides: Partial<ChatMessage> & { id: string }): ChatMessage => ({
   role: "user",
-  content: "",
+  segments: [{ type: "text", content: "" }],
   ...overrides,
 });
+
+const textMsg = (id: string, content: string): ChatMessage =>
+  msg({ id, segments: [{ type: "text", content }] });
 
 describe("useMessages", () => {
   it("starts with empty messages", () => {
@@ -34,79 +37,130 @@ describe("useMessages", () => {
     it("updates only the targeted message", () => {
       const { result } = renderHook(() => useMessages());
       act(() =>
-        result.current.append(
-          msg({ id: "a", content: "old" }),
-          msg({ id: "b", content: "untouched" }),
-        ),
+        result.current.append(textMsg("a", "old"), textMsg("b", "untouched")),
       );
-      act(() => result.current.patch("a", { content: "new" }));
-      expect(result.current.messages.find((m) => m.id === "a")?.content).toBe("new");
-      expect(result.current.messages.find((m) => m.id === "b")?.content).toBe("untouched");
+      act(() => result.current.patch("a", { isLoading: true }));
+      expect(result.current.messages.find((m) => m.id === "a")?.isLoading).toBe(true);
+      expect(result.current.messages.find((m) => m.id === "b")?.isLoading).toBeUndefined();
     });
 
     it("merges partial updates without removing other fields", () => {
       const { result } = renderHook(() => useMessages());
-      act(() => result.current.append(msg({ id: "a", content: "x", isLoading: true })));
+      act(() => result.current.append(msg({ id: "a", isLoading: true })));
       act(() => result.current.patch("a", { isLoading: false }));
       const m = result.current.messages[0];
-      expect(m.content).toBe("x");
       expect(m.isLoading).toBe(false);
+      expect(m.segments).toBeDefined();
     });
 
     it("is a no-op for unknown id", () => {
       const { result } = renderHook(() => useMessages());
-      act(() => result.current.append(msg({ id: "a", content: "x" })));
-      act(() => result.current.patch("unknown", { content: "y" }));
-      expect(result.current.messages[0].content).toBe("x");
+      act(() => result.current.append(textMsg("a", "x")));
+      act(() => result.current.patch("unknown", { isLoading: true }));
+      expect(result.current.messages[0].isLoading).toBeUndefined();
+    });
+  });
+
+  describe("setLastTextContent", () => {
+    it("updates the last text segment's content", () => {
+      const { result } = renderHook(() => useMessages());
+      act(() => result.current.append(textMsg("a", "")));
+      act(() => result.current.setLastTextContent("a", "hello"));
+      expect(messageText(result.current.messages[0])).toBe("hello");
+    });
+
+    it("updates only the last text segment when multiple exist", () => {
+      const { result } = renderHook(() => useMessages());
+      act(() =>
+        result.current.append(
+          msg({
+            id: "a",
+            segments: [
+              { type: "text", content: "first" },
+              { type: "tool_call", tool: { name: "Read", input: {} } },
+              { type: "text", content: "" },
+            ],
+          }),
+        ),
+      );
+      act(() => result.current.setLastTextContent("a", "second"));
+      const segs = result.current.messages[0].segments;
+      expect(segs[0]).toMatchObject({ type: "text", content: "first" });
+      expect(segs[2]).toMatchObject({ type: "text", content: "second" });
+    });
+
+    it("adds a text segment if none exists", () => {
+      const { result } = renderHook(() => useMessages());
+      act(() =>
+        result.current.append(
+          msg({ id: "a", segments: [{ type: "tool_call", tool: { name: "X", input: {} } }] }),
+        ),
+      );
+      act(() => result.current.setLastTextContent("a", "new"));
+      expect(messageText(result.current.messages[0])).toBe("new");
+    });
+  });
+
+  describe("appendToolCallSegment", () => {
+    it("adds a tool_call segment and a new empty text segment", () => {
+      const { result } = renderHook(() => useMessages());
+      act(() => result.current.append(textMsg("a", "before")));
+      act(() =>
+        result.current.appendToolCallSegment("a", { name: "Edit", input: { file_path: "/f.ts" } }),
+      );
+      const segs = result.current.messages[0].segments;
+      expect(segs).toHaveLength(3);
+      expect(segs[1]).toMatchObject({ type: "tool_call", tool: { name: "Edit" } });
+      expect(segs[2]).toMatchObject({ type: "text", content: "" });
     });
   });
 
   describe("patchWhere", () => {
     it("applies update when predicate is true", () => {
       const { result } = renderHook(() => useMessages());
-      act(() => result.current.append(msg({ id: "a", content: "", isLoading: true })));
+      act(() => result.current.append(msg({ id: "a", isLoading: true })));
       act(() =>
         result.current.patchWhere(
           "a",
-          (m) => m.content === "",
-          () => ({ content: "filled" }),
+          (m) => !!m.isLoading,
+          () => ({ isLoading: false }),
         ),
       );
-      expect(result.current.messages[0].content).toBe("filled");
+      expect(result.current.messages[0].isLoading).toBe(false);
     });
 
     it("skips update when predicate is false", () => {
       const { result } = renderHook(() => useMessages());
-      act(() => result.current.append(msg({ id: "a", content: "existing" })));
+      act(() => result.current.append(msg({ id: "a", isLoading: false })));
       act(() =>
         result.current.patchWhere(
           "a",
-          (m) => m.content === "",
-          () => ({ content: "overwrite" }),
+          (m) => !!m.isLoading,
+          () => ({ isProcessStreaming: true }),
         ),
       );
-      expect(result.current.messages[0].content).toBe("existing");
+      expect(result.current.messages[0].isProcessStreaming).toBeUndefined();
     });
 
     it("receives the current message in the update factory", () => {
       const { result } = renderHook(() => useMessages());
-      act(() => result.current.append(msg({ id: "a", content: "hello" })));
+      act(() => result.current.append(msg({ id: "a", isLoading: true })));
       act(() =>
         result.current.patchWhere(
           "a",
           () => true,
-          (m) => ({ content: m.content + " world" }),
+          (m) => ({ isLoading: !m.isLoading }),
         ),
       );
-      expect(result.current.messages[0].content).toBe("hello world");
+      expect(result.current.messages[0].isLoading).toBe(false);
     });
   });
 
   describe("find", () => {
     it("returns the matching message", () => {
       const { result } = renderHook(() => useMessages());
-      act(() => result.current.append(msg({ id: "a", content: "hello" })));
-      expect(result.current.find("a")?.content).toBe("hello");
+      act(() => result.current.append(textMsg("a", "hello")));
+      expect(messageText(result.current.find("a")!)).toBe("hello");
     });
 
     it("returns undefined for unknown id", () => {
@@ -146,6 +200,20 @@ describe("useMessages", () => {
       act(() => result.current.append(msg({ id: "a" }), msg({ id: "b" })));
       act(() => result.current.clear());
       expect(result.current.messages).toEqual([]);
+    });
+  });
+
+  describe("messageText", () => {
+    it("joins all text segments", () => {
+      const m = msg({
+        id: "x",
+        segments: [
+          { type: "text", content: "hello" },
+          { type: "tool_call", tool: { name: "X", input: {} } },
+          { type: "text", content: " world" },
+        ],
+      });
+      expect(messageText(m)).toBe("hello world");
     });
   });
 });

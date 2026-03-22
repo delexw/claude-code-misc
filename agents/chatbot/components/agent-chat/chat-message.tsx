@@ -7,6 +7,7 @@ import { MessageContent, MessageResponse, MessageToolbar } from "@/components/ai
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import type { ChatMessage } from "@/components/hooks/use-agent-chat";
+import { messageText } from "@/components/hooks/use-messages";
 import { AnimatedMessage } from "./animated-message";
 import { CopyAction } from "./copy-action";
 import { ThinkingDots } from "./thinking-dots";
@@ -24,6 +25,11 @@ function AssistantAvatar() {
 }
 
 export function ChatMessageItem({ msg }: { msg: ChatMessage }) {
+  const hasSegmentContent = msg.segments.some(
+    (s) => (s.type === "text" && s.content) || s.type === "tool_call",
+  );
+  const fullText = messageText(msg);
+
   const messageContent = (
     <AnimatedMessage from={msg.role}>
       {/* Process block — collapsed by default, live preview in trigger while streaming */}
@@ -48,31 +54,36 @@ export function ChatMessageItem({ msg }: { msg: ChatMessage }) {
         </Reasoning>
       ) : null}
 
-      {msg.toolCalls && msg.toolCalls.length > 0 && (
-        <ToolCallList toolCalls={msg.toolCalls} />
-      )}
-      {msg.toolCalls && msg.toolCalls.length > 0 && (
-        <EditDiffList toolCalls={msg.toolCalls} />
-      )}
-
-      {(msg.content || (!msg.isLoading && msg.role === "assistant")) && (
+      {(hasSegmentContent || (!msg.isLoading && msg.role === "assistant")) && (
         <MessageContent>
-          {msg.content && (
-            <MessageResponse className={MESSAGE_RESPONSE_SPACING}>{msg.content}</MessageResponse>
+          {msg.segments.map((seg, i) =>
+            seg.type === "text" ? (
+              seg.content ? (
+                <MessageResponse key={i} className={MESSAGE_RESPONSE_SPACING}>
+                  {seg.content}
+                </MessageResponse>
+              ) : null
+            ) : (
+              <ToolCallList key={i} toolCalls={[seg.tool]} />
+            ),
           )}
           {!msg.isLoading && msg.role === "assistant" && (
-            <MessageToolbar className="justify-start mt-0 max-h-0 overflow-hidden opacity-0 group-hover:max-h-8 group-hover:mt-1 group-hover:opacity-100 transition-all duration-150">
-              <CopyAction text={msg.content} />
+            <MessageToolbar className="justify-start mt-1">
+              <CopyAction text={fullText} />
             </MessageToolbar>
           )}
         </MessageContent>
       )}
+
+      <EditDiffList
+        toolCalls={msg.segments.filter((s) => s.type === "tool_call").map((s) => s.tool)}
+      />
     </AnimatedMessage>
   );
 
   if (msg.role === "assistant") {
     // Cancelled state — amber indicator
-    if (msg.isCancelled && !msg.content) {
+    if (msg.isCancelled && !fullText) {
       return (
         <div className="flex items-end gap-2.5 w-full">
           <AssistantAvatar />
@@ -85,11 +96,11 @@ export function ChatMessageItem({ msg }: { msg: ChatMessage }) {
     }
 
     // Pure loading state — no avatar, just dots
-    if (msg.isLoading && !msg.content && !msg.processContent) {
+    if (msg.isLoading && !hasSegmentContent && !msg.processContent) {
       return <ThinkingDots />;
     }
 
-    const hasContent = msg.content || (!msg.isLoading && msg.role === "assistant");
+    const hasContent = hasSegmentContent || (!msg.isLoading && msg.role === "assistant");
 
     return (
       <div className="flex items-end gap-2.5 w-full">
