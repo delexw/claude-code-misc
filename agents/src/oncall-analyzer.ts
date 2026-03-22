@@ -3,7 +3,7 @@
  * Runs daily at 9:00 AM via launchd (default: past 24 hours)
  *
  * When spawned by the chatbot A2A server, receives the user's instruction as argv[2].
- * When run via launchd, argv[2] is set in the plist ProgramArguments, defaulting to "incidents today".
+ * When run via launchd, argv[2] is set in the plist ProgramArguments, defaulting to "the past 24 hours".
  *
  * The instruction is passed directly to the /pir skill as its argument string.
  * Examples: "incidents today", "P1AB1234", "past 6 hours elements.envato.com:zone123"
@@ -20,7 +20,7 @@ import { parseRepos } from "./lib/repos.js";
 
 const REPOS = parseRepos("PIR_REPOS");
 // Instruction passed as argv[2] from chatbot or launchd ProgramArguments.
-const INSTRUCTION = process.argv[2] || "incidents today";
+const INSTRUCTION = process.argv[2] || "the past 24 hours";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const LOG_DIR = join(SCRIPT_DIR, "logs/.oncall-analyzer");
