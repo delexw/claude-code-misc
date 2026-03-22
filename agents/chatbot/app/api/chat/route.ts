@@ -177,6 +177,8 @@ export async function POST(request: Request) {
   };
 
   const encoder = new TextEncoder();
+  const abortController = new AbortController();
+  request.signal.addEventListener("abort", () => abortController.abort());
 
   const readable = new ReadableStream({
     async start(controller) {
@@ -191,6 +193,7 @@ export async function POST(request: Request) {
         for await (const event of query({
           prompt: message,
           options: {
+            abortController,
             env: {
               ...process.env, // Pass through all env vars so tools can read their configs
             },
