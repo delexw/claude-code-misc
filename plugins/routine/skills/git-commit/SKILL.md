@@ -10,7 +10,7 @@ Commit staged git changes with a well-formed message and push to the remote bran
 
 > **CRITICAL**: Secret scanning (step 1) is a hard gate. No commit may proceed unless it passes. This check overrides everything else in this workflow.
 
-> **CRITICAL**: Never push an entire checkpoint branch. Checkpoint branches (e.g. branches named `checkpoint/*`, `cp/*`, or any branch explicitly described as a checkpoint) exist as save points only. Pushing them to remote is forbidden. If the current branch is a checkpoint branch, stop and tell the user.
+> **CRITICAL**: Never push an entire checkpoint branch. Checkpoint branches (branches named `entire/*`) exist as save points only. Pushing them to remote is forbidden. If the current branch starts with `entire/`, stop and tell the user.
 
 ## Workflow
 
@@ -114,6 +114,7 @@ If the branch has no upstream yet, use `--set-upstream`:
 ```bash
 git push --set-upstream origin <current_branch>
 ```
+
 
 ### 7. Handle errors
 
