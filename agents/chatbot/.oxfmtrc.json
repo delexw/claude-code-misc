@@ -1,6 +1,3 @@
 {
-  "exclude": [
-    ".next/**",
-    "node_modules/**"
-  ]
+  "exclude": [".next/**", "node_modules/**"]
 }

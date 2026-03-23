@@ -88,9 +88,7 @@ export class DagStore {
         branches               STRING,
         pr_urls                STRING
       )`);
-      await this.q(
-        `CREATE NODE TABLE ${T_EXTRA}(key STRING PRIMARY KEY, sprint STRING)`,
-      );
+      await this.q(`CREATE NODE TABLE ${T_EXTRA}(key STRING PRIMARY KEY, sprint STRING)`);
       await this.q(`CREATE REL TABLE ${R_DEP}(FROM ${T_GROUP} TO ${T_GROUP})`);
     }
   }
@@ -218,10 +216,10 @@ export class DagStore {
     ).getAll();
     const sprint = ((sprintRows as Row[])[0]?.sprint as string) ?? "";
 
-    await this.q(
-      `MERGE (e:${T_EXTRA} {key: $key}) ON CREATE SET e.sprint = $sprint`,
-      { key, sprint },
-    );
+    await this.q(`MERGE (e:${T_EXTRA} {key: $key}) ON CREATE SET e.sprint = $sprint`, {
+      key,
+      sprint,
+    });
   }
 
   /**
@@ -230,10 +228,9 @@ export class DagStore {
    */
   async pruneExtraCompleted(allKeys: Set<string>): Promise<void> {
     if (allKeys.size === 0) return;
-    await this.q(
-      `MATCH (e:${T_EXTRA}) WHERE NOT (e.key IN $allKeys) DELETE e`,
-      { allKeys: [...allKeys] },
-    );
+    await this.q(`MATCH (e:${T_EXTRA}) WHERE NOT (e.key IN $allKeys) DELETE e`, {
+      allKeys: [...allKeys],
+    });
   }
 
   /**
@@ -257,11 +254,11 @@ export class DagStore {
         }
       });
 
-    const rows = (await (
+    const rows = await (
       await this.q(
         `MATCH (g:${T_GROUP}) WHERE g.pr_urls <> '{}' RETURN g.key AS key, g.pr_urls AS pr_urls, g.branches AS branches, g.sprint AS sprint`,
       )
-    ).getAll());
+    ).getAll();
 
     const fullyPruned: string[] = [];
 
@@ -286,14 +283,13 @@ export class DagStore {
 
       if (Object.keys(updatedPrUrls).length === 0) {
         // All repos merged — clear state and move to ExtraCompleted
-        await this.q(
-          `MATCH (g:${T_GROUP} {key: $key}) SET g.branches = '{}', g.pr_urls = '{}'`,
-          { key: row.key as string },
-        );
-        await this.q(
-          `MERGE (e:${T_EXTRA} {key: $key}) ON CREATE SET e.sprint = $sprint`,
-          { key: row.key as string, sprint: (row.sprint as string) ?? "" },
-        );
+        await this.q(`MATCH (g:${T_GROUP} {key: $key}) SET g.branches = '{}', g.pr_urls = '{}'`, {
+          key: row.key as string,
+        });
+        await this.q(`MERGE (e:${T_EXTRA} {key: $key}) ON CREATE SET e.sprint = $sprint`, {
+          key: row.key as string,
+          sprint: (row.sprint as string) ?? "",
+        });
         fullyPruned.push(row.key as string);
       } else {
         await this.q(
@@ -325,11 +321,11 @@ export class DagStore {
    * Each group's ticket_keys all map to the same LayerState.
    */
   async loadGroupStates(): Promise<GroupStates> {
-    const rows = (await (
+    const rows = await (
       await this.q(
         `MATCH (g:${T_GROUP}) WHERE g.branches <> '{}' RETURN g.ticket_keys AS ticket_keys, g.branches AS branches, g.pr_urls AS pr_urls`,
       )
-    ).getAll());
+    ).getAll();
 
     const groupStates: GroupStates = new Map();
     for (const row of rows) {
@@ -349,9 +345,9 @@ export class DagStore {
 
   /** All ticket keys seen in any previous prioritizer run (for in-flight resume). */
   async previousTicketKeys(): Promise<Set<string>> {
-    const rows = (await (
+    const rows = await (
       await this.q(`MATCH (g:${T_GROUP}) RETURN g.ticket_keys AS ticket_keys`)
-    ).getAll());
+    ).getAll();
 
     const keys = new Set<string>();
     for (const row of rows) {
@@ -367,19 +363,17 @@ export class DagStore {
   async completedTicketKeys(): Promise<Set<string>> {
     const completed = new Set<string>();
 
-    const groupRows = (await (
+    const groupRows = await (
       await this.q(
         `MATCH (g:${T_GROUP}) WHERE g.pr_urls <> '{}' RETURN g.ticket_keys AS ticket_keys`,
       )
-    ).getAll());
+    ).getAll();
 
     for (const row of groupRows) {
       for (const k of row.ticket_keys as string[]) completed.add(k);
     }
 
-    const extraRows = (await (
-      await this.q(`MATCH (e:${T_EXTRA}) RETURN e.key AS key`)
-    ).getAll());
+    const extraRows = await (await this.q(`MATCH (e:${T_EXTRA}) RETURN e.key AS key`)).getAll();
 
     for (const row of extraRows) completed.add(row.key as string);
 
@@ -403,7 +397,7 @@ export class DagStore {
    * Returns null when no state exists (fresh run).
    */
   async buildGuidance(): Promise<string | null> {
-    const groupRows = (await (
+    const groupRows = await (
       await this.q(
         `MATCH (g:${T_GROUP})
          OPTIONAL MATCH (g)-[:${R_DEP}]->(parent:${T_GROUP})
@@ -412,13 +406,11 @@ export class DagStore {
                 g.repos AS repos, parent.key AS depends_on
          ORDER BY g.key`,
       )
-    ).getAll());
+    ).getAll();
 
     if (groupRows.length === 0) return null;
 
-    const extraRows = (await (
-      await this.q(`MATCH (e:${T_EXTRA}) RETURN e.key AS key`)
-    ).getAll());
+    const extraRows = await (await this.q(`MATCH (e:${T_EXTRA}) RETURN e.key AS key`)).getAll();
 
     const extraCompleted = new Set(extraRows.map((r) => r.key as string));
 

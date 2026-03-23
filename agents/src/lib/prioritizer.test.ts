@@ -23,14 +23,28 @@ void describe("parsePrioritizerOutput", () => {
       layers: [
         {
           group: [
-            { key: "EC-100", complexity: "moderate", repos: [{ repo: "acme-api", branch: "ec-100-fix" }] },
-            { key: "EC-104", complexity: "moderate", repos: [{ repo: "acme-web", branch: "ec-104-ui" }] },
+            {
+              key: "EC-100",
+              complexity: "moderate",
+              repos: [{ repo: "acme-api", branch: "ec-100-fix" }],
+            },
+            {
+              key: "EC-104",
+              complexity: "moderate",
+              repos: [{ repo: "acme-web", branch: "ec-104-ui" }],
+            },
           ],
           relation: "same-epic",
           verification: { required: true, reason: "updates login UI" },
         },
         {
-          group: [{ key: "EC-101", complexity: "moderate", repos: [{ repo: "acme-api", branch: "ec-101-rate" }] }],
+          group: [
+            {
+              key: "EC-101",
+              complexity: "moderate",
+              repos: [{ repo: "acme-api", branch: "ec-101-rate" }],
+            },
+          ],
           relation: null,
           verification: { required: false, reason: "API-only" },
         },
@@ -120,12 +134,24 @@ void describe("parsePrioritizerOutput", () => {
     const input = JSON.stringify({
       layers: [
         {
-          group: [{ key: "EC-1", complexity: "moderate", repos: [{ repo: "acme-api", branch: "ec-1-fix" }] }],
+          group: [
+            {
+              key: "EC-1",
+              complexity: "moderate",
+              repos: [{ repo: "acme-api", branch: "ec-1-fix" }],
+            },
+          ],
           relation: null,
           verification: { required: false, reason: "root" },
         },
         {
-          group: [{ key: "EC-2", complexity: "moderate", repos: [{ repo: "acme-api", branch: "ec-2-fix" }] }],
+          group: [
+            {
+              key: "EC-2",
+              complexity: "moderate",
+              repos: [{ repo: "acme-api", branch: "ec-2-fix" }],
+            },
+          ],
           relation: null,
           verification: { required: true, reason: "depends on EC-1" },
           depends_on: "EC-1",
@@ -142,7 +168,13 @@ void describe("parsePrioritizerOutput", () => {
     const input = JSON.stringify({
       layers: [
         {
-          group: [{ key: "EC-1", complexity: "moderate", repos: [{ repo: "acme-api", branch: "ec-1-fix" }] }],
+          group: [
+            {
+              key: "EC-1",
+              complexity: "moderate",
+              repos: [{ repo: "acme-api", branch: "ec-1-fix" }],
+            },
+          ],
           relation: null,
           verification: { required: false, reason: "test" },
         },
@@ -158,7 +190,11 @@ void describe("parsePrioritizerOutput", () => {
       layers: [
         {
           group: [
-            { key: "EC-1", complexity: "moderate", repos: [{ repo: "acme-api", branch: "ec-1-fix-auth" }] },
+            {
+              key: "EC-1",
+              complexity: "moderate",
+              repos: [{ repo: "acme-api", branch: "ec-1-fix-auth" }],
+            },
             {
               key: "EC-2",
               repos: [

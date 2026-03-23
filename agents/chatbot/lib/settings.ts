@@ -29,6 +29,13 @@ export const globalSettingsSchema = z.object({
   version: z.literal(1),
   repositories: z.array(repositorySchema),
   envVars: z.array(envVarSchema).default([]),
+  /**
+   * Per-agent repository overrides.
+   * Key: agent name (e.g. "release-log-sentinel").
+   * Value: array of enabled repository IDs.
+   * When a key is absent, NO repositories are enabled for that agent (must opt in).
+   */
+  agentRepos: z.record(z.string(), z.array(z.string())).default({}),
 });
 
 export type Repository = z.infer<typeof repositorySchema>;
@@ -38,7 +45,7 @@ export type GlobalSettings = z.infer<typeof globalSettingsSchema>;
 // ─── Default ──────────────────────────────────────────────────────────────────
 
 export function defaultSettings(): GlobalSettings {
-  return { version: 1, repositories: [], envVars: [] };
+  return { version: 1, repositories: [], envVars: [], agentRepos: {} };
 }
 
 // ─── Read / Write ─────────────────────────────────────────────────────────────

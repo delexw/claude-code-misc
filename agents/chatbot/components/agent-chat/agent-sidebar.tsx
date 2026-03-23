@@ -87,16 +87,21 @@ export function AgentSidebar() {
 
       {/* Agent nav */}
       <nav className="flex flex-col gap-1 flex-1 overflow-y-auto misty-scroll px-2">
-        {AGENTS.map((agent, i) => (
-          <AgentButton
-            key={agent.manifestKey}
-            agent={agent}
-            isActive={!isSettings && i === activeIndex}
-            status={statuses[agent.manifestKey]}
-            hasData={hasData}
-            onClick={() => setActiveIndex(i)}
-          />
-        ))}
+        {AGENTS.map((agent, i) => {
+          const isAgentSettings = pathname === `/settings/agents/${agent.name}/repos`;
+          return (
+            <AgentButton
+              key={agent.manifestKey}
+              agent={agent}
+              isActive={!isSettings && !isAgentSettings && i === activeIndex}
+              status={statuses[agent.manifestKey]}
+              hasData={hasData}
+              onClick={() => setActiveIndex(i)}
+              settingsHref={`/settings/agents/${agent.name}/repos`}
+              isAgentSettings={isAgentSettings}
+            />
+          );
+        })}
       </nav>
 
       {/* Settings nav link */}

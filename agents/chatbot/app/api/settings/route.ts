@@ -32,6 +32,18 @@ export async function PUT(request: Request) {
 
   const settings = readSettings();
   settings.repositories = parsed.data.repositories.map((r) => makeRepository(r.githubRepo));
+
+  // Cascade: remove deleted repo IDs from per-agent overrides
+  const surviving = new Set(settings.repositories.map((r) => r.id));
+  for (const agentName of Object.keys(settings.agentRepos)) {
+    const filtered = settings.agentRepos[agentName].filter((id) => surviving.has(id));
+    if (filtered.length === 0) {
+      delete settings.agentRepos[agentName];
+    } else {
+      settings.agentRepos[agentName] = filtered;
+    }
+  }
+
   writeSettings(settings);
 
   return Response.json(settings);

@@ -24,9 +24,7 @@ function MaskedValue({
 
   // Non-secret values are shown as plain text — no masking needed
   if (!isSecret) {
-    return (
-      <span className="text-xs font-mono text-on-surface-variant truncate">{value}</span>
-    );
+    return <span className="text-xs font-mono text-on-surface-variant truncate">{value}</span>;
   }
 
   return (

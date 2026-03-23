@@ -43,6 +43,7 @@ const SAMPLE_SETTINGS = {
     { id: "e1", key: "GITHUB_TOKEN", value: "", isSecret: true },
     { id: "e2", key: "SLACK_CHANNEL_ID", value: "C01234567", isSecret: false },
   ],
+  agentRepos: {},
 };
 
 beforeEach(() => {

@@ -88,7 +88,9 @@ export class ForgeService {
 
     const [results] = await Promise.all([
       Promise.all(
-        ticket.repos.map((r) => this.forgeInRepo(ticket.key, ticketUrl, r, devServerInfo, ticket.complexity)),
+        ticket.repos.map((r) =>
+          this.forgeInRepo(ticket.key, ticketUrl, r, devServerInfo, ticket.complexity),
+        ),
       ),
       this.jira.moveTicket(ticket.key, "In Progress").then((ok) => {
         if (!ok) this.log(`WARN: Could not move ${ticket.key} to In Progress`);
@@ -117,7 +119,9 @@ export class ForgeService {
       rmSync(dir, { recursive: true, force: true });
       this.log(`CLEANUP: removed dynamic skill dir ${dir}`);
     } catch (err) {
-      this.log(`CLEANUP WARN: failed to remove ${dir}: ${err instanceof Error ? err.message : String(err)}`);
+      this.log(
+        `CLEANUP WARN: failed to remove ${dir}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 

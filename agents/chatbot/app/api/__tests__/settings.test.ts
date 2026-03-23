@@ -21,6 +21,8 @@ const SAMPLE_SETTINGS = {
     { id: "r1", githubRepo: "org/repo-a", name: "repo-a" },
     { id: "r2", githubRepo: "org/repo-b", name: "repo-b" },
   ],
+  envVars: [],
+  agentRepos: {},
 };
 
 beforeEach(() => {

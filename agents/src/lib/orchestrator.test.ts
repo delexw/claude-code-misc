@@ -109,8 +109,7 @@ function makeDeps(
   return {
     discovery: new SprintDiscovery(jira, runState, baseRepos),
     prioritizer: overrides.prioritizer ?? new Prioritizer({ runner, scriptDir: "/tmp", log }),
-    pipeline:
-      overrides.pipeline ?? new Pipeline({ runner, devServers, jira, runState, log }),
+    pipeline: overrides.pipeline ?? new Pipeline({ runner, devServers, jira, runState, log }),
     jira,
     runState,
     baseRepos,

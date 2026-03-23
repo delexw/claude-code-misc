@@ -34,7 +34,7 @@ export function AddRepoDialog({ existingGithubRepos, onAdd }: AddRepoDialogProps
       return;
     }
     if (!GITHUB_REPO_RE.test(trimmed)) {
-      setError("Enter in owner/repo format, e.g. envato/elements-storefront");
+      setError("Enter in owner/repo format, e.g. owner/repo-name");
       return;
     }
     if (existingGithubRepos.includes(trimmed)) {
@@ -76,7 +76,7 @@ export function AddRepoDialog({ existingGithubRepos, onAdd }: AddRepoDialogProps
             </label>
             <Input
               id="repo-github"
-              placeholder="envato/elements-storefront"
+              placeholder="owner/repo-name"
               value={githubRepo}
               onChange={(e) => {
                 setGithubRepo(e.target.value);

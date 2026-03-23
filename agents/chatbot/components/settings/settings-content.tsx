@@ -4,6 +4,7 @@ import * as React from "react";
 import { StatsCards } from "./stats-cards";
 import { RepoTable } from "./repo-table";
 import { AddRepoDialog } from "./add-repo-dialog";
+import { EditRepoDialog } from "./edit-repo-dialog";
 import { EnvVarTable } from "./env-var-table";
 import { AddEnvVarDialog } from "./add-env-var-dialog";
 import { EditEnvVarDialog } from "./edit-env-var-dialog";
@@ -60,6 +61,7 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
   const [repositories, setRepositories] = React.useState<Repository[]>(
     initialSettings.repositories,
   );
+  const [editingRepo, setEditingRepo] = React.useState<Repository | null>(null);
   // Fetch env vars from API on mount so secrets have their real keychain values
   const [envVars, setEnvVars] = React.useState<EnvVar[]>(initialSettings.envVars);
   const [editingEnvVar, setEditingEnvVar] = React.useState<EnvVar | null>(null);
@@ -95,6 +97,12 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
   function handleAddRepo(githubRepo: string) {
     const name = githubRepo.split("/").at(-1) ?? githubRepo;
     const next = [...repositories, { id: crypto.randomUUID(), name, githubRepo }];
+    setRepositories(next);
+    void saveRepositories(next);
+  }
+
+  function handleEditRepo(id: string, githubRepo: string, name: string) {
+    const next = repositories.map((r) => (r.id === id ? { id, name, githubRepo } : r));
     setRepositories(next);
     void saveRepositories(next);
   }
@@ -225,12 +233,23 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
         </div>
 
         {tab === "repositories" ? (
-          <RepoTable repositories={repositories} onRemove={handleRemoveRepo} />
+          <RepoTable
+            repositories={repositories}
+            agentRepos={initialSettings.agentRepos}
+            onEdit={setEditingRepo}
+            onRemove={handleRemoveRepo}
+          />
         ) : (
           <EnvVarTable envVars={envVars} onEdit={setEditingEnvVar} onRemove={handleRemoveEnvVar} />
         )}
       </div>
 
+      <EditRepoDialog
+        repo={editingRepo}
+        existingGithubRepos={repositories.map((r) => r.githubRepo)}
+        onSave={handleEditRepo}
+        onClose={() => setEditingRepo(null)}
+      />
       <EditEnvVarDialog
         envVar={editingEnvVar}
         existingKeys={envVars.map((v) => v.key)}

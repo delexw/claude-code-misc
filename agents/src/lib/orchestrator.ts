@@ -143,7 +143,6 @@ export class GSDOrchestrator {
           this.log(`PROMOTE: ${e.key} — all sub-tasks complete`);
           await this.jira.promoteToReview(e.key, this.log, promotedParents);
         }
-
       }
       /* oxlint-enable no-await-in-loop */
     }

@@ -139,7 +139,11 @@ export function fallbackResult(tickets: string[]): PrioritizeResult {
   return {
     layers: [
       {
-        group: tickets.map((key) => ({ key, repos: [], complexity: "moderate" as TicketComplexity })),
+        group: tickets.map((key) => ({
+          key,
+          repos: [],
+          complexity: "moderate" as TicketComplexity,
+        })),
         relation: null,
         verification: { required: true, reason: "fallback — assuming verification needed" },
         dependsOn: null,

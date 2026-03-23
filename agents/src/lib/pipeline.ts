@@ -95,7 +95,12 @@ export class Pipeline {
 
     await this.commitWorktrees(groupLabel, successful);
 
-    const mergedBranches = await this.mergeWorktrees(primaryTicket, groupLabel, successful, prevState);
+    const mergedBranches = await this.mergeWorktrees(
+      primaryTicket,
+      groupLabel,
+      successful,
+      prevState,
+    );
     if (mergedBranches.length === 0) {
       this.log(`MERGE FAILED: ${groupLabel} — all repos failed or produced empty branch names`);
       return {

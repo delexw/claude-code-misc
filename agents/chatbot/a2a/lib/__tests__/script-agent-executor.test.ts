@@ -11,17 +11,17 @@ import { extractInstruction, buildScriptArgs } from "../base-server";
 describe("extractInstruction", () => {
   it("returns text from a single text part", () => {
     expect(
-      extractInstruction([{ kind: "text", text: "P1AB1234 elements.envato.com:zone123" }]),
-    ).toBe("P1AB1234 elements.envato.com:zone123");
+      extractInstruction([{ kind: "text", text: "P1AB1234 example.com:zone123" }]),
+    ).toBe("P1AB1234 example.com:zone123");
   });
 
   it("joins multiple text parts with a space", () => {
     expect(
       extractInstruction([
         { kind: "text", text: "incidents today" },
-        { kind: "text", text: "elements.envato.com:abc123" },
+        { kind: "text", text: "example.com:abc123" },
       ]),
-    ).toBe("incidents today elements.envato.com:abc123");
+    ).toBe("incidents today example.com:abc123");
   });
 
   it("returns empty string when there are no parts", () => {

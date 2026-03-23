@@ -34,7 +34,9 @@ function makeResult(
   };
 }
 
-function makeGroupStates(entries: Array<[string, { branch: string; prUrl?: string }]>): GroupStates {
+function makeGroupStates(
+  entries: Array<[string, { branch: string; prUrl?: string }]>,
+): GroupStates {
   return new Map(
     entries.map(([key, { branch, prUrl }]) => [
       key,
@@ -411,13 +413,7 @@ void describe("buildGuidance", () => {
   });
 
   void it("includes depends_on relationships", async () => {
-    await store.save(
-      makeResult([
-        { key: "EC-1" },
-        { key: "EC-2", dependsOn: "EC-1" },
-      ]),
-      "S1",
-    );
+    await store.save(makeResult([{ key: "EC-1" }, { key: "EC-2", dependsOn: "EC-1" }]), "S1");
 
     const guidance = await store.buildGuidance();
     assert.ok(guidance !== null);

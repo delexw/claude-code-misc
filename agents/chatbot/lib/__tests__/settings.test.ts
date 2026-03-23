@@ -45,7 +45,7 @@ afterEach(() => {
 
 describe("defaultSettings", () => {
   it("returns version 1 with empty repositories and envVars", () => {
-    expect(defaultSettings()).toEqual({ version: 1, repositories: [], envVars: [] });
+    expect(defaultSettings()).toEqual({ version: 1, repositories: [], envVars: [], agentRepos: {} });
   });
 });
 
@@ -69,6 +69,7 @@ describe("readSettings", () => {
       version: 1 as const,
       repositories: [{ id: "abc", githubRepo: "org/bar", name: "bar" }],
       envVars: [{ id: "ev1", key: "MY_TOKEN", value: "secret", isSecret: false }],
+      agentRepos: {},
     };
     writeRaw(settings);
     expect(readSettings()).toEqual(settings);
@@ -86,14 +87,20 @@ describe("writeSettings", () => {
       version: 1 as const,
       repositories: [{ id: "xyz", githubRepo: "org/repo", name: "repo" }],
       envVars: [{ id: "ev1", key: "MY_TOKEN", value: "val", isSecret: false }],
+      agentRepos: {},
     };
     writeSettings(settings);
     expect(readSettings()).toEqual(settings);
   });
 
   it("overwrites existing settings", () => {
-    writeSettings({ version: 1, repositories: [{ id: "a", githubRepo: "org/a", name: "a" }] });
-    writeSettings({ version: 1, repositories: [] });
+    writeSettings({
+      version: 1,
+      repositories: [{ id: "a", githubRepo: "org/a", name: "a" }],
+      envVars: [],
+      agentRepos: {},
+    });
+    writeSettings({ version: 1, repositories: [], envVars: [], agentRepos: {} });
     expect(readSettings().repositories).toHaveLength(0);
   });
 });
@@ -160,9 +167,9 @@ describe("isDovepawManaged", () => {
 
 describe("makeRepository", () => {
   it("derives name from the repo slug", () => {
-    const repo = makeRepository("envato/elements-storefront");
-    expect(repo.name).toBe("elements-storefront");
-    expect(repo.githubRepo).toBe("envato/elements-storefront");
+    const repo = makeRepository("owner/my-repo");
+    expect(repo.name).toBe("my-repo");
+    expect(repo.githubRepo).toBe("owner/my-repo");
   });
 
   it("trims whitespace", () => {

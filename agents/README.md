@@ -149,31 +149,31 @@ flowchart LR
 
 Five TypeScript agents in `src/`, each managed as a launchd daemon:
 
-| Agent | File | Schedule | Purpose |
-|---|---|---|---|
-| **Experience Reflector** | `src/experience-reflector.ts` | Daily 00:00 | Scans Claude Code checkpoint sessions, extracts domain knowledge into project `MEMORY.md` files |
-| **Get Shit Done** | `src/get-shit-done.ts` | Every 5 min | Discovers JIRA sprint tickets, prioritises by dependency DAG, forges implementations in parallel git worktrees, creates PRs |
+| Agent                    | File                          | Schedule         | Purpose                                                                                                                                                                      |
+| ------------------------ | ----------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Experience Reflector** | `src/experience-reflector.ts` | Daily 00:00      | Scans Claude Code checkpoint sessions, extracts domain knowledge into project `MEMORY.md` files                                                                              |
+| **Get Shit Done**        | `src/get-shit-done.ts`        | Every 5 min      | Discovers JIRA sprint tickets, prioritises by dependency DAG, forges implementations in parallel git worktrees, creates PRs                                                  |
 | **Release Log Sentinel** | `src/release-log-sentinel.ts` | Weekly Sun 10:00 | Monitors Claude Code releases for JSONL format changes that could break [tail-claude-gui](https://github.com/delexw/tail-claude-gui); creates GitHub issues for new findings |
-| **Memory Distiller** | `src/memory-distiller.ts` | Weekly Sun 01:00 | Promotes patterns that appear across 2+ project `MEMORY.md` files into the global `~/.claude/CLAUDE.md` |
-| **Oncall Analyzer** | `src/oncall-analyzer.ts` | Daily 09:00 | Generates Post Incident Records from PagerDuty incidents in the past 24 hours |
+| **Memory Distiller**     | `src/memory-distiller.ts`     | Weekly Sun 01:00 | Promotes patterns that appear across 2+ project `MEMORY.md` files into the global `~/.claude/CLAUDE.md`                                                                      |
+| **Oncall Analyzer**      | `src/oncall-analyzer.ts`      | Daily 09:00      | Generates Post Incident Records from PagerDuty incidents in the past 24 hours                                                                                                |
 
 ### Shared libraries (`src/lib/`)
 
-| File | Role |
-|---|---|
-| `claude.ts` / `claude-runner.ts` | Spawn and stream Claude CLI subprocesses |
-| `dag.ts` / `dag-store.ts` | Dependency graph for ticket ordering (LadybugDB backend) |
-| `discovery.ts` | Sprint ticket discovery from JIRA |
-| `prioritizer.ts` | Topological sort + LLM re-prioritisation |
-| `pipeline.ts` | Forge → merge → verify → PR pipeline per ticket group |
-| `orchestrator.ts` | Top-level GSD run loop |
-| `jira.ts` | JIRA CLI wrapper |
-| `dev-servers.ts` | Start/stop development servers for verification |
-| `lock.ts` | File-based lock to prevent concurrent GSD runs |
-| `repos.ts` | Parse repo paths from env vars |
-| `prompts.ts` | Shared Claude prompt builders |
-| `logger.ts` | Timestamped log files |
-| `exec.ts` | `child_process` wrapper |
+| File                             | Role                                                     |
+| -------------------------------- | -------------------------------------------------------- |
+| `claude.ts` / `claude-runner.ts` | Spawn and stream Claude CLI subprocesses                 |
+| `dag.ts` / `dag-store.ts`        | Dependency graph for ticket ordering (LadybugDB backend) |
+| `discovery.ts`                   | Sprint ticket discovery from JIRA                        |
+| `prioritizer.ts`                 | Topological sort + LLM re-prioritisation                 |
+| `pipeline.ts`                    | Forge → merge → verify → PR pipeline per ticket group    |
+| `orchestrator.ts`                | Top-level GSD run loop                                   |
+| `jira.ts`                        | JIRA CLI wrapper                                         |
+| `dev-servers.ts`                 | Start/stop development servers for verification          |
+| `lock.ts`                        | File-based lock to prevent concurrent GSD runs           |
+| `repos.ts`                       | Parse repo paths from env vars                           |
+| `prompts.ts`                     | Shared Claude prompt builders                            |
+| `logger.ts`                      | Timestamped log files                                    |
+| `exec.ts`                        | `child_process` wrapper                                  |
 
 ---
 
@@ -228,13 +228,13 @@ The Next.js API route reads this file fresh on each tool invocation. `GET /api/p
 
 Built with real components installed via `npx ai-elements@latest`:
 
-| Component | Source | Purpose |
-|---|---|---|
-| `Message` + `MessageContent` + `MessageResponse` | `ai-elements` | Per-message layout; `MessageResponse` renders Streamdown markdown |
-| `Conversation` + `ConversationContent` | `ai-elements` | Auto-scroll container (StickToBottom) |
-| `ConversationEmptyState` | `ai-elements` | Welcome screen with suggestion chips |
-| `ConversationScrollButton` | `ai-elements` | Scroll-to-bottom FAB |
-| shadcn/ui (`button`, `select`, `tooltip`, …) | installed by ai-elements CLI | Base primitives |
+| Component                                        | Source                       | Purpose                                                           |
+| ------------------------------------------------ | ---------------------------- | ----------------------------------------------------------------- |
+| `Message` + `MessageContent` + `MessageResponse` | `ai-elements`                | Per-message layout; `MessageResponse` renders Streamdown markdown |
+| `Conversation` + `ConversationContent`           | `ai-elements`                | Auto-scroll container (StickToBottom)                             |
+| `ConversationEmptyState`                         | `ai-elements`                | Welcome screen with suggestion chips                              |
+| `ConversationScrollButton`                       | `ai-elements`                | Scroll-to-bottom FAB                                              |
+| shadcn/ui (`button`, `select`, `tooltip`, …)     | installed by ai-elements CLI | Base primitives                                                   |
 
 Custom hook `components/hooks/use-agent-chat.ts` drives the SSE connection to `/api/chat` (abort controller, streaming accumulation, error handling).
 
@@ -297,14 +297,14 @@ agents/
 
 ```jsonc
 {
-  "extends": "../tsconfig.json",        // inherits: target, module, moduleResolution, strict, …
+  "extends": "../tsconfig.json", // inherits: target, module, moduleResolution, strict, …
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],  // add browser types
-    "noEmit": true,                             // Next.js handles emit via SWC
-    "jsx": "preserve",                          // SWC handles JSX transform
+    "lib": ["dom", "dom.iterable", "esnext"], // add browser types
+    "noEmit": true, // Next.js handles emit via SWC
+    "jsx": "preserve", // SWC handles JSX transform
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./*"] }
-  }
+    "paths": { "@/*": ["./*"] },
+  },
 }
 ```
 
@@ -346,33 +346,38 @@ npm run chatbot:dev:all
 ## Environment variables
 
 ### Experience Reflector
-| Variable | Example | Description |
-|---|---|---|
+
+| Variable           | Example                         | Description                                |
+| ------------------ | ------------------------------- | ------------------------------------------ |
 | `CHECKPOINT_REPOS` | `/path/to/repo1:/path/to/repo2` | Colon-separated list of repo paths to scan |
 
 ### Get Shit Done
-| Variable | Example | Description |
-|---|---|---|
-| `GSD_REPOS` | `/path/to/repo1:/path/to/repo2` | Repos to forge implementations in |
-| `JIRA_ASSIGNEE` | `yang.liu` | JIRA username to filter sprint tickets |
-| `JIRA_CLI` | `/opt/homebrew/bin/jira` | Path to jira CLI (default: `/opt/homebrew/bin/jira`) |
-| `JIRA_SERVER` | `https://company.atlassian.net` | JIRA server URL |
-| `JIRA_SPRINT_PREFIX` | `Sprint` | Sprint name prefix for discovery |
-| `GSD_CWD` | `/path/to/main/repo` | Working directory for Claude forge sessions |
+
+| Variable             | Example                         | Description                                          |
+| -------------------- | ------------------------------- | ---------------------------------------------------- |
+| `GSD_REPOS`          | `/path/to/repo1:/path/to/repo2` | Repos to forge implementations in                    |
+| `JIRA_ASSIGNEE`      | `yang.liu`                      | JIRA username to filter sprint tickets               |
+| `JIRA_CLI`           | `/opt/homebrew/bin/jira`        | Path to jira CLI (default: `/opt/homebrew/bin/jira`) |
+| `JIRA_SERVER`        | `https://company.atlassian.net` | JIRA server URL                                      |
+| `JIRA_SPRINT_PREFIX` | `Sprint`                        | Sprint name prefix for discovery                     |
+| `GSD_CWD`            | `/path/to/main/repo`            | Working directory for Claude forge sessions          |
 
 ### Memory Distiller
-| Variable | Example | Description |
-|---|---|---|
+
+| Variable       | Example                         | Description                             |
+| -------------- | ------------------------------- | --------------------------------------- |
 | `MEMORY_REPOS` | `/path/to/repo1:/path/to/repo2` | At least 2 repos with `MEMORY.md` files |
 
 ### Oncall Analyzer
-| Variable | Example | Description |
-|---|---|---|
-| `PIR_REPOS` | `/path/to/repo1:/path/to/repo2` | Repos to fetch before analysis |
-| `PIR_DOMAIN` | `company.com` | Cloudflare domain for traffic correlation |
-| `PIR_ZONE_ID` | `abc123` | Cloudflare zone ID |
+
+| Variable      | Example                         | Description                               |
+| ------------- | ------------------------------- | ----------------------------------------- |
+| `PIR_REPOS`   | `/path/to/repo1:/path/to/repo2` | Repos to fetch before analysis            |
+| `PIR_DOMAIN`  | `company.com`                   | Cloudflare domain for traffic correlation |
+| `PIR_ZONE_ID` | `abc123`                        | Cloudflare zone ID                        |
 
 ### Release Log Sentinel
+
 Requires `gh` CLI authenticated (`gh auth login`). No env vars needed.
 
 ---
@@ -380,20 +385,22 @@ Requires `gh` CLI authenticated (`gh auth login`). No env vars needed.
 ## Key dependencies
 
 ### Root (`agents/`)
-| Package | Purpose |
-|---|---|
-| `@ladybugdb/core` | Embedded property graph DB for GSD ticket DAG |
-| `tsx` | Run TypeScript agents directly without pre-compilation |
-| `tsup` | Bundle agents for launchd deployment |
-| `concurrently` | Run chatbot:servers + chatbot:dev in parallel |
+
+| Package           | Purpose                                                |
+| ----------------- | ------------------------------------------------------ |
+| `@ladybugdb/core` | Embedded property graph DB for GSD ticket DAG          |
+| `tsx`             | Run TypeScript agents directly without pre-compilation |
+| `tsup`            | Bundle agents for launchd deployment                   |
+| `concurrently`    | Run chatbot:servers + chatbot:dev in parallel          |
 
 ### Chatbot (`chatbot/`)
-| Package | Purpose |
-|---|---|
+
+| Package                          | Purpose                                                 |
+| -------------------------------- | ------------------------------------------------------- |
 | `@anthropic-ai/claude-agent-sdk` | Run Claude as an agentic loop; uses `~/.claude/` config |
-| `@a2a-js/sdk` | A2A protocol client + server (Express transport + SSE) |
-| `next` | Web framework for the chatbot UI |
-| `streamdown` | Streaming markdown renderer used by `MessageResponse` |
-| `use-stick-to-bottom` | Auto-scroll for `Conversation` |
-| `zod` v4 | Schema validation for MCP tool parameters |
-| `express` | HTTP server for each A2A agent endpoint |
+| `@a2a-js/sdk`                    | A2A protocol client + server (Express transport + SSE)  |
+| `next`                           | Web framework for the chatbot UI                        |
+| `streamdown`                     | Streaming markdown renderer used by `MessageResponse`   |
+| `use-stick-to-bottom`            | Auto-scroll for `Conversation`                          |
+| `zod` v4                         | Schema validation for MCP tool parameters               |
+| `express`                        | HTTP server for each A2A agent endpoint                 |
