@@ -10,6 +10,8 @@ Commit staged git changes with a well-formed message and push to the remote bran
 
 > **CRITICAL**: Secret scanning (step 1) is a hard gate. No commit may proceed unless it passes. This check overrides everything else in this workflow.
 
+> **CRITICAL**: Never push an entire checkpoint branch. Checkpoint branches (e.g. branches named `checkpoint/*`, `cp/*`, or any branch explicitly described as a checkpoint) exist as save points only. Pushing them to remote is forbidden. If the current branch is a checkpoint branch, stop and tell the user.
+
 ## Workflow
 
 ### 1. SCAN FOR PLAIN TEXT SECRETS — MANDATORY, NON-SKIPPABLE
