@@ -4,9 +4,12 @@ import * as React from "react";
 import { StatsCards } from "./stats-cards";
 import { RepoTable } from "./repo-table";
 import { AddRepoDialog } from "./add-repo-dialog";
+import { EnvVarTable } from "./env-var-table";
+import { AddEnvVarDialog } from "./add-env-var-dialog";
+import { EditEnvVarDialog } from "./edit-env-var-dialog";
 import { WS_PORT } from "@/a2a/heartbeat-types";
 import type { AgentStatus, StatusMessage } from "@/a2a/heartbeat-types";
-import type { GlobalSettings, Repository } from "@/lib/settings";
+import type { GlobalSettings, Repository, EnvVar } from "@/lib/settings";
 
 const WS_URL = `ws://127.0.0.1:${WS_PORT}`;
 const RECONNECT_DELAY_MS = 3_000;
@@ -46,16 +49,31 @@ function useAgentStatuses() {
   return statuses;
 }
 
+type Tab = "repositories" | "env-vars";
+
 interface SettingsContentProps {
   initialSettings: GlobalSettings;
 }
 
 export function SettingsContent({ initialSettings }: SettingsContentProps) {
+  const [tab, setTab] = React.useState<Tab>("repositories");
   const [repositories, setRepositories] = React.useState<Repository[]>(
     initialSettings.repositories,
   );
+  // Fetch env vars from API on mount so secrets have their real keychain values
+  const [envVars, setEnvVars] = React.useState<EnvVar[]>(initialSettings.envVars);
+  const [editingEnvVar, setEditingEnvVar] = React.useState<EnvVar | null>(null);
   const [saving, setSaving] = React.useState(false);
   const statuses = useAgentStatuses();
+
+  React.useEffect(() => {
+    fetch("/api/settings/env-vars")
+      .then((r) => r.json())
+      .then((data: { envVars: EnvVar[] }) => setEnvVars(data.envVars))
+      .catch(() => {
+        // keep initialSettings values on error
+      });
+  }, []);
 
   async function saveRepositories(next: Repository[]) {
     setSaving(true);
@@ -74,17 +92,81 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
     }
   }
 
-  function handleAdd(githubRepo: string) {
+  function handleAddRepo(githubRepo: string) {
     const name = githubRepo.split("/").at(-1) ?? githubRepo;
     const next = [...repositories, { id: crypto.randomUUID(), name, githubRepo }];
     setRepositories(next);
     void saveRepositories(next);
   }
 
-  function handleRemove(id: string) {
+  function handleRemoveRepo(id: string) {
     const next = repositories.filter((r) => r.id !== id);
     setRepositories(next);
     void saveRepositories(next);
+  }
+
+  async function handleAddEnvVar(
+    key: string,
+    value: string,
+    isSecret: boolean,
+    keychainService?: string,
+    keychainAccount?: string,
+  ) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings/env-vars", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, value, isSecret, keychainService, keychainAccount }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { envVars: EnvVar[] };
+        setEnvVars(data.envVars);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEditEnvVar(
+    id: string,
+    key: string,
+    value: string,
+    isSecret: boolean,
+    keychainService?: string,
+    keychainAccount?: string,
+  ) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings/env-vars", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, key, value, isSecret, keychainService, keychainAccount }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { envVars: EnvVar[] };
+        setEnvVars(data.envVars);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRemoveEnvVar(id: string) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings/env-vars", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { envVars: EnvVar[] };
+        setEnvVars(data.envVars);
+      }
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -93,32 +175,68 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-on-surface tracking-tight">
-            Global Repository Settings
+            Global Settings
           </h1>
           <p className="text-sm text-on-surface-variant mt-1">
-            Manage the git repositories watched by all agents.
+            Configure repositories and environment variables for all agents.
             {saving && <span className="ml-2 text-primary">Saving…</span>}
           </p>
         </div>
-        <AddRepoDialog
-          existingGithubRepos={repositories.map((r) => r.githubRepo)}
-          onAdd={handleAdd}
-        />
+        {tab === "repositories" ? (
+          <AddRepoDialog
+            existingGithubRepos={repositories.map((r) => r.githubRepo)}
+            onAdd={handleAddRepo}
+          />
+        ) : (
+          <AddEnvVarDialog existingKeys={envVars.map((v) => v.key)} onAdd={handleAddEnvVar} />
+        )}
       </div>
 
       {/* Stats */}
       <StatsCards repoCount={repositories.length} statuses={statuses} />
 
-      {/* Repo list */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold text-on-surface">
-          Repositories
-          <span className="ml-2 text-sm font-normal text-on-surface-variant">
-            ({repositories.length})
-          </span>
-        </h2>
-        <RepoTable repositories={repositories} onRemove={handleRemove} />
+      {/* Tabs */}
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-1 border-b border-outline-variant/20">
+          <button
+            type="button"
+            onClick={() => setTab("repositories")}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              tab === "repositories"
+                ? "border-primary text-primary"
+                : "border-transparent text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            Repositories
+            <span className="ml-2 text-xs font-normal opacity-60">({repositories.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("env-vars")}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              tab === "env-vars"
+                ? "border-primary text-primary"
+                : "border-transparent text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            Environment Variables
+            <span className="ml-2 text-xs font-normal opacity-60">({envVars.length})</span>
+          </button>
+        </div>
+
+        {tab === "repositories" ? (
+          <RepoTable repositories={repositories} onRemove={handleRemoveRepo} />
+        ) : (
+          <EnvVarTable envVars={envVars} onEdit={setEditingEnvVar} onRemove={handleRemoveEnvVar} />
+        )}
       </div>
+
+      <EditEnvVarDialog
+        envVar={editingEnvVar}
+        existingKeys={envVars.map((v) => v.key)}
+        onSave={handleEditEnvVar}
+        onClose={() => setEditingEnvVar(null)}
+      />
     </div>
   );
 }

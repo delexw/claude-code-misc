@@ -16,7 +16,14 @@ vi.mock("@/lib/paths", () => ({
   SETTINGS_FILE: tmpFile,
 }));
 
-import { readSettings, writeSettings, makeRepository, defaultSettings } from "../settings";
+import {
+  readSettings,
+  writeSettings,
+  makeRepository,
+  makeEnvVar,
+  isDovepawManaged,
+  defaultSettings,
+} from "../settings";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -37,8 +44,8 @@ afterEach(() => {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("defaultSettings", () => {
-  it("returns version 1 with empty repositories", () => {
-    expect(defaultSettings()).toEqual({ version: 1, repositories: [] });
+  it("returns version 1 with empty repositories and envVars", () => {
+    expect(defaultSettings()).toEqual({ version: 1, repositories: [], envVars: [] });
   });
 });
 
@@ -61,9 +68,15 @@ describe("readSettings", () => {
     const settings = {
       version: 1 as const,
       repositories: [{ id: "abc", githubRepo: "org/bar", name: "bar" }],
+      envVars: [{ id: "ev1", key: "MY_TOKEN", value: "secret", isSecret: false }],
     };
     writeRaw(settings);
     expect(readSettings()).toEqual(settings);
+  });
+
+  it("defaults envVars to empty array when field is absent in file", () => {
+    writeRaw({ version: 1, repositories: [] });
+    expect(readSettings().envVars).toEqual([]);
   });
 });
 
@@ -72,6 +85,7 @@ describe("writeSettings", () => {
     const settings = {
       version: 1 as const,
       repositories: [{ id: "xyz", githubRepo: "org/repo", name: "repo" }],
+      envVars: [{ id: "ev1", key: "MY_TOKEN", value: "val", isSecret: false }],
     };
     writeSettings(settings);
     expect(readSettings()).toEqual(settings);
@@ -81,6 +95,66 @@ describe("writeSettings", () => {
     writeSettings({ version: 1, repositories: [{ id: "a", githubRepo: "org/a", name: "a" }] });
     writeSettings({ version: 1, repositories: [] });
     expect(readSettings().repositories).toHaveLength(0);
+  });
+});
+
+describe("makeEnvVar", () => {
+  it("stores trimmed key and value for non-secret", () => {
+    const ev = makeEnvVar("  MY_KEY  ", "my-value", false);
+    expect(ev.key).toBe("MY_KEY");
+    expect(ev.value).toBe("my-value");
+    expect(ev.isSecret).toBe(false);
+  });
+
+  it("stores empty value for secret (value lives in keychain)", () => {
+    const ev = makeEnvVar("MY_SECRET", "s3cr3t", true);
+    expect(ev.key).toBe("MY_SECRET");
+    expect(ev.value).toBe("");
+    expect(ev.isSecret).toBe(true);
+  });
+
+  it("sets keychainService and keychainAccount for linked entries", () => {
+    const ev = makeEnvVar("AWS_KEY", "", true, "aws", "default");
+    expect(ev.keychainService).toBe("aws");
+    expect(ev.keychainAccount).toBe("default");
+  });
+
+  it("defaults keychainAccount to key when only service is given", () => {
+    const ev = makeEnvVar("MY_TOKEN", "", true, "myapp");
+    expect(ev.keychainAccount).toBe("MY_TOKEN");
+  });
+
+  it("does not set keychain fields when no service given", () => {
+    const ev = makeEnvVar("MY_KEY", "val", false);
+    expect(ev.keychainService).toBeUndefined();
+    expect(ev.keychainAccount).toBeUndefined();
+  });
+
+  it("defaults isSecret to false", () => {
+    const ev = makeEnvVar("MY_KEY", "val");
+    expect(ev.isSecret).toBe(false);
+  });
+
+  it("generates a unique id", () => {
+    const a = makeEnvVar("KEY_A", "val");
+    const b = makeEnvVar("KEY_B", "val");
+    expect(a.id).not.toBe(b.id);
+  });
+});
+
+describe("isDovepawManaged", () => {
+  it("returns true for a secret with no keychainService", () => {
+    expect(isDovepawManaged({ id: "1", key: "K", value: "", isSecret: true })).toBe(true);
+  });
+
+  it("returns false for a linked secret", () => {
+    expect(
+      isDovepawManaged({ id: "1", key: "K", value: "", isSecret: true, keychainService: "aws" }),
+    ).toBe(false);
+  });
+
+  it("returns false for a non-secret", () => {
+    expect(isDovepawManaged({ id: "1", key: "K", value: "v", isSecret: false })).toBe(false);
   });
 });
 
