@@ -11,7 +11,7 @@ export function GET() {
 }
 
 const putBodySchema = z.object({
-  repositories: z.array(z.object({ path: z.string() })),
+  repositories: z.array(z.object({ githubRepo: z.string() })),
 });
 
 export async function PUT(request: Request) {
@@ -31,7 +31,7 @@ export async function PUT(request: Request) {
   }
 
   const settings = readSettings();
-  settings.repositories = parsed.data.repositories.map((r) => makeRepository(r.path));
+  settings.repositories = parsed.data.repositories.map((r) => makeRepository(r.githubRepo));
   writeSettings(settings);
 
   return Response.json(settings);

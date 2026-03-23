@@ -1,4 +1,3 @@
-import { basename } from "node:path";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { z } from "zod";
 import { SETTINGS_FILE } from "@/lib/paths";
@@ -7,8 +6,8 @@ import { SETTINGS_FILE } from "@/lib/paths";
 
 export const repositorySchema = z.object({
   id: z.string(),
-  path: z.string(),
   name: z.string(),
+  githubRepo: z.string(),
 });
 
 export const globalSettingsSchema = z.object({
@@ -44,10 +43,8 @@ export function writeSettings(settings: GlobalSettings): void {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function makeRepository(path: string): Repository {
-  return {
-    id: crypto.randomUUID(),
-    path: path.trim(),
-    name: basename(path.trim()),
-  };
+export function makeRepository(githubRepo: string): Repository {
+  const trimmed = githubRepo.trim();
+  const name = trimmed.split("/").at(-1) ?? trimmed;
+  return { id: crypto.randomUUID(), name, githubRepo: trimmed };
 }

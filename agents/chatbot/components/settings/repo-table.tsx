@@ -15,7 +15,7 @@ export function RepoTable({ repositories, onRemove }: RepoTableProps) {
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
           <FolderGit2 className="w-10 h-10 opacity-30" />
           <p className="text-sm font-medium">No repositories configured</p>
-          <p className="text-xs opacity-60">Add a repository path to get started</p>
+          <p className="text-xs opacity-60">Add a repository to get started</p>
         </div>
       </div>
     );
@@ -29,7 +29,7 @@ export function RepoTable({ repositories, onRemove }: RepoTableProps) {
           Name
         </span>
         <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-          Path
+          GitHub
         </span>
         <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider sr-only">
           Actions
@@ -48,7 +48,9 @@ export function RepoTable({ repositories, onRemove }: RepoTableProps) {
             <FolderGit2 className="w-4 h-4 text-primary shrink-0" />
             <span className="text-sm font-semibold text-on-surface truncate">{repo.name}</span>
           </div>
-          <span className="text-xs font-mono text-on-surface-variant truncate">{repo.path}</span>
+          <span className="text-xs font-mono text-on-surface-variant truncate">
+            {repo.githubRepo}
+          </span>
           <Button
             variant="ghost"
             size="sm"

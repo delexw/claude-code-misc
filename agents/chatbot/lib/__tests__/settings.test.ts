@@ -60,7 +60,7 @@ describe("readSettings", () => {
   it("reads a valid settings file", () => {
     const settings = {
       version: 1 as const,
-      repositories: [{ id: "abc", path: "/foo/bar", name: "bar" }],
+      repositories: [{ id: "abc", githubRepo: "org/bar", name: "bar" }],
     };
     writeRaw(settings);
     expect(readSettings()).toEqual(settings);
@@ -71,35 +71,35 @@ describe("writeSettings", () => {
   it("writes settings to disk and can be read back", () => {
     const settings = {
       version: 1 as const,
-      repositories: [{ id: "xyz", path: "/home/user/repo", name: "repo" }],
+      repositories: [{ id: "xyz", githubRepo: "org/repo", name: "repo" }],
     };
     writeSettings(settings);
     expect(readSettings()).toEqual(settings);
   });
 
   it("overwrites existing settings", () => {
-    writeSettings({ version: 1, repositories: [{ id: "a", path: "/a", name: "a" }] });
+    writeSettings({ version: 1, repositories: [{ id: "a", githubRepo: "org/a", name: "a" }] });
     writeSettings({ version: 1, repositories: [] });
     expect(readSettings().repositories).toHaveLength(0);
   });
 });
 
 describe("makeRepository", () => {
-  it("derives name from path basename", () => {
-    const repo = makeRepository("/Users/yang/projects/my-app");
-    expect(repo.name).toBe("my-app");
-    expect(repo.path).toBe("/Users/yang/projects/my-app");
+  it("derives name from the repo slug", () => {
+    const repo = makeRepository("envato/elements-storefront");
+    expect(repo.name).toBe("elements-storefront");
+    expect(repo.githubRepo).toBe("envato/elements-storefront");
   });
 
-  it("trims whitespace from path", () => {
-    const repo = makeRepository("  /some/path  ");
-    expect(repo.path).toBe("/some/path");
-    expect(repo.name).toBe("path");
+  it("trims whitespace", () => {
+    const repo = makeRepository("  org/foo  ");
+    expect(repo.githubRepo).toBe("org/foo");
+    expect(repo.name).toBe("foo");
   });
 
   it("generates a unique id", () => {
-    const a = makeRepository("/a");
-    const b = makeRepository("/b");
+    const a = makeRepository("org/a");
+    const b = makeRepository("org/b");
     expect(a.id).not.toBe(b.id);
   });
 });

@@ -5,10 +5,10 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 vi.mock("@/lib/settings", () => ({
   readSettings: vi.fn(),
   writeSettings: vi.fn(),
-  makeRepository: vi.fn((path: string) => ({
+  makeRepository: vi.fn((githubRepo: string) => ({
     id: "test-id",
-    path,
-    name: path.split("/").at(-1) ?? path,
+    githubRepo,
+    name: githubRepo.split("/").at(-1) ?? githubRepo,
   })),
 }));
 
@@ -18,8 +18,8 @@ import { GET, PUT } from "../settings/route";
 const SAMPLE_SETTINGS = {
   version: 1 as const,
   repositories: [
-    { id: "r1", path: "/home/user/repo-a", name: "repo-a" },
-    { id: "r2", path: "/home/user/repo-b", name: "repo-b" },
+    { id: "r1", githubRepo: "org/repo-a", name: "repo-a" },
+    { id: "r2", githubRepo: "org/repo-b", name: "repo-b" },
   ],
 };
 
@@ -68,7 +68,7 @@ describe("PUT /api/settings", () => {
     const req = new Request("http://localhost/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repositories: [{ path: "/new/repo" }] }),
+      body: JSON.stringify({ repositories: [{ githubRepo: "org/new-repo" }] }),
     });
 
     const response = await PUT(req);
@@ -80,7 +80,7 @@ describe("PUT /api/settings", () => {
     const req = new Request("http://localhost/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repositories: [{ path: "/new/repo" }] }),
+      body: JSON.stringify({ repositories: [{ githubRepo: "org/new-repo" }] }),
     });
 
     const body = await (await PUT(req)).json();

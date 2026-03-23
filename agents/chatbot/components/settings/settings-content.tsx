@@ -63,7 +63,7 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repositories: next.map((r) => ({ path: r.path })) }),
+        body: JSON.stringify({ repositories: next.map((r) => ({ githubRepo: r.githubRepo })) }),
       });
       if (res.ok) {
         const updated = (await res.json()) as GlobalSettings;
@@ -74,15 +74,9 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
     }
   }
 
-  function handleAdd(path: string) {
-    const next = [
-      ...repositories,
-      {
-        id: crypto.randomUUID(),
-        path: path.trim(),
-        name: path.trim().split("/").at(-1) ?? path.trim(),
-      },
-    ];
+  function handleAdd(githubRepo: string) {
+    const name = githubRepo.split("/").at(-1) ?? githubRepo;
+    const next = [...repositories, { id: crypto.randomUUID(), name, githubRepo }];
     setRepositories(next);
     void saveRepositories(next);
   }
@@ -106,7 +100,10 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
             {saving && <span className="ml-2 text-primary">Saving…</span>}
           </p>
         </div>
-        <AddRepoDialog existingPaths={repositories.map((r) => r.path)} onAdd={handleAdd} />
+        <AddRepoDialog
+          existingGithubRepos={repositories.map((r) => r.githubRepo)}
+          onAdd={handleAdd}
+        />
       </div>
 
       {/* Stats */}

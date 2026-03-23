@@ -14,40 +14,47 @@ import {
 } from "@/components/ui/dialog";
 
 interface AddRepoDialogProps {
-  existingPaths: string[];
-  onAdd: (path: string) => void;
+  existingGithubRepos: string[];
+  onAdd: (githubRepo: string) => void;
 }
 
-export function AddRepoDialog({ existingPaths, onAdd }: AddRepoDialogProps) {
+const GITHUB_REPO_RE = /^[\w.-]+\/[\w.-]+$/;
+
+export function AddRepoDialog({ existingGithubRepos, onAdd }: AddRepoDialogProps) {
   const [open, setOpen] = React.useState(false);
-  const [path, setPath] = React.useState("");
+  const [githubRepo, setGithubRepo] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = path.trim();
+    const trimmed = githubRepo.trim();
 
     if (!trimmed) {
-      setError("Path cannot be empty");
+      setError("GitHub repository cannot be empty");
       return;
     }
-    if (existingPaths.includes(trimmed)) {
+    if (!GITHUB_REPO_RE.test(trimmed)) {
+      setError("Enter in owner/repo format, e.g. envato/elements-storefront");
+      return;
+    }
+    if (existingGithubRepos.includes(trimmed)) {
       setError("This repository is already in the list");
       return;
     }
 
     onAdd(trimmed);
-    setPath("");
-    setError(null);
+    reset();
     setOpen(false);
+  }
+
+  function reset() {
+    setGithubRepo("");
+    setError(null);
   }
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (!next) {
-      setPath("");
-      setError(null);
-    }
+    if (!next) reset();
   }
 
   return (
@@ -64,15 +71,15 @@ export function AddRepoDialog({ existingPaths, onAdd }: AddRepoDialogProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="repo-path" className="text-sm font-medium text-on-surface">
-              Absolute path
+            <label htmlFor="repo-github" className="text-sm font-medium text-on-surface">
+              GitHub repository
             </label>
             <Input
-              id="repo-path"
-              placeholder="/Users/you/projects/my-repo"
-              value={path}
+              id="repo-github"
+              placeholder="envato/elements-storefront"
+              value={githubRepo}
               onChange={(e) => {
-                setPath(e.target.value);
+                setGithubRepo(e.target.value);
                 setError(null);
               }}
               autoFocus
@@ -80,6 +87,7 @@ export function AddRepoDialog({ existingPaths, onAdd }: AddRepoDialogProps) {
             />
             {error && <p className="text-xs text-error">{error}</p>}
           </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
