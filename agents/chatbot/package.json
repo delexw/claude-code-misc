@@ -39,6 +39,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "consola": "^3.4.2",
+    "diff": "^8.0.4",
     "express": "^5.2.1",
     "lucide-react": "^0.577.0",
     "motion": "^12.38.0",
@@ -57,6 +58,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@testing-library/react": "^16.3.0",
+    "@types/diff": "^7.0.2",
     "@types/express": "^5.0.6",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",

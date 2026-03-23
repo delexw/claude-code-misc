@@ -190,8 +190,8 @@ This directory contains scheduler scripts, logs, and build artifacts. Treat it a
 | \`${SCHEDULER_ROOT}/*.json\` (except state/) | READ ONLY — never modify config or output files |
 | \`${SCHEDULER_STATE}/\` | RESTRICTED — may only be modified with explicit user permission |
 
-The \`state/\` folder contains lock, processed files and \`dag-status.lbug\` (a LadybugDB graph database tracking ticket/task DAG state).
-- You MAY query \`dag-status.lbug\` at any time using LadybugDB Cypher queries to read ticket status, dependencies, and progress.
+The \`state/\` folder contains lock, processed files and \`dag-store.lbug\` (a LadybugDB graph database tracking ticket/task DAG state).
+- You MAY query \`dag-store.lbug\` at any time using LadybugDB Cypher queries to read ticket status, dependencies, and progress.
 - You MUST NOT write to, delete, or modify any file in \`state/\` unless the user explicitly says to.`;
 
 // ─── Route handler ─────────────────────────────────────────────────────────────

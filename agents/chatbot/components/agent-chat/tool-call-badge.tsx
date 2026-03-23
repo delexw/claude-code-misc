@@ -1,3 +1,4 @@
+import { diffLines } from "diff";
 import { FileEdit, Terminal, FileText, Search, Wrench } from "lucide-react";
 import { MessageAction, MessageActions, MessageResponse } from "@/components/ai-elements/message";
 import { Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
@@ -73,15 +74,15 @@ function toolMeta(tool: ToolCall): {
 
 function buildDiffMarkdown(filePath: string, oldStr: string, newStr: string): string {
   const header = `### ${filePath}\n`;
-  const oldLines = oldStr
-    .split("\n")
-    .map((l) => `- ${l}`)
+  const hunks = diffLines(oldStr, newStr);
+  const body = hunks
+    .flatMap((hunk) => {
+      const lines = hunk.value.replace(/\n$/, "").split("\n");
+      const prefix = hunk.added ? "+" : hunk.removed ? "-" : " ";
+      return lines.map((l) => `${prefix} ${l}`);
+    })
     .join("\n");
-  const newLines = newStr
-    .split("\n")
-    .map((l) => `+ ${l}`)
-    .join("\n");
-  return `${header}\`\`\`diff\n${oldLines}\n${newLines}\n\`\`\``;
+  return `${header}\`\`\`diff\n${body}\n\`\`\``;
 }
 
 export function EditDiffList({ toolCalls }: { toolCalls: ToolCall[] }) {
