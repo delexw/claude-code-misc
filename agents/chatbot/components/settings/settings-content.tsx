@@ -8,6 +8,7 @@ import { EditRepoDialog } from "./edit-repo-dialog";
 import { EnvVarTable } from "./env-var-table";
 import { AddEnvVarDialog } from "./add-env-var-dialog";
 import { EditEnvVarDialog } from "./edit-env-var-dialog";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { WS_PORT } from "@/a2a/heartbeat-types";
 import type { AgentStatus, StatusMessage } from "@/a2a/heartbeat-types";
 import type { GlobalSettings, Repository, EnvVar } from "@/lib/settings";
@@ -179,6 +180,8 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
 
   return (
     <div className="flex flex-col gap-8">
+      <Breadcrumb items={[{ label: "Settings" }]} />
+
       {/* Page header */}
       <div className="flex items-start justify-between gap-4">
         <div>

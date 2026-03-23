@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { FolderGit2, ChevronLeft } from "lucide-react";
+import { FolderGit2 } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { AGENTS } from "@@/lib/agents";
 import type { Repository } from "@/lib/settings";
 import { cn } from "@/lib/utils";
@@ -60,18 +61,12 @@ export function AgentRepoSettings({
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Breadcrumb + back */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link
-          href="/settings"
-          className="flex items-center gap-1 hover:text-foreground transition-colors"
-        >
-          <ChevronLeft className="w-3.5 h-3.5" />
-          Settings
-        </Link>
-        <span>/</span>
-        <span className="text-foreground font-medium">{agent.displayName}</span>
-      </div>
+      <Breadcrumb
+        items={[
+          { label: "Settings", href: "/settings" },
+          { label: agent.displayName },
+        ]}
+      />
 
       {/* Page header */}
       <div className="flex items-start justify-between gap-4">
