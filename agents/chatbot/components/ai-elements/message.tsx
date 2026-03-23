@@ -274,10 +274,16 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 const streamdownPlugins = { cjk, code, math, mermaid };
 
+// linkSafety is enabled by default in streamdown, but its modal renders <div>
+// elements without createPortal, causing invalid HTML nesting inside <p> tags.
+// Disable it so links render as plain <a> elements (valid inline content in <p>).
+const streamdownLinkSafety = { enabled: false };
+
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn("size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0", className)}
+      linkSafety={streamdownLinkSafety}
       plugins={streamdownPlugins}
       {...props}
     />
