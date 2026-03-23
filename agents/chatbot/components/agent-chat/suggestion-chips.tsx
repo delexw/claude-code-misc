@@ -71,7 +71,7 @@ export function SuggestionChips({ onSelect }: { onSelect: (text: string) => void
         ease: "outQuad",
       });
     });
-    return () => scopeRef.current?.revert();  // resets inline styles; CSS opacity-0 prevents FOUC on remount
+    return () => scopeRef.current?.revert(); // resets inline styles; CSS opacity-0 prevents FOUC on remount
   }, []);
 
   return (

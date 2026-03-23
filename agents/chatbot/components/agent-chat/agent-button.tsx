@@ -7,10 +7,21 @@ import { cn } from "@/lib/utils";
 import type { AgentStatus, LaunchdStatus } from "@/a2a/heartbeat-types";
 
 function LaunchdBadge({ launchd }: { launchd: LaunchdStatus | null }) {
-  if (!launchd) return <span className="text-[9px] text-muted-foreground/30 uppercase tracking-wide">—</span>;
-  if (!launchd.loaded) return <span className="text-[9px] text-muted-foreground/40 uppercase tracking-wide">unloaded</span>;
-  if (launchd.running) return <span className="text-[9px] text-blue-500/80 uppercase tracking-wide animate-pulse">● processing</span>;
-  return <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wide">● idle</span>;
+  if (!launchd)
+    return <span className="text-[9px] text-muted-foreground/30 uppercase tracking-wide">—</span>;
+  if (!launchd.loaded)
+    return (
+      <span className="text-[9px] text-muted-foreground/40 uppercase tracking-wide">unloaded</span>
+    );
+  if (launchd.running)
+    return (
+      <span className="text-[9px] text-blue-500/80 uppercase tracking-wide animate-pulse">
+        ● processing
+      </span>
+    );
+  return (
+    <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wide">● idle</span>
+  );
 }
 
 export function AgentButton({

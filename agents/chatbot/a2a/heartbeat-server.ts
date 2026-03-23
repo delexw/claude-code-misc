@@ -58,7 +58,9 @@ async function checkLaunchd(): Promise<Record<string, LaunchdStatus>> {
       }),
     );
   } catch {
-    return Object.fromEntries(AGENTS.map((a) => [a.manifestKey, { loaded: false, running: false }]));
+    return Object.fromEntries(
+      AGENTS.map((a) => [a.manifestKey, { loaded: false, running: false }]),
+    );
   }
 }
 

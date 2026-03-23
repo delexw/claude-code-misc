@@ -95,7 +95,10 @@ export function useAgentChat() {
                     const input = JSON.parse(event.content) as Record<string, unknown>;
                     appendToolCallSegment(assistantId, { name: toolName, input });
                   } catch {
-                    appendToolCallSegment(assistantId, { name: toolName, input: { raw: event.content } });
+                    appendToolCallSegment(assistantId, {
+                      name: toolName,
+                      input: { raw: event.content },
+                    });
                   }
                 }
               } else if (event.type === "text" && event.content) {
@@ -110,7 +113,10 @@ export function useAgentChat() {
                     const segments = [...m.segments];
                     let lastTextIdx = -1;
                     for (let i = segments.length - 1; i >= 0; i--) {
-                      if (segments[i].type === "text") { lastTextIdx = i; break; }
+                      if (segments[i].type === "text") {
+                        lastTextIdx = i;
+                        break;
+                      }
                     }
                     if (lastTextIdx >= 0) {
                       segments[lastTextIdx] = { type: "text", content: event.content! };
@@ -156,7 +162,16 @@ export function useAgentChat() {
         setIsLoading(false);
       }
     },
-    [isLoading, animation, patch, patchWhere, appendToProcess, setLastTextContent, appendToolCallSegment, append],
+    [
+      isLoading,
+      animation,
+      patch,
+      patchWhere,
+      appendToProcess,
+      setLastTextContent,
+      appendToolCallSegment,
+      append,
+    ],
   );
 
   const cancelMessage = useCallback(() => {

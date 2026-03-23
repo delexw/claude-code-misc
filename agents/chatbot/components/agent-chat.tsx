@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Bell, Settings, Trash2 } from "lucide-react";
 import { USER_AVATAR } from "@/lib/avatars";
 import {
@@ -11,12 +12,12 @@ import {
 } from "@/components/ai-elements/conversation";
 import { ChatInputBar } from "./agent-chat/chat-input-bar";
 import { useAgentChat } from "@/components/hooks/use-agent-chat";
-import { AGENTS } from "@@/lib/agents";
 import { AgentSidebar } from "./agent-chat/agent-sidebar";
 import { ChatMessageItem } from "./agent-chat/chat-message";
 import { IntroCard } from "./agent-chat/intro-card";
 
 export function AgentChat() {
+  const router = useRouter();
   const { messages, isLoading, sendMessage, cancelMessage, clearMessages } = useAgentChat();
 
   return (
@@ -27,9 +28,7 @@ export function AgentChat() {
         {/* Glass header */}
         <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/20 flex justify-between items-center w-full px-8 py-4 shrink-0">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-foreground tracking-tight">
-              Dove
-            </h1>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Dove</h1>
             <span className="px-2.5 py-0.5 rounded-full bg-accent text-[10px] font-bold text-accent-foreground tracking-wider uppercase">
               Active Session
             </span>
@@ -47,7 +46,11 @@ export function AgentChat() {
             <button className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
               <Bell className="w-4 h-4" />
             </button>
-            <button className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
+            <button
+              onClick={() => router.push("/settings")}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+              title="Settings"
+            >
               <Settings className="w-4 h-4" />
             </button>
             <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-primary/10">

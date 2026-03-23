@@ -158,4 +158,5 @@ agents/chatbot/.next/
 agents/chatbot/node_modules/
 agents/chatbot/next-env.d.ts
 agents/chatbot/a2a/.ports.json
+agents/settings.json
 .gitnexus

@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { PawPrint } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { PawPrint, Settings } from "lucide-react";
 import { AGENTS } from "@@/lib/agents";
 import { cn } from "@/lib/utils";
 import { WS_PORT } from "@/a2a/heartbeat-types";
@@ -57,6 +59,8 @@ function useAgentStatuses() {
 export function AgentSidebar() {
   const statuses = useAgentStatuses();
   const [activeIndex, setActiveIndex] = React.useState(0);
+  const pathname = usePathname();
+  const isSettings = pathname === "/settings";
 
   const hasData = Object.keys(statuses).length > 0;
   const onlineCount = Object.values(statuses).filter((s) => s.online).length;
@@ -87,7 +91,7 @@ export function AgentSidebar() {
           <AgentButton
             key={agent.manifestKey}
             agent={agent}
-            isActive={i === activeIndex}
+            isActive={!isSettings && i === activeIndex}
             status={statuses[agent.manifestKey]}
             hasData={hasData}
             onClick={() => setActiveIndex(i)}
@@ -95,8 +99,26 @@ export function AgentSidebar() {
         ))}
       </nav>
 
+      {/* Settings nav link */}
+      <div className="px-2 pb-2">
+        <Link
+          href="/settings"
+          className={cn(
+            "mx-2 my-0.5 rounded-lg px-4 py-2.5 flex items-center gap-3 transition-all w-[calc(100%-1rem)]",
+            isSettings
+              ? "bg-blue-100/60 text-blue-900 border-l-4 border-blue-500"
+              : "text-muted-foreground hover:bg-muted hover:translate-x-0.5 duration-200",
+          )}
+        >
+          <Settings className={cn("w-4 h-4 shrink-0", isSettings ? "text-blue-700" : "")} />
+          <span className={cn("text-sm font-medium", !isSettings && "text-foreground/80")}>
+            Settings
+          </span>
+        </Link>
+      </div>
+
       {/* Bottom branding */}
-      <div className="p-6 mt-auto">
+      <div className="p-6">
         <div className="p-4 rounded-xl bg-muted border border-border/40">
           <p className="text-[11px] font-bold text-primary tracking-tight mb-1">DovePaw</p>
           <div className="flex items-center gap-1.5">

@@ -33,8 +33,8 @@ export function IntroCard({ onSelect }: IntroCardProps) {
               Hello, I am Dove, your working pet!
             </h2>
             <p className="text-muted-foreground leading-relaxed max-w-2xl">
-              Yang&apos;s cat, {age}, and your agent wrangler. I&apos;ve got 5 agents napping
-              until you need them. Just say the word — or a treat works too. 🐾
+              Yang&apos;s cat, {age}, and your agent wrangler. I&apos;ve got 5 agents napping until
+              you need them. Just say the word — or a treat works too. 🐾
             </p>
           </div>
         </div>

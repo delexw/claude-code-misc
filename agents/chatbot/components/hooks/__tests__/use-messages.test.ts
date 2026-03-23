@@ -36,9 +36,7 @@ describe("useMessages", () => {
   describe("patch", () => {
     it("updates only the targeted message", () => {
       const { result } = renderHook(() => useMessages());
-      act(() =>
-        result.current.append(textMsg("a", "old"), textMsg("b", "untouched")),
-      );
+      act(() => result.current.append(textMsg("a", "old"), textMsg("b", "untouched")));
       act(() => result.current.patch("a", { isLoading: true }));
       expect(result.current.messages.find((m) => m.id === "a")?.isLoading).toBe(true);
       expect(result.current.messages.find((m) => m.id === "b")?.isLoading).toBeUndefined();

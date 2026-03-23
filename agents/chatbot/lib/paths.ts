@@ -2,7 +2,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Re-export shared paths so callers can import everything from one place
-export { AGENTS_ROOT, SCHEDULER_ROOT, SCHEDULER_LOGS, SCHEDULER_STATE } from "@@/lib/paths";
+export {
+  AGENTS_ROOT,
+  SCHEDULER_ROOT,
+  SCHEDULER_LOGS,
+  SCHEDULER_STATE,
+  SETTINGS_FILE,
+} from "@@/lib/paths";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

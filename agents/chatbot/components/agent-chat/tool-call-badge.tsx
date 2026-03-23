@@ -73,14 +73,21 @@ function toolMeta(tool: ToolCall): {
 
 function buildDiffMarkdown(filePath: string, oldStr: string, newStr: string): string {
   const header = `### ${filePath}\n`;
-  const oldLines = oldStr.split("\n").map((l) => `- ${l}`).join("\n");
-  const newLines = newStr.split("\n").map((l) => `+ ${l}`).join("\n");
+  const oldLines = oldStr
+    .split("\n")
+    .map((l) => `- ${l}`)
+    .join("\n");
+  const newLines = newStr
+    .split("\n")
+    .map((l) => `+ ${l}`)
+    .join("\n");
   return `${header}\`\`\`diff\n${oldLines}\n${newLines}\n\`\`\``;
 }
 
 export function EditDiffList({ toolCalls }: { toolCalls: ToolCall[] }) {
   const edits = toolCalls.filter(
-    (t) => t.name === "Edit" && t.input.old_string !== undefined && t.input.new_string !== undefined,
+    (t) =>
+      t.name === "Edit" && t.input.old_string !== undefined && t.input.new_string !== undefined,
   );
   if (edits.length === 0) return null;
 

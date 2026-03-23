@@ -10,15 +10,18 @@ import { extractInstruction, buildScriptArgs } from "../base-server";
 
 describe("extractInstruction", () => {
   it("returns text from a single text part", () => {
-    expect(extractInstruction([{ kind: "text", text: "P1AB1234 elements.envato.com:zone123" }]))
-      .toBe("P1AB1234 elements.envato.com:zone123");
+    expect(
+      extractInstruction([{ kind: "text", text: "P1AB1234 elements.envato.com:zone123" }]),
+    ).toBe("P1AB1234 elements.envato.com:zone123");
   });
 
   it("joins multiple text parts with a space", () => {
-    expect(extractInstruction([
-      { kind: "text", text: "incidents today" },
-      { kind: "text", text: "elements.envato.com:abc123" },
-    ])).toBe("incidents today elements.envato.com:abc123");
+    expect(
+      extractInstruction([
+        { kind: "text", text: "incidents today" },
+        { kind: "text", text: "elements.envato.com:abc123" },
+      ]),
+    ).toBe("incidents today elements.envato.com:abc123");
   });
 
   it("returns empty string when there are no parts", () => {
@@ -30,15 +33,18 @@ describe("extractInstruction", () => {
   });
 
   it("ignores non-text parts", () => {
-    expect(extractInstruction([
-      { kind: "data", text: "ignored" },
-      { kind: "text", text: "incidents today" },
-    ])).toBe("incidents today");
+    expect(
+      extractInstruction([
+        { kind: "data", text: "ignored" },
+        { kind: "text", text: "incidents today" },
+      ]),
+    ).toBe("incidents today");
   });
 
   it("trims surrounding whitespace", () => {
-    expect(extractInstruction([{ kind: "text", text: "  incidents today  " }]))
-      .toBe("incidents today");
+    expect(extractInstruction([{ kind: "text", text: "  incidents today  " }])).toBe(
+      "incidents today",
+    );
   });
 });
 
