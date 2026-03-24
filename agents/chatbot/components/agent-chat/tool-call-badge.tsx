@@ -110,7 +110,8 @@ export function EditDiffList({ toolCalls }: { toolCalls: ToolCall[] }) {
           {edits.length} file{edits.length > 1 ? "s" : ""} edited
         </p>
         <span className="text-muted-foreground text-xs">
-          {edits.map((t) => shortPath(t.input.file_path)).join(", ")}
+          {edits.slice(0, 3).map((t) => shortPath(t.input.file_path)).join(", ")}
+          {edits.length > 3 ? `, …+${edits.length - 3}` : ""}
         </span>
       </SourcesTrigger>
       <SourcesContent>

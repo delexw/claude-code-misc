@@ -38,12 +38,13 @@ export function ChatMessageItem({ msg }: { msg: ChatMessage }) {
           <ReasoningTrigger
             getThinkingMessage={(isStreaming, duration) => {
               if (isStreaming) {
-                const preview = (msg.processContent ?? "")
+                const raw = (msg.processContent ?? "")
                   .split("\n")
                   .map((l) => l.trim())
                   .filter(Boolean)
                   .at(-1)
                   ?.trim();
+                const preview = raw && raw.length > 60 ? `${raw.slice(0, 60)}…` : raw;
                 return <Shimmer duration={1.5}>{preview || "Thinking..."}</Shimmer>;
               }
               if (duration === undefined) return <p>Thought for a few seconds</p>;
