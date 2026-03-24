@@ -48,3 +48,7 @@ Context monitoring script (`ctx_monitor.js`) that displays real-time usage:
 - Automatic synthetic message filtering
 
 ![statusline](statusline.png)
+
+## Links
+
+[![Hypercommit](https://img.shields.io/badge/Hypercommit-DB2475)](https://hypercommit.com/claude-code-misc)
