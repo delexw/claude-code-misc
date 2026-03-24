@@ -150,6 +150,40 @@ export class SlackClient {
   }
 
   // ============================================================
+  // Internal helpers
+  // ============================================================
+
+  /**
+   * Resolve a channel name or ID to a channel ID.
+   * Accepts channel IDs (C/D/G/W prefix) unchanged.
+   * For names like "#elements-helpline" or "elements-helpline", looks up the ID.
+   *
+   * @param {string} nameOrId - Channel name (with or without #) or ID
+   * @returns {Promise<string>} Channel ID
+   */
+  async _resolveChannelId(nameOrId) {
+    // Already looks like a Slack channel/DM/group ID
+    if (/^[CDGW][A-Z0-9]+$/.test(nameOrId)) return nameOrId;
+
+    const name = nameOrId.startsWith('#') ? nameOrId.slice(1) : nameOrId;
+
+    // Search across all channel types
+    const types = 'public_channel';
+    let cursor = null;
+    do {
+      const params = { types, limit: 200, exclude_archived: false };
+      if (cursor) params.cursor = cursor;
+      const data = await this._getRequest('conversations.list', params);
+      for (const ch of data.channels || []) {
+        if (ch.name === name || ch.name_normalized === name) return ch.id;
+      }
+      cursor = data.response_metadata?.next_cursor;
+    } while (cursor);
+
+    throw new Error(`Channel not found: ${nameOrId}`);
+  }
+
+  // ============================================================
   // Public API Methods
   // ============================================================
 
@@ -251,6 +285,9 @@ export class SlackClient {
   async history(channelId, options = {}) {
     let { limit = 50, oldest, latest, users } = options;
 
+    // Resolve channel name to ID if needed (e.g. "#elements-helpline" → "C1234567890")
+    channelId = await this._resolveChannelId(channelId);
+
     // Handle "Nd" format for days
     if (typeof limit === 'string' && limit.endsWith('d')) {
       const days = parseInt(limit.slice(0, -1), 10);
@@ -316,6 +353,9 @@ export class SlackClient {
    */
   async replies(channelId, threadTs, options = {}) {
     const { limit = 100 } = options;
+
+    // Resolve channel name to ID if needed
+    channelId = await this._resolveChannelId(channelId);
 
     const params = {
       channel: channelId,

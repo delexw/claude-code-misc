@@ -66,8 +66,27 @@ function parseArgs(args) {
   return result;
 }
 
+// Extract all <@UXXXXX> user IDs mentioned in message texts
+function extractMentionedUserIds(messages) {
+  const ids = new Set();
+  for (const msg of messages) {
+    const matches = (msg.text || '').matchAll(/<@(U[A-Z0-9]+)>/g);
+    for (const m of matches) ids.add(m[1]);
+  }
+  return [...ids];
+}
+
+// Replace <@UXXXXX> mentions with @displayName using a resolved user map
+function resolveUserMentions(text, userMap) {
+  return text.replace(/<@(U[A-Z0-9]+)>/g, (_, id) => {
+    const u = userMap[id];
+    if (!u || u.error) return `<@${id}>`;
+    return `@${u.displayName || u.name || id}`;
+  });
+}
+
 // Format messages as readable text
-function formatMessagesAsText(messages) {
+function formatMessagesAsText(messages, userMap = {}) {
   if (!messages || messages.length === 0) {
     return 'No messages found.';
   }
@@ -76,7 +95,7 @@ function formatMessagesAsText(messages) {
   for (const msg of messages) {
     const header = `[${msg.ts}] ${msg.channel ? `#${msg.channel}` : ''} ${msg.user || msg.username}:`;
     lines.push(header);
-    lines.push(msg.text || '(no text)');
+    lines.push(resolveUserMentions(msg.text || '(no text)', userMap));
     if (msg.permalink) lines.push(`  → ${msg.permalink}`);
     if (msg.replyCount > 0) lines.push(`  💬 ${msg.replyCount} replies`);
     if (msg.reactions?.length > 0) {
@@ -87,6 +106,14 @@ function formatMessagesAsText(messages) {
   }
 
   return lines.join('\n');
+}
+
+// Resolve all user mentions in a message list, returns a userMap
+async function resolveMessageMentions(client, messages) {
+  const ids = extractMentionedUserIds(messages);
+  if (ids.length === 0) return {};
+  const result = await client.getUsersInfo(ids);
+  return result.users || {};
 }
 
 // Format channels as readable text
@@ -132,8 +159,8 @@ SEARCH OPTIONS:
   --threads-only    Only return thread messages
 
 HISTORY OPTIONS:
-  --channel <id>    Channel ID (or use --channels for multiple)
-  --channels <ids>  Multiple channel IDs, comma-separated
+  --channel <id>    Channel name (#name) or ID — names are resolved automatically
+  --channels <ids>  Multiple channel names/IDs, comma-separated
   --limit <n>       Max messages (default: 50, or "7d" for days)
   --oldest <ts>     Only messages after this timestamp
   --latest <ts>     Only messages before this timestamp
@@ -226,8 +253,9 @@ async function main() {
         if (args.flags.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
+          const userMap = await resolveMessageMentions(client, result.messages);
           console.log(`Search: "${result.query}" (${result.messages.length} results)\n`);
-          console.log(formatMessagesAsText(result.messages));
+          console.log(formatMessagesAsText(result.messages, userMap));
         }
         break;
       }
@@ -270,6 +298,7 @@ async function main() {
         if (args.flags.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
+          const userMap = await resolveMessageMentions(client, allMessages);
           if (channelList.length === 1) {
             console.log(`Channel: ${channelList[0]} (${allMessages.length} messages)\n`);
           } else {
@@ -279,7 +308,7 @@ async function main() {
             }
             console.log('');
           }
-          console.log(formatMessagesAsText(allMessages));
+          console.log(formatMessagesAsText(allMessages, userMap));
         }
         break;
       }
@@ -296,8 +325,9 @@ async function main() {
         if (args.flags.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
+          const userMap = await resolveMessageMentions(client, result.messages);
           console.log(`Thread: ${channel} @ ${thread} (${result.messages.length} messages)\n`);
-          console.log(formatMessagesAsText(result.messages));
+          console.log(formatMessagesAsText(result.messages, userMap));
         }
         break;
       }
@@ -322,8 +352,9 @@ async function main() {
         if (args.flags.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
+          const userMap = await resolveMessageMentions(client, result.messages);
           console.log(`Recent messages (last ${hours || 1} hours, ${result.messages.length} results)\n`);
-          console.log(formatMessagesAsText(result.messages));
+          console.log(formatMessagesAsText(result.messages, userMap));
         }
         break;
       }

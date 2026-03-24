@@ -72,17 +72,19 @@ node <this-skill>/scripts/slack/slack.js search "decision" --threads-only true
 
 ### Read Channel History
 
-```bash
-# Get recent messages (default 50)
-node <this-skill>/scripts/slack/slack.js history --channel C1234567890
+Channel names and IDs both work — the script resolves names to IDs automatically.
 
-# Get last 50 messages
+```bash
+# Get recent messages by channel name (preferred — name resolves automatically)
+node <this-skill>/scripts/slack/slack.js history --channel "#general" --limit 20
+
+# Get recent messages by channel ID
 node <this-skill>/scripts/slack/slack.js history --channel C1234567890 --limit 50
 
 # Get messages from last 7 days
-node <this-skill>/scripts/slack/slack.js history --channel C1234567890 --limit 7d
+node <this-skill>/scripts/slack/slack.js history --channel "#general" --limit 7d
 
-# Get DM history
+# Get DM history (use channel ID for DMs)
 node <this-skill>/scripts/slack/slack.js history --channel D1234567890 --limit 20
 ```
 
