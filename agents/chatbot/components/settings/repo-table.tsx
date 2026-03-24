@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AGENTS } from "@@/lib/agents";
 import type { Repository } from "@/lib/settings";
+import { DataTable, DataTableHeader, DataTableRow, DataTableEmpty, headerCellClass } from "./data-table";
 
 interface RepoTableProps {
   repositories: Repository[];
@@ -16,44 +17,29 @@ interface RepoTableProps {
 export function RepoTable({ repositories, agentRepos, onEdit, onRemove }: RepoTableProps) {
   if (repositories.length === 0) {
     return (
-      <div className="rounded-xl border border-outline-variant/30 bg-surface-container">
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
-          <FolderGit2 className="w-10 h-10 opacity-30" />
-          <p className="text-sm font-medium">No repositories configured</p>
-          <p className="text-xs opacity-60">Add a repository to get started</p>
-        </div>
-      </div>
+      <DataTableEmpty
+        icon={FolderGit2}
+        title="No repositories configured"
+        description="Add a repository to get started"
+      />
     );
   }
 
   return (
-    <div className="rounded-xl border border-outline-variant/30 bg-surface-container overflow-hidden">
-      {/* Table header */}
-      <div className="grid grid-cols-[1fr_2fr_auto_auto_auto] gap-4 px-5 py-3 border-b border-outline-variant/20 bg-surface-container-high">
-        <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-          Name
-        </span>
-        <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-          GitHub
-        </span>
-        <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-          Agents
-        </span>
-        <span className="sr-only">Edit</span>
-        <span className="sr-only">Delete</span>
-      </div>
+    <DataTable cols="grid-cols-[1fr_2fr_auto_2rem_2rem]">
+      <DataTableHeader>
+        <span className={headerCellClass}>Name</span>
+        <span className={headerCellClass}>GitHub</span>
+        <span className={headerCellClass}>Agents</span>
+        <span className="invisible" aria-hidden="true">Edit</span>
+        <span className="invisible" aria-hidden="true">Delete</span>
+      </DataTableHeader>
 
-      {/* Rows */}
       {repositories.map((repo, i) => {
         const enabledAgents = AGENTS.filter((a) => agentRepos[a.name]?.includes(repo.id) ?? false);
 
         return (
-          <div
-            key={repo.id}
-            className={`grid grid-cols-[1fr_2fr_auto_auto_auto] gap-4 items-center px-5 py-4 ${
-              i < repositories.length - 1 ? "border-b border-outline-variant/10" : ""
-            } hover:bg-surface-container-high/50 transition-colors group`}
-          >
+          <DataTableRow key={repo.id} isLast={i === repositories.length - 1}>
             <div className="flex items-center gap-2.5 min-w-0">
               <FolderGit2 className="w-4 h-4 text-primary shrink-0" />
               <span className="text-sm font-semibold text-on-surface truncate">{repo.name}</span>
@@ -104,9 +90,9 @@ export function RepoTable({ repositories, agentRepos, onEdit, onRemove }: RepoTa
             >
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
-          </div>
+          </DataTableRow>
         );
       })}
-    </div>
+    </DataTable>
   );
 }
