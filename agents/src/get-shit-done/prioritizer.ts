@@ -3,9 +3,9 @@
  */
 
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
-import { parseJson } from "./json.js";
+import { parseJson } from "../lib/json.js";
 import { AUTONOMY_PREFIX } from "./prompts.js";
-import { resolveRepoName } from "./repos.js";
+import { resolveRepoName } from "../lib/repos.js";
 import { validateDependsOn } from "./dag.js";
 
 export interface RepoAssignment {

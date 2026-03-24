@@ -13,8 +13,8 @@
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync, unlinkSync } from "node:fs";
-import { createLogger, makeTimestamp, cleanupOldLogs } from "./lib/logger.js";
-import { spawnClaude } from "./lib/claude.js";
+import { createLogger, makeTimestamp, cleanupOldLogs } from "../lib/logger.js";
+import { spawnClaude } from "../lib/claude.js";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 

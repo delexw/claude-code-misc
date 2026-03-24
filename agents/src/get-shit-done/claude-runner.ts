@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { spawnClaude } from "./claude.js";
+import { spawnClaude } from "../lib/claude.js";
 import { WorktreeWatchdog } from "./worktree-watchdog.js";
 import { worktreePath } from "./prompts.js";
 

@@ -12,7 +12,7 @@ import type { GroupStates } from "./dag.js";
 import type { SprintDiscovery, DiscoverResult } from "./discovery.js";
 import { Prioritizer } from "./prioritizer.js";
 import { Pipeline } from "./pipeline.js";
-import { resetReposToMain } from "./repos.js";
+import { resetReposToMain } from "../lib/repos.js";
 
 export interface OrchestratorDeps {
   discovery: SprintDiscovery;

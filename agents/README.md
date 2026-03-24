@@ -151,11 +151,11 @@ Five TypeScript agents in `src/`, each managed as a launchd daemon:
 
 | Agent                    | File                          | Schedule         | Purpose                                                                                                                                                                      |
 | ------------------------ | ----------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Experience Reflector** | `src/experience-reflector.ts` | Daily 00:00      | Scans Claude Code checkpoint sessions, extracts domain knowledge into project `MEMORY.md` files                                                                              |
-| **Get Shit Done**        | `src/get-shit-done.ts`        | Every 5 min      | Discovers JIRA sprint tickets, prioritises by dependency DAG, forges implementations in parallel git worktrees, creates PRs                                                  |
-| **Release Log Sentinel** | `src/release-log-sentinel.ts` | Weekly Sun 10:00 | Monitors Claude Code releases for JSONL format changes that could break [tail-claude-gui](https://github.com/delexw/tail-claude-gui); creates GitHub issues for new findings |
-| **Memory Distiller**     | `src/memory-distiller.ts`     | Weekly Sun 01:00 | Promotes patterns that appear across 2+ project `MEMORY.md` files into the global `~/.claude/CLAUDE.md`                                                                      |
-| **Oncall Analyzer**      | `src/oncall-analyzer.ts`      | Daily 09:00      | Generates Post Incident Records from PagerDuty incidents in the past 24 hours                                                                                                |
+| **Experience Reflector** | `src/experience-reflector/main.ts` | Daily 00:00      | Scans Claude Code checkpoint sessions, extracts domain knowledge into project `MEMORY.md` files                                                                              |
+| **Get Shit Done**        | `src/get-shit-done/main.ts`        | Every 5 min      | Discovers JIRA sprint tickets, prioritises by dependency DAG, forges implementations in parallel git worktrees, creates PRs                                                  |
+| **Release Log Sentinel** | `src/release-log-sentinel/main.ts` | Weekly Sun 10:00 | Monitors Claude Code releases for JSONL format changes that could break [tail-claude-gui](https://github.com/delexw/tail-claude-gui); creates GitHub issues for new findings |
+| **Memory Distiller**     | `src/memory-distiller/main.ts`     | Weekly Sun 01:00 | Promotes patterns that appear across 2+ project `MEMORY.md` files into the global `~/.claude/CLAUDE.md`                                                                      |
+| **Oncall Analyzer**      | `src/oncall-analyzer/main.ts`      | Daily 09:00      | Generates Post Incident Records from PagerDuty incidents in the past 24 hours                                                                                                |
 
 ### Shared libraries (`src/lib/`)
 

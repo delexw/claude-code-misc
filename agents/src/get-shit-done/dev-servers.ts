@@ -2,7 +2,7 @@ import { readFileSync, mkdirSync, openSync, readdirSync, rmSync } from "node:fs"
 import { join } from "node:path";
 import { createConnection } from "node:net";
 import { spawn, execSync, type ChildProcess } from "node:child_process";
-import { parseJson } from "./json.js";
+import { parseJson } from "../lib/json.js";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

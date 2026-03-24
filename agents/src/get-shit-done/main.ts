@@ -9,18 +9,18 @@
 import { mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createLogger, makeTimestamp } from "./lib/logger.js";
-import { parseRepos } from "./lib/repos.js";
-import { acquireLock, releaseLock, retainLock } from "./lib/lock.js";
-import { JiraClient } from "./lib/jira.js";
-import { DevServerManager } from "./lib/dev-servers.js";
-import { ClaudeRunner } from "./lib/claude-runner.js";
-import { postRunCleanup } from "./lib/cleanup.js";
-import { DagStore } from "./lib/dag-store.js";
-import { SprintDiscovery } from "./lib/discovery.js";
-import { Prioritizer } from "./lib/prioritizer.js";
-import { Pipeline } from "./lib/pipeline.js";
-import { GSDOrchestrator } from "./lib/orchestrator.js";
+import { createLogger, makeTimestamp } from "../lib/logger.js";
+import { parseRepos } from "../lib/repos.js";
+import { acquireLock, releaseLock, retainLock } from "../lib/lock.js";
+import { JiraClient } from "./jira.js";
+import { DevServerManager } from "./dev-servers.js";
+import { ClaudeRunner } from "./claude-runner.js";
+import { postRunCleanup } from "./cleanup.js";
+import { DagStore } from "./dag-store.js";
+import { SprintDiscovery } from "./discovery.js";
+import { Prioritizer } from "./prioritizer.js";
+import { Pipeline } from "./pipeline.js";
+import { GSDOrchestrator } from "./orchestrator.js";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 

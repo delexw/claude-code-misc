@@ -4,6 +4,8 @@ import { Brain, Zap, Radar, FlaskConical, BellRing } from "lucide-react";
 export interface AgentDef {
   /** kebab-case identifier — used for file names, plist label suffix, log dirs */
   name: string;
+  /** Source entry point relative to agents/ root */
+  entryPath: string;
   /** Human-readable display name */
   displayName: string;
   /** launchd service label */
@@ -33,6 +35,7 @@ export interface AgentDef {
 export const AGENTS: AgentDef[] = [
   {
     name: "experience-reflector",
+    entryPath: "src/experience-reflector/main.ts",
     displayName: "Experience Reflector",
     label: "Claude Code Agent - Experience Reflector",
     manifestKey: "experience_reflector",
@@ -49,6 +52,7 @@ export const AGENTS: AgentDef[] = [
   },
   {
     name: "get-shit-done",
+    entryPath: "src/get-shit-done/main.ts",
     displayName: "Get Shit Done",
     label: "Claude Code Agent - Get Shit Done",
     manifestKey: "get_shit_done",
@@ -63,6 +67,7 @@ export const AGENTS: AgentDef[] = [
   },
   {
     name: "release-log-sentinel",
+    entryPath: "src/release-log-sentinel/main.ts",
     displayName: "Release Log Sentinel",
     label: "Claude Code Agent - Release Log Sentinel",
     manifestKey: "release_log_sentinel",
@@ -78,6 +83,7 @@ export const AGENTS: AgentDef[] = [
   },
   {
     name: "memory-distiller",
+    entryPath: "src/memory-distiller/main.ts",
     displayName: "Memory Distiller",
     label: "Claude Code Agent - Memory Distiller",
     manifestKey: "memory_distiller",
@@ -94,6 +100,7 @@ export const AGENTS: AgentDef[] = [
   },
   {
     name: "oncall-analyzer",
+    entryPath: "src/oncall-analyzer/main.ts",
     displayName: "Oncall Analyzer",
     label: "Claude Code Agent - Oncall Analyzer",
     manifestKey: "oncall_analyzer",

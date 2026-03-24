@@ -1,13 +1,8 @@
 import { defineConfig } from "tsup";
+import { AGENTS } from "./lib/agents.js";
 
 export default defineConfig({
-  entry: [
-    "src/oncall-analyzer.ts",
-    "src/get-shit-done.ts",
-    "src/experience-reflector.ts",
-    "src/memory-distiller.ts",
-    "src/release-log-sentinel.ts",
-  ],
+  entry: Object.fromEntries(AGENTS.map((a) => [a.name, a.entryPath])),
   format: "esm",
   outDir: "dist",
   bundle: true,

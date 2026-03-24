@@ -1,6 +1,6 @@
 import { rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { cleanupOldLogs } from "./logger.js";
+import { cleanupOldLogs } from "../lib/logger.js";
 import type { LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 

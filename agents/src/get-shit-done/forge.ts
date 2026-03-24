@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { JiraClient } from "./jira.js";
-import { parseJson } from "./json.js";
+import { parseJson } from "../lib/json.js";
 import { ticketKeys, type TicketAssignment, type RepoAssignment } from "./prioritizer.js";
 import { type ForgeResult, type WorktreeInfo, worktreePath, buildForgePrompt } from "./prompts.js";
 

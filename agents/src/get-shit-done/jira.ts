@@ -1,4 +1,4 @@
-import { exec } from "./exec.js";
+import { exec } from "../lib/exec.js";
 
 export class JiraClient {
   constructor(

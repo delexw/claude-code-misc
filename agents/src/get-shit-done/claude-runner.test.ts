@@ -39,7 +39,7 @@ void describe("ClaudeRunner", () => {
 // that accepts an injected spawn function.
 
 import { WorktreeWatchdog } from "./worktree-watchdog.js";
-import type { SpawnClaudeHandle } from "./claude.js";
+import type { SpawnClaudeHandle } from "../lib/claude.js";
 
 const WORKTREE_MAX_ATTEMPTS = 2;
 

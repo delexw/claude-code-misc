@@ -16,10 +16,10 @@ import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { createLogger, makeTimestamp, cleanupOldLogs } from "./lib/logger.js";
-import { exec } from "./lib/exec.js";
-import { spawnClaude } from "./lib/claude.js";
-import { parseRepos, repoToSlug } from "./lib/repos.js";
+import { createLogger, makeTimestamp, cleanupOldLogs } from "../lib/logger.js";
+import { exec } from "../lib/exec.js";
+import { spawnClaude } from "../lib/claude.js";
+import { parseRepos, repoToSlug } from "../lib/repos.js";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 

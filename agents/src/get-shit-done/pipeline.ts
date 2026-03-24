@@ -12,7 +12,7 @@ import {
   buildPrPrompt,
 } from "./prompts.js";
 import { filterGroup, ticketKeys } from "./prioritizer.js";
-import { parseJson } from "./json.js";
+import { parseJson } from "../lib/json.js";
 import { ForgeService } from "./forge.js";
 import { Dag, type GroupStates, type LayerState, type RepoMap, primaryKey } from "./dag.js";
 

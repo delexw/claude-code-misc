@@ -11,10 +11,10 @@
 
 import { basename, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createLogger, makeTimestamp, cleanupOldLogs } from "./lib/logger.js";
-import { exec } from "./lib/exec.js";
-import { spawnClaude } from "./lib/claude.js";
-import { parseRepos } from "./lib/repos.js";
+import { createLogger, makeTimestamp, cleanupOldLogs } from "../lib/logger.js";
+import { exec } from "../lib/exec.js";
+import { spawnClaude } from "../lib/claude.js";
+import { parseRepos } from "../lib/repos.js";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
