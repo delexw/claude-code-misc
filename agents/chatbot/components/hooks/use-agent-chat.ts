@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { ChatSseEvent } from "@/lib/chat-sse";
 import { useMessages } from "./use-messages";
 import { useTextAnimation } from "./use-text-animation";
@@ -21,6 +21,8 @@ export function useAgentChat() {
   const pendingToolNameRef = useRef<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const pendingQueueRef = useRef<string[]>([]);
+  const [pendingQueue, setPendingQueue] = useState<string[]>([]);
   const sessionIdRef = useRef<string | null>(null);
   const assistantIdRef = useRef<string | null>(null);
 
@@ -31,7 +33,14 @@ export function useAgentChat() {
   const sendMessage = useCallback(
     async (content: string) => {
       const trimmed = content.trim();
-      if (!trimmed || isLoading) return;
+      if (!trimmed) return;
+
+      if (isLoading) {
+        const next = [...pendingQueueRef.current, trimmed];
+        pendingQueueRef.current = next;
+        setPendingQueue(next);
+        return;
+      }
 
       abortRef.current?.abort();
       animation.reset();
@@ -174,6 +183,21 @@ export function useAgentChat() {
     ],
   );
 
+  // When the agent finishes, pop and send the next queued message
+  useEffect(() => {
+    if (isLoading || pendingQueueRef.current.length === 0) return;
+    const [next, ...rest] = pendingQueueRef.current;
+    pendingQueueRef.current = rest;
+    setPendingQueue(rest);
+    sendMessage(next);
+  }, [isLoading, sendMessage]);
+
+  const removeFromQueue = useCallback((index: number) => {
+    const next = pendingQueueRef.current.filter((_, i) => i !== index);
+    pendingQueueRef.current = next;
+    setPendingQueue(next);
+  }, []);
+
   const cancelMessage = useCallback(() => {
     abortRef.current?.abort();
     animation.reset();
@@ -192,5 +216,5 @@ export function useAgentChat() {
     sessionIdRef.current = null;
   }, [animation, clear]);
 
-  return { messages, isLoading, sendMessage, cancelMessage, clearMessages };
+  return { messages, isLoading, sendMessage, cancelMessage, clearMessages, pendingQueue, removeFromQueue };
 }

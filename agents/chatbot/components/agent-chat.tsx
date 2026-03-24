@@ -18,7 +18,7 @@ import { IntroCard } from "./agent-chat/intro-card";
 
 export function AgentChat() {
   const router = useRouter();
-  const { messages, isLoading, sendMessage, cancelMessage, clearMessages } = useAgentChat();
+  const { messages, isLoading, sendMessage, cancelMessage, clearMessages, pendingQueue, removeFromQueue } = useAgentChat();
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -74,7 +74,7 @@ export function AgentChat() {
         </Conversation>
 
         <footer className="px-6 pb-6 pt-0 w-full max-w-5xl mx-auto shrink-0">
-          <ChatInputBar onSubmit={sendMessage} onCancel={cancelMessage} isLoading={isLoading} />
+          <ChatInputBar onSubmit={sendMessage} onCancel={cancelMessage} isLoading={isLoading} pendingQueue={pendingQueue} onRemoveFromQueue={removeFromQueue} />
           <p className="text-center mt-3 text-[10px] text-muted-foreground/40 font-medium tracking-widest uppercase">
             Secured by Dove's whiskers
           </p>
