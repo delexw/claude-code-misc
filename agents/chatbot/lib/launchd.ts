@@ -89,7 +89,7 @@ export async function installAgent(agent: AgentDef): Promise<{ loaded: boolean }
   const u = uid();
 
   // Step 1: Build only this agent's entry
-  await execAsync(`npx tsup ${agent.entryPath} --metafile`, { cwd: AGENTS_ROOT });
+  await execAsync(`npx tsup --entry.${agent.name}=${agent.entryPath} --metafile`, { cwd: AGENTS_ROOT });
 
   // Step 2: Deploy this agent's compiled script
   mkdirSync(SCHEDULER_ROOT, { recursive: true });
