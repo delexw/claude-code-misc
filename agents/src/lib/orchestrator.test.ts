@@ -11,7 +11,8 @@ import { DagStore } from "./dag-store.js";
 import type { ClaudeRunner, LogFn } from "./claude-runner.js";
 import type { DevServerManager } from "./dev-servers.js";
 import type { JiraClient } from "./jira.js";
-import type { PrioritizeResult } from "./prioritizer.js";
+import type { PrioritizeResult, SkippedTicket } from "./prioritizer.js";
+import type { DiscoverResult } from "./discovery.js";
 
 // ─── Shared DB setup ─────────────────────────────────────────────────────────
 // One database for the entire file — cleared between tests to avoid
@@ -119,6 +120,55 @@ function makeDeps(
   };
 }
 
+/** Jira spy that records addComment and promoteToReview calls. */
+function makeJiraSpy(
+  sprint = "Sprint 1",
+  tickets: Array<{ key: string; status: string }> = [],
+): JiraClient & { comments: Map<string, string>; promoted: string[] } {
+  const comments = new Map<string, string>();
+  const promoted: string[] = [];
+  return {
+    ...makeJira(sprint, tickets),
+    promoteToReview: async (key: string) => { promoted.push(key); },
+    addComment: async (key: string, reason: string) => { comments.set(key, reason); return true; },
+    comments,
+    promoted,
+  } as unknown as JiraClient & { comments: Map<string, string>; promoted: string[] };
+}
+
+/** Build an orchestrator whose prioritizer returns a fixed all-blocked or all-redundant result.
+ *  allKeys must have >1 entry to bypass the Prioritizer's single-ticket fallback path. */
+function makeBlockedOrchestrator(
+  skipped: Array<{ key: string; reason: string; [k: string]: unknown }>,
+): GSDOrchestrator {
+  const runner = {
+    run: async () => ({
+      code: 0,
+      stdout: JSON.stringify({ layers: [], skipped, excluded: [{ key: "EC-2", reason: "Done" }] }),
+    }),
+    writeLog: () => "/fake",
+  } as unknown as ClaudeRunner;
+  const { log } = collectLogs();
+  return new GSDOrchestrator(
+    makeDeps({ prioritizer: new Prioritizer({ runner, scriptDir: "/tmp", log }), baseRepos: [] }),
+  );
+}
+
+/** Build a minimal DiscoverResult for process() tests. */
+function makeDiscovery(unprocessed: string[], allKeys?: string[]): DiscoverResult {
+  return {
+    sprint: "Sprint 1",
+    allKeys: allKeys ?? unprocessed,
+    unprocessed,
+    skippedCount: 0,
+  };
+}
+
+/** Build a PrioritizeResult with skipped tickets only (no layers). */
+function makeSkippedResult(skipped: SkippedTicket[]): PrioritizeResult {
+  return { layers: [], skipped, excluded: [] };
+}
+
 // ─── prioritize ──────────────────────────────────────────────────────────────
 
 void describe("GSDOrchestrator.prioritize", () => {
@@ -170,7 +220,7 @@ void describe("GSDOrchestrator.prioritize", () => {
     });
     const orch = new GSDOrchestrator(deps);
 
-    const result = await orch.prioritize(["EC-1", "EC-2"], "Sprint 1");
+    const result = await orch.prioritize(["EC-1", "EC-2"], ["EC-1", "EC-2"], "Sprint 1");
 
     assert.ok(capturedPrompt.includes("PREVIOUS RUN GUIDANCE"));
     assert.ok(result.initialGroupStates);
@@ -207,10 +257,66 @@ void describe("GSDOrchestrator.prioritize", () => {
       baseRepos: ["/abs/my-repo"],
     });
     const orch = new GSDOrchestrator(deps);
-    const result = await orch.prioritize(["EC-1"], "Sprint 1");
+    const result = await orch.prioritize(["EC-1"], ["EC-1"], "Sprint 1");
 
     assert.ok(!capturedPrompt.includes("PREVIOUS RUN GUIDANCE"));
     assert.equal(result.initialGroupStates, undefined);
+  });
+
+  void it("skips LLM and returns empty result when all unprocessed tickets are in waiting state", async () => {
+    await store.saveWaiting("Sprint 1", ["EC-1"]);
+
+    let prioritizerCalled = false;
+    const prioritizer = {
+      prioritize: async () => { prioritizerCalled = true; return { resolved: makeResult([]), rawJson: "{}" }; },
+    } as unknown as Prioritizer;
+
+    const { log, logs } = collectLogs();
+    const orch = new GSDOrchestrator(makeDeps({ prioritizer, log } as Partial<OrchestratorDeps & { logs: string[] }>));
+    const result = await orch.prioritize(["EC-1", "EC-2", "EC-3"], ["EC-1"], "Sprint 1");
+
+    assert.equal(prioritizerCalled, false, "prioritizer must not be called during throttle");
+    assert.deepEqual(result, { layers: [], skipped: [], excluded: [] });
+    assert.ok(logs.some((l) => l.includes("WAITING")));
+  });
+
+  void it("bypasses throttle and calls LLM when a new unprocessed ticket appears", async () => {
+    await store.saveWaiting("Sprint 1", ["EC-1"]);
+
+    let prioritizerCalled = false;
+    const prioritizer = {
+      prioritize: async () => {
+        prioritizerCalled = true;
+        return {
+          resolved: { layers: [], skipped: [], excluded: [] },
+          rawJson: "{}",
+        };
+      },
+    } as unknown as Prioritizer;
+
+    const orch = new GSDOrchestrator(makeDeps({ prioritizer, baseRepos: [] }));
+    await orch.prioritize(["EC-1", "EC-2"], ["EC-1", "EC-2"], "Sprint 1");
+
+    assert.equal(prioritizerCalled, true, "prioritizer must be called when new ticket appears");
+    assert.equal(await store.loadWaiting("Sprint 1"), null, "waiting state cleared before LLM call");
+  });
+
+  void it("saves waiting state when all pending tickets are in-flight blocked", async () => {
+    const orch = makeBlockedOrchestrator([
+      { key: "EC-1", reason: "blocked on EC-0 (In Review)", in_flight_dependency: true },
+    ]);
+    await orch.prioritize(["EC-1", "EC-2"], ["EC-1"], "Sprint 1");
+
+    assert.deepEqual(await store.loadWaiting("Sprint 1"), ["EC-1"]);
+  });
+
+  void it("does not save waiting state when skipped tickets are permanently skipped (not in-flight)", async () => {
+    const orch = makeBlockedOrchestrator([
+      { key: "EC-1", reason: "redundant with EC-2", redundantWith: "EC-2" },
+    ]);
+    await orch.prioritize(["EC-1", "EC-2"], ["EC-1"], "Sprint 1");
+
+    assert.equal(await store.loadWaiting("Sprint 1"), null);
   });
 
   void it("marks excluded tickets as completed so discover skips them next run", async () => {
@@ -239,11 +345,65 @@ void describe("GSDOrchestrator.prioritize", () => {
       baseRepos: ["/abs/my-repo"],
     });
     const orch = new GSDOrchestrator(deps);
-    await orch.prioritize(["EC-1", "EC-2"], "Sprint 1");
+    await orch.prioritize(["EC-1", "EC-2"], ["EC-1", "EC-2"], "Sprint 1");
 
     const completed = await store.completedTicketKeys();
     assert.ok(completed.has("EC-1"), "excluded ticket marked completed");
     assert.ok(!completed.has("EC-2"), "non-excluded ticket not affected");
+  });
+});
+
+// ─── process (skipped ticket handling) ───────────────────────────────────────
+
+void describe("GSDOrchestrator.process — skipped ticket handling", () => {
+  void it("in-flight blocked ticket: adds JIRA comment but does not promote or mark completed", async () => {
+    const jira = makeJiraSpy("Sprint 1", [{ key: "EC-1", status: "To Do" }]);
+    const deps = makeDeps({ jira });
+    const orch = new GSDOrchestrator(deps);
+
+    await orch.process(
+      makeDiscovery(["EC-1"]),
+      makeSkippedResult([{ key: "EC-1", reason: "blocked on EC-0 (In Review)", inFlightDependency: true }]),
+    );
+
+    assert.ok(jira.comments.has("EC-1"), "JIRA comment must be added");
+    assert.equal(jira.promoted.length, 0, "ticket must NOT be promoted to In Review");
+    const completed = await store.completedTicketKeys();
+    assert.ok(!completed.has("EC-1"), "ticket must NOT be marked completed — needs retry when dependency merges");
+    assert.ok(deps.logs.some((l) => l.includes("WAITING: EC-1")));
+  });
+
+  void it("permanently skipped ticket: adds JIRA comment, promotes to In Review, marks completed", async () => {
+    const jira = makeJiraSpy("Sprint 1", [{ key: "EC-1", status: "To Do" }]);
+    await store.save(makeResult([{ key: "EC-1" }]), "Sprint 1");
+    const deps = makeDeps({ jira });
+    const orch = new GSDOrchestrator(deps);
+
+    await orch.process(
+      makeDiscovery(["EC-1"]),
+      makeSkippedResult([{ key: "EC-1", reason: "redundant with EC-2", inFlightDependency: false }]),
+    );
+
+    assert.ok(jira.comments.has("EC-1"), "JIRA comment must be added");
+    assert.ok(jira.promoted.includes("EC-1"), "ticket must be promoted to In Review");
+    const completed = await store.completedTicketKeys();
+    assert.ok(completed.has("EC-1"), "ticket must be marked completed");
+    assert.ok(deps.logs.some((l) => l.includes("SKIPPED: EC-1")));
+  });
+
+  void it("ticket not in unprocessed set is ignored regardless of inFlightDependency", async () => {
+    const jira = makeJiraSpy();
+    const deps = makeDeps({ jira });
+    const orch = new GSDOrchestrator(deps);
+
+    // EC-1 is skipped but is NOT in unprocessed (already completed by another path)
+    await orch.process(
+      makeDiscovery([]),
+      makeSkippedResult([{ key: "EC-1", reason: "blocked on EC-0", inFlightDependency: true }]),
+    );
+
+    assert.equal(jira.comments.size, 0, "no comment for ticket outside unprocessed set");
+    assert.equal(jira.promoted.length, 0);
   });
 });
 

@@ -31,7 +31,11 @@ const BUFFER_POOL_BYTES = 128 * 1024 * 1024;
 // Note: "Group" is a reserved keyword in LadybugDB, hence "TicketGroup".
 const T_GROUP = "TicketGroup";
 const T_EXTRA = "ExtraCompleted";
+const T_WAITING = "WaitingTicket";
 const R_DEP = "DependsOn";
+
+/** How long to suppress the prioritizer after an all-blocked result (30 minutes). */
+const WAITING_THROTTLE_MS = 30 * 60 * 1000;
 
 type RepoJson = Record<string, string>;
 type Row = Record<string, LbugValue>;
@@ -90,6 +94,14 @@ export class DagStore {
       )`);
       await this.q(`CREATE NODE TABLE ${T_EXTRA}(key STRING PRIMARY KEY, sprint STRING)`);
       await this.q(`CREATE REL TABLE ${R_DEP}(FROM ${T_GROUP} TO ${T_GROUP})`);
+    }
+    // WaitingTicket may not exist in older databases — create if missing.
+    try {
+      await this.q(`MATCH (w:${T_WAITING}) RETURN COUNT(w) LIMIT 1`);
+    } catch {
+      await this.q(
+        `CREATE NODE TABLE ${T_WAITING}(key STRING PRIMARY KEY, sprint STRING, until INT64)`,
+      );
     }
   }
 
@@ -489,5 +501,46 @@ export class DagStore {
     );
 
     return lines.join("\n");
+  }
+
+  // ─── Waiting state (in-flight dependency throttle) ─────────────────────────
+
+  /**
+   * Persist waiting tickets: all keys are blocked on in-flight dependencies for
+   * the given sprint. The prioritizer will be suppressed for WAITING_THROTTLE_MS.
+   * Replaces any existing waiting entries for this sprint.
+   */
+  async saveWaiting(sprint: string, keys: string[]): Promise<void> {
+    await this.clearWaiting();
+    const until = BigInt(Date.now() + WAITING_THROTTLE_MS);
+    /* oxlint-disable no-await-in-loop -- single-threaded LadybugDB; sequential writes required */
+    for (const key of keys) {
+      await this.q(
+        `CREATE (w:${T_WAITING} {key: $key, sprint: $sprint, until: $until})`,
+        { key, sprint, until },
+      );
+    }
+    /* oxlint-enable no-await-in-loop */
+  }
+
+  /**
+   * Return blocked ticket keys if the throttle is still active for this sprint.
+   * Returns null if no waiting state exists, the sprint doesn't match, or the throttle expired.
+   */
+  async loadWaiting(sprint: string): Promise<string[] | null> {
+    const now = BigInt(Date.now());
+    const rows = await (
+      await this.q(
+        `MATCH (w:${T_WAITING}) WHERE w.sprint = $sprint AND w.until > $now RETURN w.key AS key`,
+        { sprint, now },
+      )
+    ).getAll();
+    if (rows.length === 0) return null;
+    return rows.map((r) => r.key as string);
+  }
+
+  /** Clear all waiting ticket entries. */
+  async clearWaiting(): Promise<void> {
+    await this.q(`MATCH (w:${T_WAITING}) DELETE w`);
   }
 }

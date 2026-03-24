@@ -41,9 +41,17 @@ export interface GroupedLayer {
 // Re-export from dag for consumers that previously imported from prioritizer
 export { primaryKey } from "./dag.js";
 
+export interface SkippedTicket {
+  key: string;
+  reason: string;
+  /** True when skipped due to an in-flight dependency (In Progress / In Review).
+   *  Orchestrator uses this to avoid wrongly promoting the ticket to "In Review". */
+  inFlightDependency: boolean;
+}
+
 export interface PrioritizeResult {
   layers: GroupedLayer[];
-  skipped: Array<{ key: string; reason: string }>;
+  skipped: SkippedTicket[];
   excluded: Array<{ key: string; reason: string }>;
 }
 
@@ -76,6 +84,9 @@ interface RawLayer {
 interface RawKeyReason {
   key: string;
   reason: string;
+  /** True when the ticket is waiting on an in-flight dependency (In Progress / In Review).
+   *  False / absent = permanently skipped (redundant, out-of-scope, etc.) */
+  in_flight_dependency?: boolean;
 }
 export interface RawPrioritizeOutput {
   layers: RawLayer[];
@@ -88,8 +99,7 @@ function isRawOutput(v: unknown): v is RawPrioritizeOutput {
     typeof v === "object" &&
     v !== null &&
     "layers" in v &&
-    Array.isArray(v.layers) &&
-    v.layers.length > 0
+    Array.isArray(v.layers)
   );
 }
 
@@ -123,7 +133,11 @@ export function parsePrioritizerOutput(raw: string): PrioritizeResult | null {
   if (!parsed) return null;
 
   const layers = parsed.layers.map(toGroupedLayer);
-  const skipped = parsed.skipped ?? [];
+  const skipped = (parsed.skipped ?? []).map((s) => ({
+    key: s.key,
+    reason: s.reason,
+    inFlightDependency: s.in_flight_dependency === true,
+  }));
   const excluded = parsed.excluded ?? [];
 
   return { layers, skipped, excluded };
@@ -149,7 +163,7 @@ export function fallbackResult(tickets: string[]): PrioritizeResult {
         dependsOn: null,
       },
     ],
-    skipped: [],
+    skipped: [] as SkippedTicket[],
     excluded: [],
   };
 }

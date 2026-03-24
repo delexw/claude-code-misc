@@ -78,9 +78,27 @@ void describe("parsePrioritizerOutput", () => {
     assert.equal(result.layers.length, 1);
   });
 
-  void it("returns null for empty layers", () => {
-    const input = JSON.stringify({ layers: [], skipped: [], excluded: [] });
-    assert.equal(parsePrioritizerOutput(input), null);
+  void it("returns empty result for layers blocked on in-flight dependencies", () => {
+    const input = JSON.stringify({
+      layers: [],
+      skipped: [{ key: "EC-123", reason: "blocked on EC-100 which is In Review", in_flight_dependency: true }],
+      excluded: [],
+    });
+    const result = parsePrioritizerOutput(input)!;
+    assert.equal(result.layers.length, 0);
+    assert.equal(result.skipped.length, 1);
+    assert.equal(result.skipped[0].key, "EC-123");
+    assert.equal(result.skipped[0].inFlightDependency, true);
+  });
+
+  void it("sets inFlightDependency false when flag is absent", () => {
+    const input = JSON.stringify({
+      layers: [],
+      skipped: [{ key: "EC-124", reason: "redundant with EC-100", redundantWith: "EC-100" }],
+      excluded: [],
+    });
+    const result = parsePrioritizerOutput(input)!;
+    assert.equal(result.skipped[0].inFlightDependency, false);
   });
 
   void it("returns null for missing layers", () => {

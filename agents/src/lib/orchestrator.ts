@@ -7,7 +7,7 @@
 import type { LogFn } from "./claude-runner.js";
 import type { JiraClient } from "./jira.js";
 import type { DagStore } from "./dag-store.js";
-import type { GroupedLayer } from "./prioritizer.js";
+import type { GroupedLayer, SkippedTicket } from "./prioritizer.js";
 import type { GroupStates } from "./dag.js";
 import type { SprintDiscovery, DiscoverResult } from "./discovery.js";
 import { Prioritizer } from "./prioritizer.js";
@@ -26,7 +26,7 @@ export interface OrchestratorDeps {
 
 interface PrioritizeResult {
   layers: GroupedLayer[];
-  skipped: Array<{ key: string; reason: string }>;
+  skipped: SkippedTicket[];
   excluded: Array<{ key: string; reason: string }>;
   initialGroupStates?: GroupStates;
 }
@@ -76,8 +76,23 @@ export class GSDOrchestrator {
   }
 
   /** Step 1: Prioritize tickets, guided by previous run if available. */
-  async prioritize(allKeys: string[], sprint: string): Promise<PrioritizeResult> {
+  async prioritize(allKeys: string[], unprocessed: string[], sprint: string): Promise<PrioritizeResult> {
     resetReposToMain(this.baseRepos, this.log);
+
+    // Skip the prioritizer when all unprocessed tickets are still blocked on in-flight
+    // dependencies from the last run and the 30-minute throttle hasn't expired yet.
+    // Returning empty skipped avoids re-commenting on JIRA — that was done on the first run.
+    const waitingKeys = await this.runState.loadWaiting(sprint);
+    const waitingSet = waitingKeys ? new Set(waitingKeys) : null;
+    if (waitingSet && unprocessed.every((k) => waitingSet.has(k))) {
+      this.log(
+        `WAITING: all pending ticket(s) blocked on in-flight dependencies — skipping prioritizer`,
+      );
+      return { layers: [], skipped: [], excluded: [] };
+    }
+
+    // Clear stale waiting state before calling the LLM — new work may be available.
+    if (waitingKeys) await this.runState.clearWaiting();
 
     const previousGuidance = await this.runState.buildGuidance();
     const initialGroupStates = await this.runState.loadGroupStates();
@@ -95,6 +110,19 @@ export class GSDOrchestrator {
       await this.runState.markCompleted(e.key);
     }
     /* oxlint-enable no-await-in-loop */
+
+    // If every pending ticket is blocked on an in-flight dependency, save the waiting
+    // state so the next run skips the prioritizer for up to 30 minutes.
+    const allInFlight =
+      resolved.layers.length === 0 &&
+      resolved.skipped.length > 0 &&
+      resolved.skipped.every((s) => s.inFlightDependency);
+    if (allInFlight) {
+      await this.runState.saveWaiting(
+        sprint,
+        resolved.skipped.map((s) => s.key),
+      );
+    }
 
     return {
       layers: resolved.layers,
@@ -116,15 +144,20 @@ export class GSDOrchestrator {
 
     const unprocessedSet = new Set(discovery.unprocessed);
 
-    // Comment and promote skipped tickets that are still pending.
+    // In-flight dependency blocks stay in To Do — they must be retried once the dependency merges.
+    // Permanently skipped tickets (redundant, out-of-scope) are closed out: comment + promote + mark completed.
     const skippedPending = skipped.filter((s) => unprocessedSet.has(s.key));
     /* oxlint-disable no-await-in-loop -- sequential JIRA mutations required */
     for (const s of skippedPending) {
       const commented = await this.jira.addComment(s.key, s.reason);
       if (!commented) this.log(`WARN: Could not comment on ${s.key}`);
-      await this.jira.promoteToReview(s.key, this.log);
-      await this.runState.markCompleted(s.key);
-      this.log(`SKIPPED: ${s.key} — commented and moved to In Review`);
+      if (s.inFlightDependency) {
+        this.log(`WAITING: ${s.key} — commented, keeping in To Do (blocked on in-flight dependency)`);
+      } else {
+        await this.jira.promoteToReview(s.key, this.log);
+        await this.runState.markCompleted(s.key);
+        this.log(`SKIPPED: ${s.key} — commented and moved to In Review`);
+      }
     }
     /* oxlint-enable no-await-in-loop */
 
@@ -174,7 +207,7 @@ export class GSDOrchestrator {
 
     await this.resumeInFlightTickets(discovery);
 
-    const prioritization = await this.prioritize(discovery.allKeys, discovery.sprint);
+    const prioritization = await this.prioritize(discovery.allKeys, discovery.unprocessed, discovery.sprint);
     const { succeeded, failed } = await this.process(discovery, prioritization);
 
     this.summarize(succeeded, discovery.skippedCount, failed);

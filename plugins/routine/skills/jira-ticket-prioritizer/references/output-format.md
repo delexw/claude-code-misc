@@ -17,7 +17,7 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
     { "group": [{"key": "PROJ-105", "complexity": "moderate", "repos": [{"repo": "acme-web", "branch": "proj-105-dashboard"}]}], "relation": null, "hasFrontend": true, "verification": {"required": true, "reason": "new dashboard page"}, "depends_on": null }
   ],
   "skipped": [
-    { "key": "PROJ-102", "reason": "depends on PROJ-98 (status: In Progress)" },
+    { "key": "PROJ-102", "reason": "depends on PROJ-98 (status: In Progress)", "in_flight_dependency": true },
     { "key": "PROJ-104", "reason": "redundant with PROJ-101 — near-identical summary and overlapping component 'AuthService'; PROJ-104 description is a subset of PROJ-101 scope (confidence: high, weight: 0.87)", "redundantWith": "PROJ-101", "weight": 0.87, "confidence": "high" }
   ],
   "excluded": [
@@ -38,8 +38,8 @@ Topologically-sorted array of groups forming a dependency DAG. Each group contai
   - **required** = `true` only when changes produce **visible, reachable UI** — e.g. a component rendered on an existing page. Set to `false` when: (a) backend/API-only, (b) new component not yet mounted on any page, (c) UI behind a feature flag that is off by default, (d) purely styling tokens or test changes. Inferred semantically from ticket content.
   - **reason** = short explanation of why `required` is true or false. Used for logging and debugging orchestrator decisions.
 - **skipped** = Tickets not processed this run, for one of two reasons:
-  - *Unresolved dependency*: ticket depends on another ticket whose JIRA status is neither To Do/Backlog (sequenceable into an earlier layer) nor Done (already complete) — e.g. In Progress or In Review. Reason includes the dependency key and its current status.
-  - *Redundant*: ticket substantially overlaps with a higher-scoring ticket. Includes `redundantWith`, `weight`, and `confidence` fields. Reason is a verbose evidence string naming the specific overlapping fields.
+  - *Unresolved dependency*: ticket depends on another ticket whose JIRA status is neither To Do/Backlog (sequenceable into an earlier layer) nor Done (already complete) — e.g. In Progress or In Review. Reason includes the dependency key and its current status. **MUST include `"in_flight_dependency": true`** — the orchestrator uses this flag to avoid incorrectly promoting the ticket to "In Review" in JIRA (it still needs to be implemented once its dependency merges).
+  - *Redundant*: ticket substantially overlaps with a higher-scoring ticket. Includes `redundantWith`, `weight`, and `confidence` fields. Reason is a verbose evidence string naming the specific overlapping fields. `in_flight_dependency` must be absent or `false`.
 - **excluded** = Tickets intentionally omitted (container stories, Done/Closed/Resolved, etc.) with a reason string
 
 ### Ordering Rules

@@ -29,7 +29,7 @@ function makeResult(
       verification: { required: true, reason: "test" },
       dependsOn: l.dependsOn ?? null,
     })),
-    skipped: (extras.skipped ?? []).map((k) => ({ key: k, reason: "skipped" })),
+    skipped: (extras.skipped ?? []).map((k) => ({ key: k, reason: "skipped", inFlightDependency: false })),
     excluded: (extras.excluded ?? []).map((k) => ({ key: k, reason: "excluded" })),
   };
 }
@@ -443,6 +443,121 @@ void describe("clear", () => {
     assert.equal((await store.previousTicketKeys()).size, 0);
     assert.equal((await store.completedTicketKeys()).size, 0);
     assert.equal(await store.buildGuidance(), null);
+  });
+});
+
+// ─── saveWaiting / loadWaiting / clearWaiting ────────────────────────────────
+
+void describe("saveWaiting / loadWaiting / clearWaiting", () => {
+  void it("loadWaiting returns null when no waiting state exists", async () => {
+    assert.equal(await store.loadWaiting("Sprint 1"), null);
+  });
+
+  void it("loadWaiting returns keys after saveWaiting within throttle window", async () => {
+    await store.saveWaiting("Sprint 1", ["EC-1", "EC-2"]);
+    const keys = await store.loadWaiting("Sprint 1");
+    assert.deepEqual(keys?.sort(), ["EC-1", "EC-2"]);
+  });
+
+  void it("loadWaiting returns null for a different sprint", async () => {
+    await store.saveWaiting("Sprint 1", ["EC-1"]);
+    assert.equal(await store.loadWaiting("Sprint 2"), null);
+  });
+
+  void it("loadWaiting returns null after clearWaiting", async () => {
+    await store.saveWaiting("Sprint 1", ["EC-1"]);
+    await store.clearWaiting();
+    assert.equal(await store.loadWaiting("Sprint 1"), null);
+  });
+
+  void it("saveWaiting replaces existing entries", async () => {
+    await store.saveWaiting("Sprint 1", ["EC-1", "EC-2"]);
+    await store.saveWaiting("Sprint 1", ["EC-3"]);
+    const keys = await store.loadWaiting("Sprint 1");
+    assert.deepEqual(keys, ["EC-3"], "old entries replaced, not appended");
+  });
+
+  void it("clearWaiting is a no-op when nothing is saved", async () => {
+    await assert.doesNotReject(() => store.clearWaiting());
+    assert.equal(await store.loadWaiting("Sprint 1"), null);
+  });
+
+  void it("clear() also removes waiting tickets", async () => {
+    await store.saveWaiting("Sprint 1", ["EC-1"]);
+    await store.clear();
+    assert.equal(await store.loadWaiting("Sprint 1"), null);
+  });
+});
+
+// ─── WaitingTicket isolation from other nodes ────────────────────────────────
+
+void describe("WaitingTicket isolation", () => {
+  void it("saveWaiting does not affect TicketGroup nodes", async () => {
+    await store.save(makeResult([{ key: "EC-1", repoPath: "r" }]), "Sprint 1");
+    await store.saveWaiting("Sprint 1", ["EC-2"]);
+
+    const keys = await store.previousTicketKeys();
+    assert.ok(keys.has("EC-1"), "TicketGroup node must survive saveWaiting");
+  });
+
+  void it("clearWaiting does not delete TicketGroup or ExtraCompleted nodes", async () => {
+    await store.save(makeResult([{ key: "EC-1", repoPath: "r" }]), "Sprint 1");
+    await store.markCompleted("EC-2");
+    await store.saveWaiting("Sprint 1", ["EC-3"]);
+
+    await store.clearWaiting();
+
+    const previous = await store.previousTicketKeys();
+    const completed = await store.completedTicketKeys();
+    assert.ok(previous.has("EC-1"), "TicketGroup preserved after clearWaiting");
+    assert.ok(completed.has("EC-2"), "ExtraCompleted preserved after clearWaiting");
+    assert.equal(await store.loadWaiting("Sprint 1"), null, "waiting state gone");
+  });
+
+  void it("pruneMergedGroups does not touch WaitingTicket nodes", async () => {
+    await store.save(makeResult([{ key: "EC-1", repoPath: "r" }]), "Sprint 1");
+    await store.updateGroupStates(
+      makeGroupStates([["EC-1", { branch: "b", prUrl: "https://pr/1" }]]),
+    );
+    await store.saveWaiting("Sprint 1", ["EC-2"]);
+
+    await store.pruneMergedGroups(() => true);
+
+    const keys = await store.loadWaiting("Sprint 1");
+    assert.deepEqual(keys, ["EC-2"], "WaitingTicket nodes survive pruneMergedGroups");
+  });
+
+  void it("buildGuidance works correctly when waiting tickets exist alongside TicketGroups", async () => {
+    await store.save(makeResult([{ key: "EC-1", repoPath: "r" }]), "Sprint 1");
+    await store.saveWaiting("Sprint 1", ["EC-2"]);
+
+    const guidance = await store.buildGuidance();
+    assert.ok(guidance !== null, "guidance returned");
+    assert.ok(guidance.includes("EC-1"), "pending TicketGroup appears in guidance");
+    assert.ok(!guidance.includes("EC-2"), "WaitingTicket does not pollute guidance");
+  });
+
+  void it("waiting state from old sprint does not block new sprint", async () => {
+    await store.saveWaiting("Sprint 1", ["EC-1"]);
+
+    // New sprint — EC-2 is blocked
+    await store.saveWaiting("Sprint 2", ["EC-2"]);
+
+    assert.equal(await store.loadWaiting("Sprint 1"), null, "old sprint waiting gone");
+    const keys = await store.loadWaiting("Sprint 2");
+    assert.deepEqual(keys, ["EC-2"], "new sprint waiting set correctly");
+  });
+
+  void it("markCompleted on a waiting ticket key does not affect WaitingTicket node", async () => {
+    await store.save(makeResult([{ key: "EC-1" }]), "Sprint 1");
+    await store.saveWaiting("Sprint 1", ["EC-1"]);
+
+    await store.markCompleted("EC-1");
+
+    const completed = await store.completedTicketKeys();
+    assert.ok(completed.has("EC-1"), "EC-1 in completed");
+    const waiting = await store.loadWaiting("Sprint 1");
+    assert.deepEqual(waiting, ["EC-1"], "EC-1 still in WaitingTicket");
   });
 });
 
