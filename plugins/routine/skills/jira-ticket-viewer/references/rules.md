@@ -12,4 +12,5 @@
 - **Issue Not Found**: "Issue '{key}' not found. Verify the issue key exists in your Jira instance."
 - **Auth Error**: Use `AskUserQuestion` — guide user to reconfigure credentials via `jira init`
 - **JIRA_API_TOKEN Not Set**: Use `AskUserQuestion` — guide user to set `JIRA_API_TOKEN` environment variable with their Jira API token (generate at https://id.atlassian.com/manage-profile/security/api-tokens). Do NOT continue until the token is available.
+- **JIRA_SERVER Not Set**: PR fetching will be skipped (non-fatal). If PR links are needed, guide user to set `JIRA_SERVER` to their Jira base URL (e.g. `https://your-org.atlassian.net`).
 - **Attachment Download Failed**: Warn but continue — attachment download is best-effort

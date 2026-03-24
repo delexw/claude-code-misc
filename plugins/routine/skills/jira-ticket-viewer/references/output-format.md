@@ -48,6 +48,20 @@
   "linkedIssues": [
     { "relationship": "blocks", "key": "PROJ-456", "summary": "Linked issue summary", "status": "Open" }
   ],
+  "pullRequests": [
+    {
+      "id": "#21208",
+      "title": "[PROJ-123]: PR title",
+      "url": "https://github.com/org/repo/pull/21208",
+      "status": "MERGED",
+      "sourceBranch": "PROJ-123-my-feature",
+      "targetBranch": "main",
+      "repository": "org/repo",
+      "author": "Yang Liu",
+      "commentCount": 2,
+      "lastUpdate": "2026-03-24"
+    }
+  ],
   "commentSummary": {
     "decisions": ["Use approach X for Y"],
     "requirements": ["Must handle edge case A"],
@@ -92,6 +106,12 @@
 - Extracted from `fields.issuelinks`
 - Array of `{ relationship, key, summary, status }` objects (empty array if none)
 - Both outward and inward links are included
+
+### Pull Requests
+- Fetched from the Jira dev-status API (`/rest/dev-status/1.0/issue/detail`)
+- Array of `{ id, title, url, status, sourceBranch, targetBranch, repository, author, commentCount, lastUpdate }` objects
+- Absent if no PRs are linked or the fetch fails (non-fatal)
+- `status` values: `OPEN`, `MERGED`, `DECLINED`
 
 ### Comment Summary
 - Agent-interpreted summary of `fields.comment.comments` (see [comment-rules.md](comment-rules.md))
