@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsup",
+    "build": "tsup --metafile",
     "install": "tsx build.ts",
     "uninstall": "tsx build.ts --uninstall",
     "lint": "oxlint",

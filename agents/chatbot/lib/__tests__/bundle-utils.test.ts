@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { externalPackagesInBundle } from "../bundle-utils";
@@ -140,10 +140,16 @@ describe("externalPackagesInBundle (synthetic metafile)", () => {
 
 describe("externalPackagesInBundle (real metafile — all agents)", () => {
   const AGENTS_ROOT_REAL = join(import.meta.dirname, "../../..");
-  const opts = {
-    metafilePath: join(AGENTS_ROOT_REAL, "dist/metafile-esm.json"),
-    agentsRoot: AGENTS_ROOT_REAL,
-  };
+  const metafilePath = join(AGENTS_ROOT_REAL, "dist/metafile-esm.json");
+  const opts = { metafilePath, agentsRoot: AGENTS_ROOT_REAL };
+
+  beforeAll(() => {
+    if (!existsSync(metafilePath)) {
+      throw new Error(
+        `Metafile not found at ${metafilePath}. Run \`npm run build\` (which includes --metafile) before running tests.`,
+      );
+    }
+  });
 
   it("get-shit-done → [@ladybugdb/core] (only agent using the native dag store)", () => {
     expect(externalPackagesInBundle("get-shit-done", opts)).toContain("@ladybugdb/core");

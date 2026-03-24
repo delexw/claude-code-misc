@@ -25,3 +25,17 @@ export const SCHEDULER_LOGS = join(SCHEDULER_ROOT, "logs");
 export const SCHEDULER_STATE = join(SCHEDULER_ROOT, "state");
 /** ~/Library/LaunchAgents — macOS launchd user agents directory */
 export const LAUNCH_AGENTS_DIR = join(process.env.HOME!, "Library/LaunchAgents");
+/** Resolve an agent's entry point to an absolute path under agents/ root */
+export const agentEntryPath = (entryPath: string) => join(AGENTS_ROOT, entryPath);
+/** agents/node_modules/<pkg> */
+export const agentNodeModule = (pkg: string) => join(AGENTS_ROOT, "node_modules", pkg);
+/** agents/dist/<agentName>.mjs — compiled agent script */
+export const agentDistScript = (agentName: string) => join(AGENTS_DIST, `${agentName}.mjs`);
+/** ~/.claude/scheduler/<agentName>.mjs — deployed agent script */
+export const schedulerScript = (agentName: string) => join(SCHEDULER_ROOT, `${agentName}.mjs`);
+/** ~/.claude/scheduler/node_modules/<pkg> */
+export const schedulerNodeModule = (pkg: string) => join(SCHEDULER_ROOT, "node_modules", pkg);
+/** ~/.claude/scheduler/logs/.<agentName> — agent log directory */
+export const agentLogDir = (agentName: string) => join(SCHEDULER_LOGS, `.${agentName}`);
+/** ~/Library/LaunchAgents/<label>.plist */
+export const plistFilePath = (label: string) => join(LAUNCH_AGENTS_DIR, `${label}.plist`);

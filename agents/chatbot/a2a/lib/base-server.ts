@@ -301,7 +301,7 @@ export function createServerFromDef(def: AgentDef, port: number): void {
   };
 
   const executor = new ScriptAgentExecutor({
-    scriptPath: join(AGENTS_ROOT, "src", `${def.name}.ts`),
+    scriptPath: join(AGENTS_ROOT, def.entryPath),
     agentName: def.displayName,
     whatItDoes: def.description,
   });

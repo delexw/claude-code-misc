@@ -503,12 +503,14 @@ describe("useAgentChat", () => {
 
   // ─── guard: no duplicate send while loading ───────────────────────────────────
 
-  it("does not send while already loading", async () => {
+  it("queues message sent while loading and sends it after first completes", async () => {
     let resolveFirst!: (v: Response) => void;
     const pending = new Promise<Response>((r) => {
       resolveFirst = r;
     });
-    vi.mocked(fetch).mockReturnValueOnce(pending);
+    vi.mocked(fetch)
+      .mockReturnValueOnce(pending)
+      .mockReturnValueOnce(Promise.resolve(makeSseResponse([{ type: "done" }])));
 
     const { result } = renderHook(() => useAgentChat());
 
@@ -520,11 +522,13 @@ describe("useAgentChat", () => {
     act(() => {
       void result.current.sendMessage("second");
     });
+    expect(result.current.pendingQueue).toEqual(["second"]);
 
     resolveFirst(makeSseResponse([{ type: "result", content: "ok" }, { type: "done" }]));
     await waitFor(() => !result.current.isLoading);
 
-    expect(fetch).toHaveBeenCalledTimes(1);
+    // queued message is sent after first completes
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("ignores empty or whitespace-only messages", async () => {

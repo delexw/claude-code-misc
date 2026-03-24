@@ -11,10 +11,14 @@ import { AGENTS } from "@@/lib/agents";
 import type { AgentDef } from "@@/lib/agents";
 import {
   AGENTS_ROOT,
-  AGENTS_DIST,
   SCHEDULER_ROOT,
-  SCHEDULER_LOGS,
   LAUNCH_AGENTS_DIR,
+  agentNodeModule,
+  agentDistScript,
+  schedulerScript,
+  schedulerNodeModule,
+  agentLogDir,
+  plistFilePath,
 } from "@@/lib/paths";
 import { generatePlist, plistLabel } from "@/lib/plist-generate";
 import { externalPackagesInBundle } from "@/lib/bundle-utils";
@@ -31,7 +35,7 @@ export function uid(): string {
 export function agentPlistPath(agentName: string): string {
   const agent = AGENTS.find((a) => a.name === agentName);
   if (!agent) throw new Error(`Unknown agent: ${agentName}`);
-  return join(LAUNCH_AGENTS_DIR, `${plistLabel(agent)}.plist`);
+  return plistFilePath(plistLabel(agent));
 }
 
 /** Runs a shell command, silently ignoring errors. */
@@ -56,23 +60,20 @@ export async function isLoaded(label: string): Promise<boolean> {
 /** Write this agent's plist to ~/Library/LaunchAgents without loading it. */
 export function writePlist(agent: AgentDef): void {
   const HOME = process.env.HOME!;
-  const label = plistLabel(agent);
-  const plistPath = join(LAUNCH_AGENTS_DIR, `${label}.plist`);
+  const plistPath = plistFilePath(plistLabel(agent));
   mkdirSync(LAUNCH_AGENTS_DIR, { recursive: true });
   writeFileSync(plistPath, generatePlist(agent, HOME));
 }
 
 /** Bootstrap (load) this agent's plist into launchd. */
 export async function loadAgent(agent: AgentDef): Promise<void> {
-  const label = plistLabel(agent);
-  const plistPath = join(LAUNCH_AGENTS_DIR, `${label}.plist`);
+  const plistPath = plistFilePath(plistLabel(agent));
   await tryRun(`launchctl bootstrap gui/${uid()} ${plistPath}`);
 }
 
 /** Bootout (unload) this agent from launchd. */
 export async function unloadAgent(agent: AgentDef): Promise<void> {
-  const label = plistLabel(agent);
-  const plistPath = join(LAUNCH_AGENTS_DIR, `${label}.plist`);
+  const plistPath = plistFilePath(plistLabel(agent));
   const u = uid();
   await tryRun(`launchctl bootout gui/${u} ${plistPath}`);
   await tryRun(`launchctl bootout gui/${u}/${agent.label}`);
@@ -84,26 +85,22 @@ export async function unloadAgent(agent: AgentDef): Promise<void> {
  */
 export async function installAgent(agent: AgentDef): Promise<{ loaded: boolean }> {
   const HOME = process.env.HOME!;
-  const label = plistLabel(agent);
-  const plistPath = join(LAUNCH_AGENTS_DIR, `${label}.plist`);
+  const plistPath = plistFilePath(plistLabel(agent));
   const u = uid();
 
   // Step 1: Build only this agent's entry
-  await execAsync(`npx tsup src/${agent.name}.ts --metafile`, { cwd: AGENTS_ROOT });
+  await execAsync(`npx tsup ${agent.entryPath} --metafile`, { cwd: AGENTS_ROOT });
 
   // Step 2: Deploy this agent's compiled script
   mkdirSync(SCHEDULER_ROOT, { recursive: true });
-  const scriptSrc = join(AGENTS_DIST, `${agent.name}.mjs`);
-  const scriptDest = join(SCHEDULER_ROOT, `${agent.name}.mjs`);
-  copyFileSync(scriptSrc, scriptDest);
-  chmodSync(scriptDest, 0o755);
+  copyFileSync(agentDistScript(agent.name), schedulerScript(agent.name));
+  chmodSync(schedulerScript(agent.name), 0o755);
 
   // Step 3: Copy only native packages this agent's bundle imports
   for (const pkg of externalPackagesInBundle(agent.name)) {
-    const src = join(AGENTS_ROOT, "node_modules", pkg);
-    if (existsSync(src)) {
-      mkdirSync(join(SCHEDULER_ROOT, "node_modules"), { recursive: true });
-      cpSync(src, join(SCHEDULER_ROOT, "node_modules", pkg), { recursive: true });
+    if (existsSync(agentNodeModule(pkg))) {
+      mkdirSync(schedulerNodeModule(""), { recursive: true });
+      cpSync(agentNodeModule(pkg), schedulerNodeModule(pkg), { recursive: true });
     }
   }
 
@@ -112,7 +109,7 @@ export async function installAgent(agent: AgentDef): Promise<{ loaded: boolean }
   await tryRun(`launchctl bootout gui/${u}/${agent.label}`);
   mkdirSync(LAUNCH_AGENTS_DIR, { recursive: true });
   writeFileSync(plistPath, generatePlist(agent, HOME));
-  mkdirSync(join(SCHEDULER_LOGS, `.${agent.name}`), { recursive: true });
+  mkdirSync(agentLogDir(agent.name), { recursive: true });
   await tryRun(`launchctl bootstrap gui/${u} ${plistPath}`);
 
   return { loaded: await isLoaded(agent.label) };
@@ -120,8 +117,7 @@ export async function installAgent(agent: AgentDef): Promise<{ loaded: boolean }
 
 /** Unload and delete only this agent's plist. */
 export async function uninstallAgent(agent: AgentDef): Promise<void> {
-  const label = plistLabel(agent);
-  const plistPath = join(LAUNCH_AGENTS_DIR, `${label}.plist`);
+  const plistPath = plistFilePath(plistLabel(agent));
   const u = uid();
 
   await tryRun(`launchctl bootout gui/${u} ${plistPath}`);
@@ -153,7 +149,7 @@ export async function getAgentStatus(agent: AgentDef): Promise<AgentStatusDetail
 
 /** Return the last N lines from the most recent log file for an agent. */
 export function getAgentLogs(agent: AgentDef, lines = 100): string {
-  const logDir = join(SCHEDULER_LOGS, `.${agent.name}`);
+  const logDir = agentLogDir(agent.name);
   if (!existsSync(logDir)) return `No log directory found at ${logDir}`;
 
   const logFiles = readdirSync(logDir)
