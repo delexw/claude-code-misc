@@ -9,6 +9,7 @@ import { EnvVarTable } from "./env-var-table";
 import { AddEnvVarDialog } from "./add-env-var-dialog";
 import { EditEnvVarDialog } from "./edit-env-var-dialog";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { AgentManagementContent } from "./agent-management-content";
 import { WS_PORT } from "@/a2a/heartbeat-types";
 import type { AgentStatus, StatusMessage } from "@/a2a/heartbeat-types";
 import type { GlobalSettings, Repository, EnvVar } from "@/lib/settings";
@@ -51,7 +52,7 @@ function useAgentStatuses() {
   return statuses;
 }
 
-type Tab = "repositories" | "env-vars";
+type Tab = "repositories" | "env-vars" | "agent-management";
 
 interface SettingsContentProps {
   initialSettings: GlobalSettings;
@@ -198,9 +199,9 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
             existingGithubRepos={repositories.map((r) => r.githubRepo)}
             onAdd={handleAddRepo}
           />
-        ) : (
+        ) : tab === "env-vars" ? (
           <AddEnvVarDialog existingKeys={envVars.map((v) => v.key)} onAdd={handleAddEnvVar} />
-        )}
+        ) : null}
       </div>
 
       {/* Stats */}
@@ -233,6 +234,17 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
             Environment Variables
             <span className="ml-2 text-xs font-normal opacity-60">({envVars.length})</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setTab("agent-management")}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              tab === "agent-management"
+                ? "border-primary text-primary"
+                : "border-transparent text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            Agent Management
+          </button>
         </div>
 
         {tab === "repositories" ? (
@@ -242,8 +254,10 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
             onEdit={setEditingRepo}
             onRemove={handleRemoveRepo}
           />
-        ) : (
+        ) : tab === "env-vars" ? (
           <EnvVarTable envVars={envVars} onEdit={setEditingEnvVar} onRemove={handleRemoveEnvVar} />
+        ) : (
+          <AgentManagementContent />
         )}
       </div>
 

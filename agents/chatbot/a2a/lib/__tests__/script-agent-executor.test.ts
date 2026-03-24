@@ -10,9 +10,9 @@ import { extractInstruction, buildScriptArgs } from "../base-server";
 
 describe("extractInstruction", () => {
   it("returns text from a single text part", () => {
-    expect(
-      extractInstruction([{ kind: "text", text: "P1AB1234 example.com:zone123" }]),
-    ).toBe("P1AB1234 example.com:zone123");
+    expect(extractInstruction([{ kind: "text", text: "P1AB1234 example.com:zone123" }])).toBe(
+      "P1AB1234 example.com:zone123",
+    );
   });
 
   it("joins multiple text parts with a space", () => {

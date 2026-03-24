@@ -45,7 +45,12 @@ afterEach(() => {
 
 describe("defaultSettings", () => {
   it("returns version 1 with empty repositories and envVars", () => {
-    expect(defaultSettings()).toEqual({ version: 1, repositories: [], envVars: [], agentRepos: {} });
+    expect(defaultSettings()).toEqual({
+      version: 1,
+      repositories: [],
+      envVars: [],
+      agentRepos: {},
+    });
   });
 });
 

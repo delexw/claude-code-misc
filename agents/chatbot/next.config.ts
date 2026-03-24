@@ -22,6 +22,12 @@ const nextConfig: NextConfig = {
       ...config.resolve.alias,
       "@@": path.resolve(__dirname, ".."),
     };
+    // Resolve ESM-style .js imports to their .ts counterparts for files
+    // outside the Next.js app root (e.g. @@/plist/generate.ts)
+    config.resolve.extensionAlias = {
+      ".js": [".ts", ".js"],
+      ".mjs": [".mts", ".mjs"],
+    };
     return config;
   },
 };

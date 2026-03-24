@@ -45,9 +45,7 @@ export function RepoTable({ repositories, agentRepos, onEdit, onRemove }: RepoTa
 
       {/* Rows */}
       {repositories.map((repo, i) => {
-        const enabledAgents = AGENTS.filter(
-          (a) => agentRepos[a.name]?.includes(repo.id) ?? false,
-        );
+        const enabledAgents = AGENTS.filter((a) => agentRepos[a.name]?.includes(repo.id) ?? false);
 
         return (
           <div

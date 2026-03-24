@@ -62,10 +62,7 @@ export function AgentRepoSettings({
   return (
     <div className="flex flex-col gap-8">
       <Breadcrumb
-        items={[
-          { label: "Settings", href: "/settings" },
-          { label: agent.displayName },
-        ]}
+        items={[{ label: "Settings", href: "/settings" }, { label: agent.displayName }]}
       />
 
       {/* Page header */}
