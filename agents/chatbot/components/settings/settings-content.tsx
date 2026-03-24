@@ -243,7 +243,7 @@ export function SettingsContent({ initialSettings }: SettingsContentProps) {
                 : "border-transparent text-on-surface-variant hover:text-on-surface"
             }`}
           >
-            Agent Management
+            Scheduled Agents Management
           </button>
         </div>
 

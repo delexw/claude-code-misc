@@ -75,11 +75,11 @@ export function AgentManagementContent() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-on-surface tracking-tight">
-            Agent Lifecycle Management
+            Scheduled Agents Management
           </h2>
           <p className="text-sm text-on-surface-variant mt-1 max-w-2xl">
-            Configure the launchd status and scheduling behaviour for your agents. Monitor real-time
-            status and control deployment cycles from a central location.
+            Install and manage agents as launchd daemons. Each agent runs on its own schedule —
+            enable or disable them individually, or install all at once.
           </p>
         </div>
         <button
@@ -88,7 +88,7 @@ export function AgentManagementContent() {
           onClick={() => void handleInstallAll()}
           className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold bg-primary text-primary-foreground transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {installingAll ? `Installing ${busy ?? ""}…` : "Install All Agents"}
+          {installingAll ? `Scheduling ${busy ?? ""}…` : "Schedule All Agents"}
         </button>
       </div>
 
