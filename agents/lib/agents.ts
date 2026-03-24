@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import { Brain, Zap, Radar, FlaskConical, BellRing } from "lucide-react";
 
+const TOOL_PREFIX = "yolo";
+
 export interface AgentDef {
   /** kebab-case identifier — used for file names, plist label suffix, log dirs */
   name: string;
@@ -8,11 +10,11 @@ export interface AgentDef {
   entryPath: string;
   /** Human-readable display name */
   displayName: string;
-  /** launchd service label */
+  /** launchd service label — derived: "Claude Code Agent - <displayName>" */
   label: string;
-  /** Underscore key used in .ports.json manifest */
+  /** Underscore key used in .ports.json manifest — derived: name with - → _ */
   manifestKey: string;
-  /** MCP tool name exposed to Claude */
+  /** MCP tool name exposed to Claude — derived: <TOOL_PREFIX>_<manifestKey> */
   toolName: string;
   /** Short description for MCP tool and system prompt */
   description: string;
@@ -32,14 +34,24 @@ export interface AgentDef {
   envVars?: Record<string, string>;
 }
 
+type AgentInput = Omit<AgentDef, "entryPath" | "label" | "manifestKey" | "toolName">;
+
+function defineAgent(input: AgentInput): AgentDef {
+  const manifestKey = input.name.replaceAll("-", "_");
+  return {
+    ...input,
+    entryPath: `src/${input.name}/main.ts`,
+    label: `Claude Code Agent - ${input.displayName}`,
+    manifestKey,
+    toolName: `${TOOL_PREFIX}_${manifestKey}`,
+  };
+}
+
 export const AGENTS: AgentDef[] = [
-  {
+  defineAgent({
     name: "experience-reflector",
-    entryPath: "src/experience-reflector/main.ts",
+
     displayName: "Experience Reflector",
-    label: "Claude Code Agent - Experience Reflector",
-    manifestKey: "experience_reflector",
-    toolName: "run_experience_reflector",
     description:
       "Reflect on and learn from past Claude Code sessions: scans checkpoint sessions, " +
       "extracts domain knowledge and user preferences, and writes learnings into project " +
@@ -49,14 +61,11 @@ export const AGENTS: AgentDef[] = [
     icon: Brain,
     scheduleDisplay: "daily 00:00",
     schedule: { type: "calendar", hour: 0, minute: 0 },
-  },
-  {
+  }),
+  defineAgent({
     name: "get-shit-done",
-    entryPath: "src/get-shit-done/main.ts",
+
     displayName: "Get Shit Done",
-    label: "Claude Code Agent - Get Shit Done",
-    manifestKey: "get_shit_done",
-    toolName: "run_get_shit_done",
     description:
       "Automated JIRA ticket implementer: discovers sprint tickets, forges implementations in " +
       "parallel git worktrees, and creates PRs. Requires GSD_REPOS + JIRA_ASSIGNEE env vars.",
@@ -64,14 +73,11 @@ export const AGENTS: AgentDef[] = [
     icon: Zap,
     scheduleDisplay: "every 5 min",
     schedule: { type: "interval", seconds: 300 },
-  },
-  {
+  }),
+  defineAgent({
     name: "release-log-sentinel",
-    entryPath: "src/release-log-sentinel/main.ts",
+
     displayName: "Release Log Sentinel",
-    label: "Claude Code Agent - Release Log Sentinel",
-    manifestKey: "release_log_sentinel",
-    toolName: "run_release_log_sentinel",
     description:
       "Monitor Claude Code releases: fetch and analyze release notes, check for JSONL format " +
       "changes that could break tail-claude-gui, and create GitHub issues for new breaking " +
@@ -80,14 +86,11 @@ export const AGENTS: AgentDef[] = [
     icon: Radar,
     scheduleDisplay: "Sun 10:00",
     schedule: { type: "calendar", hour: 10, minute: 0, weekday: 0 },
-  },
-  {
+  }),
+  defineAgent({
     name: "memory-distiller",
-    entryPath: "src/memory-distiller/main.ts",
+
     displayName: "Memory Distiller",
-    label: "Claude Code Agent - Memory Distiller",
-    manifestKey: "memory_distiller",
-    toolName: "run_memory_distiller",
     description:
       "Distil and promote common memory patterns across projects into the global ~/.claude/CLAUDE.md. " +
       "Use when asked to 'consolidate memories', 'promote patterns to global', 'summarize memories " +
@@ -97,14 +100,11 @@ export const AGENTS: AgentDef[] = [
     icon: FlaskConical,
     scheduleDisplay: "Sun 01:00",
     schedule: { type: "calendar", hour: 1, minute: 0, weekday: 0 },
-  },
-  {
+  }),
+  defineAgent({
     name: "oncall-analyzer",
-    entryPath: "src/oncall-analyzer/main.ts",
+
     displayName: "Oncall Analyzer",
-    label: "Claude Code Agent - Oncall Analyzer",
-    manifestKey: "oncall_analyzer",
-    toolName: "run_oncall_analyzer",
     description:
       "Analyze on-call incidents and generate Post Incident Records (PIRs) from observability " +
       "data (PagerDuty, Datadog, Cloudflare, Rollbar). Use when asked to 'analyze oncall issues', " +
@@ -116,5 +116,5 @@ export const AGENTS: AgentDef[] = [
     icon: BellRing,
     scheduleDisplay: "daily 09:00",
     schedule: { type: "calendar", hour: 9, minute: 0 },
-  },
+  }),
 ];
