@@ -180,23 +180,22 @@ node <this-skill>/scripts/slack/slack.js search "<handle>" --days 7 --limit 50 -
 
 ## Environment
 
-Set the following environment variables before running scripts. If the script fails due to missing credentials, read `<this-skill>/references/setup-prompt.md` and follow its instructions to guide the user through setup.
+Tokens are extracted automatically from the Slack desktop app on every run — no manual token management needed. The only requirement is that Slack is installed and you are signed in.
 
-- `SLACK_XOXC_TOKEN` - Client token (xoxc)
-- `SLACK_XOXD_TOKEN` - Session cookie (xoxd)
-- `SLACK_USER_AGENT` - Slack desktop app user agent string
-- `SLACK_WORKSPACE` - Default workspace domain (used automatically if `--workspace` is not passed)
+**`SLACK_WORKSPACE` is required** (or pass `--workspace` on each command). Without it the script cannot determine which workspace to authenticate against and will fail.
+
+- `SLACK_WORKSPACE` - Workspace domain, e.g. `myorg.slack.com` **(required)**
+- `SLACK_XOXC_TOKEN` / `SLACK_XOXD_TOKEN` - Fallback tokens (only needed if auto-extraction fails)
+- `SLACK_USER_AGENT` - Slack desktop app user agent string (optional)
 
 ### Refreshing Tokens
 
-Tokens are extracted automatically from the Slack desktop app (must be signed in):
+Tokens are re-extracted automatically on every command — no explicit refresh step is needed. If you get authentication errors, ensure Slack is running and you are signed in, then retry.
+
+To inspect the extracted values (e.g. for debugging):
 
 ```bash
-node <this-skill>/scripts/slack/extract-tokens.js
-# or for a specific workspace:
 node <this-skill>/scripts/slack/extract-tokens.js myorg.slack.com
 ```
 
-Pass `--workspace myorg.slack.com` to any command to target a specific workspace.
-
-If you get authentication errors, re-run the command above to refresh all three values.
+Pass `--workspace myorg.slack.com` to any command to override the `SLACK_WORKSPACE` env var.

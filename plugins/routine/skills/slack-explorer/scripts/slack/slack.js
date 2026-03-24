@@ -226,9 +226,20 @@ async function main() {
 
   let client;
   try {
-    const workspace = args.options.workspace || process.env.SLACK_WORKSPACE || process.env.ENVATO_SLACK_WORKSPACE;
-    const { xoxc, xoxd } = await extractTokens(workspace);
-    client = new SlackClient({ xoxcToken: xoxc, xoxdToken: xoxd, debug: args.flags.debug });
+    const workspace = args.options.workspace || process.env.SLACK_WORKSPACE;
+    const tokenResult = await extractTokens(workspace);
+    // extractTokens returns an array when no workspace is specified (one entry per signed-in workspace).
+    // Pick the first entry that has a valid xoxc token.
+    const token = Array.isArray(tokenResult)
+      ? tokenResult.find(r => r.xoxc) ?? tokenResult[0]
+      : tokenResult;
+    if (!token?.xoxc || !token?.xoxd) {
+      throw new Error(
+        'Could not extract Slack tokens. Set SLACK_WORKSPACE to your workspace domain (e.g. myorg.slack.com) ' +
+        'or pass --workspace myorg.slack.com.'
+      );
+    }
+    client = new SlackClient({ xoxcToken: token.xoxc, xoxdToken: token.xoxd, debug: args.flags.debug });
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);
