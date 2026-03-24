@@ -1,15 +1,16 @@
 /**
- * Chat API route — Claude Agent SDK + in-process MCP tools → A2A SSE.
+ * Chat API route — Claude Agent SDK + in-process MCP tools → query() sub-agent → A2A SSE.
  *
  * Ports are read from a2a/.ports.json written by `npm run servers`.
  * If the manifest is absent or stale the tools return a helpful message.
  *
  * Flow:
  *   1. Client POST { message }
- *   2. query() (Claude Agent SDK — uses ~/.claude config)
- *   3. 5 in-process MCP tools, each calling its A2A server via sendMessageStream()
- *   4. A2A server spawns the agent .ts script and streams stdout back
- *   5. Results: agent → A2A SSE → MCP tool → Claude → SSE to client
+ *   2. query() — Dove (Claude Agent SDK — uses ~/.claude config)
+ *   3. Dove MCP tool (makeQueryTool) → spawns a query() sub-agent per agent
+ *   4. Sub-agent MCP tool (makeA2ATool) → calls A2A server via sendMessageStream()
+ *   5. A2A server spawns the agent .ts script and streams stdout back
+ *   6. Results: agent → A2A SSE → sub-agent MCP → sub-agent → Dove MCP → Dove → SSE to client
  */
 
 import {
@@ -25,16 +26,17 @@ import type { TextPart } from "@a2a-js/sdk";
 import { readPortsManifest } from "@/a2a/lib/base-server";
 import { randomUUID } from "node:crypto";
 import { AGENTS_ROOT, SCHEDULER_ROOT, SCHEDULER_LOGS, SCHEDULER_STATE } from "@/lib/paths";
+import { LAUNCH_AGENTS_DIR } from "@@/lib/paths";
+import { installAgent, uninstallAgent, loadAgent, unloadAgent, isLoaded, getAgentStatus, getAgentLogs } from "@/lib/launchd";
 import { AGENTS } from "@@/lib/agents";
+import type { AgentDef } from "@@/lib/agents";
+import type { PortsManifest } from "@/a2a/lib/base-server";
 import type { ChatSseEvent } from "@/lib/chat-sse";
 import { z } from "zod";
 
 export const maxDuration = 300; // 5 minutes for long-running agents
 
 // ─── MCP tool factory ──────────────────────────────────────────────────────────
-
-import type { AgentDef } from "@@/lib/agents";
-import type { PortsManifest } from "@/a2a/lib/base-server";
 
 function makeA2ATool(agent: AgentDef) {
   return tool(
@@ -107,12 +109,207 @@ function makeA2ATool(agent: AgentDef) {
   );
 }
 
-// ─── Module-level MCP server ──────────────────────────────────────────────────
+// ─── Sub-agent query() wrapper ────────────────────────────────────────────────
 
-const mcpServer = createSdkMcpServer({
-  name: "agents",
-  tools: AGENTS.map(makeA2ATool),
-});
+/**
+ * Creates a Dove-facing MCP tool that spawns a query() sub-agent for the given agent.
+ * The sub-agent receives its own MCP server containing only the agent's A2A tool,
+ * so it can chat about, inspect, and trigger the agent via the A2A layer.
+ *
+ * abortController is passed through so client disconnect cancels sub-agents too.
+ */
+function makeQueryTool(agent: AgentDef, abortController: AbortController) {
+  const installTool = tool(
+    "install_agent",
+    `Build and install only the ${agent.displayName} agent (scoped tsup build → deploy script → write plist → bootstrap)`,
+    {},
+    async () => {
+      const { loaded } = await installAgent(agent);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: loaded
+              ? `✅ ${agent.displayName} installed and loaded.`
+              : `⚠️ ${agent.displayName} plist written but not loaded — check launchctl.`,
+          },
+        ],
+      };
+    },
+  );
+
+  const uninstallTool = tool(
+    "uninstall_agent",
+    `Unload and delete only the ${agent.displayName} agent plist`,
+    {},
+    async () => {
+      await uninstallAgent(agent);
+      return {
+        content: [{ type: "text" as const, text: `✅ ${agent.displayName} unloaded and plist deleted.` }],
+      };
+    },
+  );
+
+  const loadTool = tool(
+    "load_agent",
+    `Bootstrap (load) the ${agent.displayName} plist into launchd`,
+    {},
+    async () => {
+      await loadAgent(agent);
+      const loaded = await isLoaded(agent.label);
+      return {
+        content: [{ type: "text" as const, text: loaded ? `✅ ${agent.displayName} loaded.` : `⚠️ ${agent.displayName} bootstrap attempted but not showing as loaded.` }],
+      };
+    },
+  );
+
+  const unloadTool = tool(
+    "unload_agent",
+    `Bootout (unload) the ${agent.displayName} from launchd`,
+    {},
+    async () => {
+      await unloadAgent(agent);
+      return {
+        content: [{ type: "text" as const, text: `✅ ${agent.displayName} unloaded.` }],
+      };
+    },
+  );
+
+  const checkStatusTool = tool(
+    "check_status",
+    `Get launchd state, PID, and last exit code for ${agent.displayName}`,
+    {},
+    async () => {
+      const { state, pid, lastExitCode, raw } = await getAgentStatus(agent);
+      const summary = `state=${state ?? "unknown"}  pid=${pid ?? "-"}  last_exit=${lastExitCode ?? "-"}`;
+      return { content: [{ type: "text" as const, text: `${summary}\n\n${raw}` }] };
+    },
+  );
+
+  const getLogsTool = tool(
+    "get_logs",
+    `Read recent log output for ${agent.displayName}`,
+    { lines: z.number().optional().describe("Number of lines to return (default 100)") },
+    async ({ lines }) => {
+      const output = getAgentLogs(agent, lines);
+      return { content: [{ type: "text" as const, text: output }] };
+    },
+  );
+
+  const innerMcpServer = createSdkMcpServer({
+    name: "agents",
+    tools: [makeA2ATool(agent), installTool, uninstallTool, loadTool, unloadTool, checkStatusTool, getLogsTool],
+  });
+
+  const subAgentPrompt = `You are the ${agent.displayName} sub-agent.
+
+${agent.description}
+
+**When asked about this agent, THOROUGHLY explore and explain:**
+- What it does
+- What env vars it needs (required: ${agent.requiredEnvVars.length ? agent.requiredEnvVars.join(", ") : "none"})
+- What inputs it requires
+- What the workflow is
+- When it normally runs: ${agent.scheduleDisplay}
+- Whether it is already loaded in launchd
+- Any other dependencies
+
+**Infer intent before acting — read existing output before running anything:**
+
+This agent produces output (files, logs, state) during its scheduled runs. Before calling the MCP tool, ask yourself: is the user asking about something that has already happened, or do they want to trigger something new?
+
+- References to past or current state ("what did it do", "show me", "tell me about", "what happened", time references like "today's" / "last night's") → look for existing output first; only run if nothing useful is found
+- Explicit action words ("run", "trigger", "kick off", "do it now") → call the MCP tool
+- Genuinely ambiguous? → ask the user to clarify
+
+**Managing this agent (launchd):**
+
+Label: \`${agent.label}\`
+Schedule: ${agent.scheduleDisplay}
+
+You are responsible for installing and uninstalling ONLY yourself (\`${agent.label}\`).
+- Install means: build only YOUR TypeScript entry, then load YOUR plist — do not touch other agents.
+- Uninstall means: unload YOUR plist and delete it only — do not touch other agents.
+- Never install or uninstall any agent other than \`${agent.label}\`.
+
+| Task | Command |
+|---|---|
+| Install (build + load self) | Call the \`install_agent\` MCP tool |
+| Uninstall (unload + delete self) | Call the \`uninstall_agent\` MCP tool |
+| Load | Call the \`load_agent\` MCP tool |
+| Unload | Call the \`unload_agent\` MCP tool |
+| Check status / PID / last exit | Call the \`check_status\` MCP tool |
+| Read logs | Call the \`get_logs\` MCP tool |
+| Show plist content | Read \`~/Library/LaunchAgents/${agent.label}.plist\` using the Read tool |
+
+**Your file boundaries — only access YOUR files, never other agents':**
+
+| Resource | Path |
+|---|---|
+| Plist | \`~/Library/LaunchAgents/${agent.label}.plist\` |
+| Source | \`${AGENTS_ROOT}/src/${agent.name}.ts\` |
+| Logs | \`${SCHEDULER_LOGS}/.${agent.name}/\` |
+| State | \`${SCHEDULER_STATE}/.${agent.name}/\` |
+
+Do NOT read, modify, or reference any files outside these paths.
+
+To run this agent call the \`${agent.toolName}\` MCP tool.`;
+
+  return tool(
+    agent.toolName,
+    agent.description,
+    { instruction: z.string().optional().describe("Optional instruction for the agent") },
+    async ({ instruction = "run" }) => {
+      try {
+        let result = "";
+        for await (const event of query({
+          prompt: instruction,
+          options: {
+            abortController,
+            cwd: AGENTS_ROOT,
+            env: { ...process.env },
+            systemPrompt: {
+              type: "preset",
+              preset: "claude_code",
+              append: subAgentPrompt,
+            },
+            // Expand sub-agent workspace to only this agent's own directories
+            additionalDirectories: [
+              LAUNCH_AGENTS_DIR,
+              `${SCHEDULER_LOGS}/.${agent.name}`,
+              `${SCHEDULER_STATE}/.${agent.name}`,
+            ],
+            allowedTools: [
+              `mcp__agents__${agent.toolName}`,
+              "mcp__agents__install_agent",
+              "mcp__agents__uninstall_agent",
+              "mcp__agents__load_agent",
+              "mcp__agents__unload_agent",
+              "mcp__agents__check_status",
+              "mcp__agents__get_logs",
+            ],
+            mcpServers: { agents: innerMcpServer },
+            permissionMode: "acceptEdits",
+            settingSources: ["project", "user"],
+          },
+        })) {
+          if (event.type === "result" && event.subtype === "success") {
+            result = (event as SDKResultSuccess).result ?? "";
+          }
+        }
+
+        return {
+          content: [{ type: "text" as const, text: result || "Agent completed." }],
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text" as const, text: `Error: ${msg}` }] };
+      }
+    },
+  );
+}
+
+// ─── MCP server is created per-request (inside POST) to capture abortController ─
 
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
@@ -123,24 +320,7 @@ You are a clever, mischievous cat who takes your job very seriously (between nap
 **Your agents (your little mice to herd):**
 ${AGENTS.map((a, i) => `${i + 1}. \`${a.toolName}\` — ${a.description}`).join("\n")}
 
-- When asked about an agent, THOROUGHLY explore and explain 
-    - what it does
-    - what env vars it needs
-    - what inputs it requires
-    - what the workflow is
-    - when it normally runs (launchd schedule)
-    - if it is already loaded in launchd schedule
-    - any other dependencies.
-- When asked to run an agent, call the appropriate tool.
-
-**Infer intent before acting — read existing output before running anything:**
-
-Each agent produces output (files, logs, state) during its scheduled runs. Before calling any agent tool, ask yourself: is the user asking about something that has already happened, or do they want to trigger something new?
-
-Use this heuristic:
-- References to past or current state ("what did X do", "show me", "tell me about", "what happened", time references like "today's" / "last night's") → look for existing output first; only run the agent if nothing useful is found
-- Explicit action words ("run", "trigger", "kick off", "do it now") → call the tool
-- Genuinely ambiguous? → ask the user to clarify rather than guessing. A mistaken agent run wastes time and may have side effects.
+- When asked about an agent OR asked to run one, call the appropriate tool — the sub-agent handles both exploration and execution.
 
 Agents run on dynamically allocated ports discovered from a2a/.ports.json.
 If a tool reports servers are not running, tell the user to run: npm run servers (in agents/chatbot/).
@@ -157,26 +337,18 @@ The \`additionalDirectories\` (installed plists + scheduler scripts) are exposed
 
 After editing any source file in \`${AGENTS_ROOT}/\`, always ask the user: "Do you want me to rebuild and reinstall now? (\`npm run install\`)" — never run it automatically.
 
-**launchd agent management** — use these commands and paths when asked to install, monitor, unload, or delete agents:
+**launchd global management:**
 
-Installed plist location: ~/Library/LaunchAgents/<label>.plist
-Scripts location:         ${SCHEDULER_ROOT}/
-Logs location:            ${SCHEDULER_LOGS}/
+Scripts location: ${SCHEDULER_ROOT}/
+Logs location:    ${SCHEDULER_LOGS}/
 
 | Task | Command |
 |---|---|
 | Install / reinstall all agents | \`cd ${AGENTS_ROOT} && npm run build && npm run install\` |
 | Uninstall all agents | \`cd ${AGENTS_ROOT} && npm run uninstall\` |
-| Load a single agent | \`launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/<label>.plist\` |
-| Unload a single agent | \`launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/<label>.plist\` |
-| Check if an agent is loaded | \`launchctl print gui/$(id -u)/<label>\` |
 | List all loaded agents | \`launchctl list | grep claude\` |
-| View last exit code / PID | \`launchctl print gui/$(id -u)/<label> | grep -E "state|pid|exit"\` |
-| Tail live logs | \`tail -f ${SCHEDULER_LOGS}/.<agent-name>/<agent-name>-*.log\` |
-| Delete a plist file | \`rm ~/Library/LaunchAgents/<label>.plist\` (unload first) |
 
-When showing plist content, read it from ~/Library/LaunchAgents/ using the Read tool.
-When checking agent status, run the launchctl commands above using the Bash tool.
+For per-agent commands (install, uninstall, load, unload, status, tail logs) — call the agent's tool, the sub-agent owns its own lifecycle.
 
 **Scheduler directory rules** (\`${SCHEDULER_ROOT}/\`)**:**
 
@@ -208,6 +380,12 @@ export async function POST(request: Request) {
   const abortController = new AbortController();
   request.signal.addEventListener("abort", () => abortController.abort());
 
+  // Build per-request MCP server so each makeQueryTool closes over this abortController
+  const mcpServer = createSdkMcpServer({
+    name: "agents",
+    tools: AGENTS.map((agent) => makeQueryTool(agent, abortController)),
+  });
+
   const readable = new ReadableStream({
     async start(controller) {
       const send = (payload: ChatSseEvent) => {
@@ -229,7 +407,7 @@ export async function POST(request: Request) {
             cwd: AGENTS_ROOT,
             // Expose the launchd install directory so Claude can inspect
             // installed plist files (written by `npm run install`)
-            additionalDirectories: [`${process.env.HOME}/Library/LaunchAgents`, SCHEDULER_ROOT],
+            additionalDirectories: [LAUNCH_AGENTS_DIR, SCHEDULER_ROOT],
             systemPrompt: {
               type: "preset",
               preset: "claude_code",
