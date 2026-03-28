@@ -1,0 +1,51 @@
+{
+  "name": "meta-prompter-mcp",
+  "version": "0.2.1",
+  "type": "module",
+  "repository": "https://github.com/delexw/claude-code-misc/tree/main/.claude/mcp/meta-prompter",
+  "homepage": "https://github.com/delexw/claude-code-misc",
+  "main": "dist/index.js",
+  "bin": {
+    "meta-prompter-mcp": "./start.js",
+    "meta-prompter": "./start-cli.js"
+  },
+  "keywords": [
+    "meta",
+    "prompter",
+    "mcp"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "cli": "node dist/cli.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix"
+  },
+  "author": "delexw",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "A prompt evaluation tool available as both an MCP server and a CLI.",
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.43",
+    "@ai-sdk/openai": "^3.0.28",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "ai": "^6.0.84",
+    "zod": "^4.0.16"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "@types/eslint__js": "^8.42.3",
+    "@types/node": "^24.2.1",
+    "eslint": "^9.33.0",
+    "jiti": "^2.5.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
